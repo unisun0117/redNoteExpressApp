@@ -23,3 +23,5 @@ yarn-error.log*
 
 # Large files
 *.pptx
+*.pdf
+
