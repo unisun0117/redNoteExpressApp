@@ -20,3 +20,4 @@ Hermes Agent 智能体开发、技能库、框架配置
 每个项目独立安装 OpenSpec，共享 main/master 分支的全局 superpower
 - openspec/fullstack-blog
 - openspec/kitchen-timer
+- openspec/redNoteExpress
