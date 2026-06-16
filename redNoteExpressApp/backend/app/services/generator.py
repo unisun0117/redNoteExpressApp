@@ -24,7 +24,10 @@ TRACK_PROMPTS = {
 
 class ArticleGenerator:
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        self.client = AsyncOpenAI(
+            api_key=settings.OPENAI_API_KEY,
+            base_url=settings.LLM_BASE_URL,
+        )
 
     async def generate(
         self,

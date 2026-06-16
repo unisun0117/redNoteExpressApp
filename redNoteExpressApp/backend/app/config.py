@@ -11,7 +11,8 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
     LLM_PROVIDER: str = "openai"
-    LLM_MODEL: str = "gpt-4o"
+    LLM_MODEL: str = "deepseek-chat"
+    LLM_BASE_URL: str = "https://api.deepseek.com"
     VISION_MODEL: str = "gpt-4o"
     FREE_CREDITS: int = 10
     FREE_RATE_LIMIT: str = "10/hour"
