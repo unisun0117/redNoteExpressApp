@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     WECHAT_APP_ID: str = ""
     WECHAT_APP_SECRET: str = ""
     REDIS_URL: str = "redis://localhost:6379/0"
+    ALLOWED_ORIGINS: str = "http://localhost:5173"
 
     class Config:
         env_file = ".env"

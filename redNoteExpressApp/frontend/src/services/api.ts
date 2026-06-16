@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:8000/api";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
 let accessToken: string | null = localStorage.getItem("access_token");
 let refreshToken: string | null = localStorage.getItem("refresh_token");
