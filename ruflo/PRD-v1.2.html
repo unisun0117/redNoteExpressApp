@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生鲜 B2B 商城 PRD v1.2</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:#2c3e50;line-height:1.7;padding:0}
+/* Nav */
+.toc-nav{position:fixed;left:0;top:0;width:240px;height:100vh;background:#fff;border-right:1px solid #e8e8e8;overflow-y:auto;padding:20px 0;z-index:10;font-size:13px}
+.toc-nav h3{padding:0 20px;font-size:14px;margin-bottom:8px;color:#1677ff}
+.toc-nav a{display:block;padding:4px 20px;color:#555;text-decoration:none;border-left:2px solid transparent}
+.toc-nav a:hover,.toc-nav a.active{color:#1677ff;border-left-color:#1677ff;background:#e6f4ff}
+.toc-nav .sub{padding-left:36px;font-size:12px;color:#888}
+/* Main */
+main{margin-left:240px;padding:32px 40px;max-width:1100px}
+h1{font-size:1.8em;margin-bottom:8px}
+h2{font-size:1.3em;margin:40px 0 16px;padding-bottom:8px;border-bottom:2px solid #1677ff}
+h3{font-size:1.1em;margin:28px 0 12px;color:#1a1a1a}
+h4{font-size:1em;margin:20px 0 8px;color:#333}
+/* Cards */
+.card{background:#fff;border-radius:8px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.card.warn{background:#fffbe6;border-left:3px solid #fa8c16}
+.card.info{background:#e6f4ff;border-left:3px solid #1677ff}
+.card.danger{background:#fff2f0;border-left:3px solid #f5222d}
+/* Tables */
+table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
+th,td{border:1px solid #e8e8e8;padding:8px 12px;text-align:left}
+th{background:#fafafa;font-weight:600;font-size:12px}
+/* Tags */
+.tag{padding:2px 8px;border-radius:3px;font-size:11px;font-weight:500;white-space:nowrap}
+.tag-blue{background:#e6f4ff;color:#1677ff}
+.tag-green{background:#f6ffed;color:#52c41a}
+.tag-red{background:#fff2f0;color:#f5222d}
+.tag-orange{background:#fff7e6;color:#fa8c16}
+.tag-gray{background:#f5f5f5;color:#999}
+/* Flow */
+.flow-box{background:#fafafa;border:1px solid #e8e8e8;border-radius:6px;padding:16px;font-family:"SF Mono","Consolas",monospace;font-size:12px;line-height:2;white-space:pre;overflow-x:auto}
+/* State machine */
+.sm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin:10px 0}
+.sm-node{padding:10px 14px;border-radius:6px;border:1px solid #e8e8e8;background:#fafafa;text-align:center;font-size:13px}
+.sm-node.current{border-color:#1677ff;background:#e6f4ff;font-weight:600}
+.sm-node .arrow{color:#999;font-size:11px}
+/* Rule list */
+.rule-list{list-style:none;padding:0}
+.rule-list li{padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:13px}
+.rule-list li:before{content:"▸ ";color:#1677ff}
+.rule-list li:last-child{border-bottom:none}
+/* 2-col */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+/* Phone mockup */
+.phone{width:340px;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12),0 0 0 2px #333,0 0 0 5px #444,0 0 0 6px #333;margin:16px auto}
+.phone-top{height:40px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:11px;font-weight:600}
+.phone-nav{height:42px;display:flex;align-items:center;padding:0 14px;font-size:15px;font-weight:600;border-bottom:1px solid #f0f0f0}
+.phone-nav .back{font-size:20px;margin-right:8px;color:#333}
+.phone-nav .title{flex:1;text-align:center}
+.phone-body{background:#f7f8fa;min-height:400px}
+.phone-tabs{display:flex;gap:0;overflow-x:auto;background:#fff;padding:0 4px;border-bottom:1px solid #f0f0f0;font-size:11px}
+.phone-tabs span{padding:8px 10px;white-space:nowrap;color:#666}
+.phone-tabs span.on{color:#1677ff;font-weight:600;border-bottom:2px solid #1677ff}
+/* Figma-like preview */
+.preview-label{text-align:center;font-size:11px;color:#999;margin:16px 0 4px;font-weight:500}
+/* Desktop mockup */
+.desktop{background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);margin:12px 0}
+.desktop-top{background:#001529;color:#fff;padding:0 20px;height:48px;display:flex;align-items:center;font-size:15px;font-weight:600}
+.desktop-body{display:flex;min-height:350px}
+.desktop-side{width:180px;background:#fafafa;border-right:1px solid #f0f0f0;padding:8px 0;font-size:12px}
+.desktop-side .mi{padding:7px 16px;color:#555;cursor:pointer}
+.desktop-side .mi.on{color:#1677ff;background:#e6f4ff;border-right:2px solid #1677ff}
+.desktop-main{flex:1;padding:16px;background:#f7f8fa}
+.desktop-main .crumb{font-size:11px;color:#999;margin-bottom:12px}
+/* Components */
+.btn{padding:6px 16px;border-radius:4px;border:1px solid #d9d9d9;background:#fff;font-size:12px;cursor:pointer}
+.btn.pri{background:#1677ff;color:#fff;border-color:#1677ff}
+.btn.dan{background:#f5222d;color:#fff;border-color:#f5222d}
+.inp{padding:6px 10px;border:1px solid #d9d9d9;border-radius:4px;font-size:12px}
+.sel{padding:6px 10px;border:1px solid #d9d9d9;border-radius:4px;font-size:12px;background:#fff}
+.badge{display:inline-block;min-width:18px;height:18px;line-height:18px;border-radius:9px;background:#f5222d;color:#fff;font-size:10px;text-align:center;padding:0 5px}
+.flex{display:flex}.gap8{gap:8px}.gap12{gap:12px}.wrap{flex-wrap:wrap}.between{justify-content:space-between}.center{align-items:center}
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}
+.f12{font-size:12px}.f13{font-size:13px}.f14{font-size:14px}.fw6{font-weight:600}
+.c-red{color:#f5222d}.c-green{color:#52c41a}.c-blue{color:#1677ff}.c-gray{color:#999}
+pre.code{background:#f6f8fa;border:1px solid #e8e8e8;border-radius:4px;padding:12px;font-size:12px;overflow-x:auto;line-height:1.8}
+@media(max-width:900px){.toc-nav{display:none}main{margin-left:0;padding:16px}.g2,.g3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav class="toc-nav">
+  <h3>📋 PRD v1.2 目录</h3>
+  <a href="#s0">0. 全局业务规则</a>
+  <a href="#s1">1. 订单状态机</a>
+  <a href="#s2">2. 支付与额度引擎</a>
+  <a href="#s3">3. 小程序 - 登录</a>
+  <a href="#s4">4. 小程序 - 首页</a>
+  <a href="#s5">5. 小程序 - 分类列表</a>
+  <a href="#s6">6. 小程序 - 商品详情</a>
+  <a href="#s7">7. 小程序 - 购物车</a>
+  <a href="#s8">8. 小程序 - 订单确认</a>
+  <a href="#s9">9. 小程序 - 订单详情</a>
+  <a href="#s10">10. 小程序 - 订单列表</a>
+  <a href="#s11">11. 小程序 - 退货申请</a>
+  <a href="#s12">12. 后台 - 订单管理</a>
+  <a href="#s13">13. 后台 - 分拣操作</a>
+  <a href="#s14">14. 后台 - 退货审核</a>
+  <a href="#s15">15. 后台 - 商品管理</a>
+  <a href="#s16">16. 后台 - 客户管理</a>
+  <a href="#s17">17. 后台 - 权限管理</a>
+  <a href="#s18">18. BD H5</a>
+</nav>
+
+<main>
+
+<h1>🥬 生鲜 B2B 商城 PRD v1.2</h1>
+<p class="c-gray f13">完整 PRD：视觉稿 + 交互规则 + 业务逻辑 + 状态机 + 异常处理 &nbsp;|&nbsp; 配合 <a href="./SPEC-v1.0.md">SPEC v1.1</a></p>
+
+<!-- ======================== SECTION 0: GLOBAL RULES ======================== -->
+<h2 id="s0">0. 全局业务规则</h2>
+
+<div class="g2">
+  <div class="card">
+    <h4>⏰ 截单机制</h4>
+    <ul class="rule-list">
+      <li>截单时间：每日 <b>22:00:00</b></li>
+      <li>22:00 前下单 → 状态"已创建"，可退款</li>
+      <li>22:00 系统定时任务 → 所有"已创建"订单 → "已锁定"</li>
+      <li>已锁定后不可退款，进入供应链流程</li>
+      <li>次日 00:00 起为新的下单日</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h4>📦 供应链时序</h4>
+    <ul class="rule-list">
+      <li>22:00 截单 → 系统汇总订单 → 通知各供应商</li>
+      <li>供应商送货到中央仓 → 仓库分拣称重</li>
+      <li>自有冷链物流凌晨取货 → 6:00-7:00 配送到客户冰箱</li>
+      <li>配送员拍照签收 → TMS回传POD</li>
+      <li><b>全程当日达，无在途损耗</b></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h4>🔢 偏差规则</h4>
+    <ul class="rule-list">
+      <li>生鲜商品出库重量与订购量允许微量偏差</li>
+      <li>客户已知晓并接受此规则</li>
+      <li>偏差不做百分比限制，如实记录</li>
+      <li>差异金额通过退款/待收款处理</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h4>👥 企业与用户</h4>
+    <ul class="rule-list">
+      <li>一个企业(Customer) 可有多名采购员(User)</li>
+      <li>采购员账号由后台/BD创建，不支持自主注册</li>
+      <li>登录：微信授权 + 手机号绑定</li>
+      <li>收货地址BD录入时确定（含GPS坐标），不可修改</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ======================== SECTION 1: ORDER STATE MACHINE ======================== -->
+<h2 id="s1">1. 订单状态机</h2>
+
+<div class="card">
+  <h3>1.1 完整状态流转</h3>
+  <div class="flow-box">
+┌──────────┐  采购员提交   ┌──────────┐  22:00系统    ┌──────────┐  供应商到仓   ┌──────────┐
+│   (无)    │ ──────────→ │ 已创建    │ ──────────→ │ 已锁定    │ ──────────→ │ 分拣中    │
+└──────────┘             └──────────┘             └──────────┘             └──────────┘
+                              │ 截单前                                             │
+                              │ 可退款                                             │ 称重填实发量
+                              ↓                                                    ↓
+                         已取消(退款)                                         ┌──────────┐
+                                                                             │ 已分拣    │
+   ┌──────────┐  TMS签收回传  ┌──────────┐  TMS回传取货  ┌──────────┐        └──────────┘
+   │ 已完成    │ ←────────── │ 已签收    │ ←────────── │ 配送中    │ ←──────────┘
+   └──────────┘             └──────────┘             └──────────┘  推送TMS
+        ↑                         │
+        └─── 退货处理完成 ─────────┤
+                                  │ 采购员申请售后
+                                  ↓
+                            ┌──────────┐
+                            │ 退货处理中  │
+                            └──────────┘
+  </div>
+</div>
+
+<div class="g3">
+  <div class="card"><h4>已创建</h4><p class="f12 c-gray">采购员提交订单。微信支付已扣款/月结已通过校验。截单前(22:00前)可退款。</p><p class="f12 mt8"><b>→</b> 已锁定(22:00) | 已取消(主动退款)</p></div>
+  <div class="card"><h4>已锁定</h4><p class="f12 c-gray">22:00截单后自动变更。不可退款。系统汇总通知供应商。</p><p class="f12 mt8"><b>→</b> 分拣中(供应商到仓)</p></div>
+  <div class="card"><h4>分拣中</h4><p class="f12 c-gray">供应商已送货到仓，仓库人员逐项称重填入实发量。差异自动计算。</p><p class="f12 mt8"><b>→</b> 已分拣(确认分拣)</p></div>
+  <div class="card"><h4>已分拣</h4><p class="f12 c-gray">分拣完成，实发金额锁定。等待推送TMS创建配送任务。</p><p class="f12 mt8"><b>→</b> 配送中(推送TMS)</p></div>
+  <div class="card"><h4>配送中</h4><p class="f12 c-gray">自有物流取货配送中。TMS回传GPS(仅BD可见)。小程序显示物流信息+预计送达。</p><p class="f12 mt8"><b>→</b> 已签收(TMS回传POD)</p></div>
+  <div class="card"><h4>已签收</h4><p class="f12 c-gray">客户签收确认。结算量=实发量(无在途损耗)。月结:正式扣减额度。微信:差异退款/生成待收款。</p><p class="f12 mt8"><b>→</b> 已完成(无异议) | 退货处理中(申请售后)</p></div>
+  <div class="card"><h4>已完成</h4><p class="f12 c-gray">订单锁定不可修改。所有金额已清算。月结金额计入对账单。</p><p class="f12 mt8"><b>→</b> 终态</p></div>
+  <div class="card"><h4>退货处理中</h4><p class="f12 c-gray">采购员申请售后，运营审核中。含退货退款和仅退款两种子路径。</p><p class="f12 mt8"><b>→</b> 已完成(退款处理完毕)</p></div>
+  <div class="card"><h4>已取消</h4><p class="f12 c-gray">截单前采购员主动退款。微信原路退回。月结释放额度校验。</p><p class="f12 mt8"><b>→</b> 终态</p></div>
+</div>
+
+<!-- ======================== SECTION 2: PAYMENT ENGINE ======================== -->
+<h2 id="s2">2. 支付与额度引擎</h2>
+
+<div class="card">
+  <h3>2.1 微信支付全链路</h3>
+  <div class="flow-box">
+下单时：                                    签收后：
+ 订购金额 = ¥232.00                          实发金额 = ¥231.20
+       │                                          │
+       ▼                                          ▼
+ 微信支付扣款 ¥232.00                   ┌─ 实发 < 订购(少0.80) → 原路退回 ¥0.80
+       │                               │
+       │                               └─ 实发 > 订购(多3.50) → 生成待收款 ¥3.50
+       │                                                          │
+       ▼                                                          ▼
+ 订单"已创建"                                            下次下单时 CHECK:
+       │                                              有未清待收款 → 阻断下单
+       │                                              必须先支付待收款
+       ▼
+ 22:00截单 → 供应链 → 分拣 → 配送 → 签收
+  </div>
+  <div class="card warn mt12">
+    <b>⚠️ 待收款逻辑：</b>
+    <ul class="rule-list">
+      <li>实发 > 订购时，差额自动生成一条PendingPayment记录，挂在客户企业名下</li>
+      <li>采购员下次提交订单时，系统校验该企业是否有未清待收款</li>
+      <li>有待收款 → 弹窗提示"您有待收款 ¥X.XX 需先支付"，<b>阻断下单</b>，引导支付</li>
+      <li>待收款支付成功后，方可继续下单</li>
+      <li>待收款也支持微信支付（小程序端支付）</li>
+    </ul>
+  </div>
+</div>
+
+<div class="card">
+  <h3>2.2 月结额度全链路</h3>
+  <div class="flow-box">
+下单时：                                    签收后：
+ CHECK(可用额度 ≥ 订购金额)                    实发金额 = ¥231.20
+       │                                          │
+       ├─ 充足 → 下单成功                           ▼
+       │        仅校验，不扣减                正式扣减额度:
+       │                                    credit_used += ¥231.20
+       └─ 不足 → 阻断下单                    可用额度 = 总额度 - credit_used
+               提示"额度不足，联系BD"
+  </div>
+  <div class="card info mt12">
+    <b>额度计算公式：</b><br>
+    <pre class="code">可用额度 = credit_limit(总额度) - credit_used(已挂账总额)</pre>
+    <b>额度状态阈值：</b>
+    <table>
+      <tr><th>状态</th><th>条件</th><th>行为</th></tr>
+      <tr><td>正常</td><td>可用额度 > 订购金额</td><td>正常下单</td></tr>
+      <tr><td>预警</td><td>已挂账 > 总额度 × 80%</td><td>可下单，BD端显示🟡预警</td></tr>
+      <tr><td>超额</td><td>可用额度 < 订购金额</td><td>阻止下单，提示联系BD</td></tr>
+      <tr><td>冻结</td><td>BD手动冻结</td><td>阻止下单，提示"月结已冻结"</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h3>2.3 支付方式判断</h3>
+  <table>
+    <tr><th>企业月结状态</th><th>可用额度</th><th>采购员可选</th><th>默认</th></tr>
+    <tr><td>已开通 + 正常</td><td>充足</td><td>月结挂账 / 微信支付</td><td>月结挂账</td></tr>
+    <tr><td>已开通 + 正常</td><td>不足</td><td>微信支付（月结置灰+"额度不足"）</td><td>微信支付</td></tr>
+    <tr><td>已开通 + 预警</td><td>充足</td><td>月结挂账 / 微信支付</td><td>月结挂账（+提示）</td></tr>
+    <tr><td>已开通 + 超额</td><td>不足</td><td>微信支付（月结不可选）</td><td>微信支付</td></tr>
+    <tr><td>已开通 + 冻结</td><td>-</td><td>微信支付（月结不可选）</td><td>微信支付</td></tr>
+    <tr><td>未开通</td><td>-</td><td>微信支付</td><td>微信支付</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h3>2.4 退款渠道对应</h3>
+  <table>
+    <tr><th>原支付方式</th><th>退款方式</th><th>触发场景</th></tr>
+    <tr><td>微信支付</td><td>原路退回微信</td><td>截单前退款 / 实发<订购差额 / 退货审核通过</td></tr>
+    <tr><td>月结挂账</td><td>额度冲销(credit_used -= 退款金额)</td><td>截单前退款 / 实发<订购差额 / 退货审核通过</td></tr>
+  </table>
+</div>
+
+<!-- ======================== SECTION 3-11: MINI PROGRAM ======================== -->
+<h2 id="s3">3. 小程序 · 登录页 <span class="tag tag-blue">P0</span></h2>
+
+<div class="g2">
+  <div>
+    <div class="preview-label">UI 视觉稿</div>
+    <div class="phone">
+      <div class="phone-top">9:41</div>
+      <div class="phone-body" style="display:flex;flex-direction:column;align-items:center;padding:60px 28px;background:linear-gradient(180deg,#e6f4ff,#fff 60%);min-height:500px">
+        <div style="font-size:48px;margin-bottom:8px">🥬</div>
+        <div style="font-size:20px;font-weight:700">鲜选 B2B 采购平台</div>
+        <div class="c-gray f12 mb12">新鲜直达 · 每日凌晨配送</div>
+        <div style="width:100%;background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:0 12px;display:flex;align-items:center;margin-bottom:10px"><span class="f14 c-gray">+86</span><span style="margin:0 8px;color:#ddd">|</span><input placeholder="请输入手机号" style="border:none;flex:1;padding:14px 0;font-size:15px;outline:none"></div>
+        <div style="width:100%;background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:0 12px;display:flex;align-items:center;margin-bottom:20px"><input placeholder="验证码" style="border:none;flex:1;padding:14px 0;font-size:15px;outline:none"><button style="background:none;border:none;color:#1677ff;font-size:13px;white-space:nowrap">获取验证码</button></div>
+        <button style="width:100%;background:#1677ff;color:#fff;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:600;margin-bottom:20px">登录 / 注册</button>
+        <div class="c-gray mb12">── 或 ──</div>
+        <button style="width:100%;background:#fff;border:1px solid #e0e0e0;padding:14px;border-radius:8px;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px"><span style="color:#07c160;font-size:20px">💬</span>微信一键授权登录</button>
+        <div class="f11 c-gray" style="margin-top:auto">登录即代表同意《用户协议》</div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="card"><h4>交互规则</h4><ul class="rule-list"><li>手机号输入 11 位后"获取验证码"按钮可点击</li><li>验证码 60s 倒计时</li><li>点击登录 → 后端查手机号 → 存在则登录，不存在则注册（需关联已有企业）</li><li>微信授权后仍需绑定手机号（首次）</li></ul></div>
+    <div class="card"><h4>业务逻辑</h4><ul class="rule-list"><li>新用户注册时，手机号必须在某企业(Customer)的采购员列表中 → 否则提示"请联系BD开通账号"</li><li>一个手机号只能绑定一个微信账号</li><li>登录成功后存储 token，后续请求携带</li></ul></div>
+    <div class="card warn"><h4>异常处理</h4><ul class="rule-list"><li>未绑定企业：提示"您的手机号未关联任何企业，请联系专属BD开通" + BD电话</li><li>验证码错误：提示重新输入，3次错误后锁定 5 分钟</li><li>微信授权失败：提示用户手动输入手机号登录</li></ul></div>
+  </div>
+</div>
+
+<h2 id="s4">4. 小程序 · 首页 <span class="tag tag-blue">P0</span></h2>
+
+<div class="g2">
+  <div>
+    <div class="preview-label">UI 视觉稿</div>
+    <div class="phone">
+      <div class="phone-top">9:41</div>
+      <div class="phone-nav"><span class="f13">📍 深圳南山区</span><span style="margin-left:auto;font-size:18px">🔔</span></div>
+      <div class="phone-body">
+        <div style="margin:10px;background:linear-gradient(135deg,#ff6b35,#f7931e);border-radius:10px;height:120px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700">🥬 全场新鲜直达 · 每日凌晨配送</div>
+        <div style="margin:0 10px 10px;background:#fff;border-radius:20px;padding:10px 14px;display:flex;align-items:center;gap:6px;color:#bbb;font-size:13px;border:1px solid #eee">🔍 搜索商品</div>
+        <div style="background:#fff;padding:10px;margin:0 0 6px"><div class="fw6 f14 mb8">商品分类</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;text-align:center">
+            <div><div style="width:44px;height:44px;border-radius:10px;background:#e8f5e9;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:22px">🥬</div><div class="f10 c-gray">蔬菜</div></div>
+            <div><div style="width:44px;height:44px;border-radius:10px;background:#fff3e0;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:22px">🍎</div><div class="f10 c-gray">水果</div></div>
+            <div><div style="width:44px;height:44px;border-radius:10px;background:#fce4ec;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:22px">🥩</div><div class="f10 c-gray">肉类</div></div>
+            <div><div style="width:44px;height:44px;border-radius:10px;background:#e3f2fd;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:22px">🐟</div><div class="f10 c-gray">水产</div></div>
+            <div><div style="width:44px;height:44px;border-radius:10px;background:#fffde7;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:22px">🥚</div><div class="f10 c-gray">蛋奶</div></div>
+          </div>
+        </div>
+        <div style="padding:12px 10px 4px;font-size:14px;font-weight:600">今日推荐 <span class="f11 c-gray" style="font-weight:400;float:right">查看全部 ›</span></div>
+        <div style="display:flex;gap:8px;padding:0 10px 8px">
+          <div style="flex:1;background:#fff;border-radius:8px;overflow:hidden"><div style="height:100px;background:#fff0f0;display:flex;align-items:center;justify-content:center;font-size:40px">🍅</div><div style="padding:8px"><div class="f12 fw6">新鲜西红柿</div><div class="c-red fw6">¥5.80<span class="f10 c-gray">/斤</span></div></div></div>
+          <div style="flex:1;background:#fff;border-radius:8px;overflow:hidden"><div style="height:100px;background:#fff5f5;display:flex;align-items:center;justify-content:center;font-size:40px">🥩</div><div style="padding:8px"><div class="f12 fw6">猪五花肉</div><div class="c-red fw6">¥32.00<span class="f10 c-gray">/斤</span></div></div></div>
+        </div>
+        <div style="padding:12px 10px 4px;font-size:14px;font-weight:600">热销排行</div>
+        <div style="background:#fff;padding:6px 12px">
+          <div class="flex between f12" style="padding:5px 0;border-bottom:1px solid #f5f5f5"><span>🥇 鸡蛋 30枚/托</span><span class="c-red fw6">¥22.00</span></div>
+          <div class="flex between f12" style="padding:5px 0;border-bottom:1px solid #f5f5f5"><span>🥈 大白菜</span><span class="c-red fw6">¥1.50/斤</span></div>
+          <div class="flex between f12" style="padding:5px 0"><span>🥉 冷冻鸡腿</span><span class="c-red fw6">¥18.00/kg</span></div>
+        </div>
+        <div style="height:10px"></div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="card"><h4>交互规则</h4><ul class="rule-list"><li>Banner 3-5 张，3s 自动轮播，支持手动滑动</li><li>分类入口点击 → 跳转该分类的商品列表（默认展示第一个二级分类）</li><li>搜索框点击 → 跳转搜索页，弹出键盘 + 搜索历史 + 热词</li><li>推荐商品卡片点击 → 商品详情</li><li>热销排行点击 → 商品详情</li></ul></div>
+    <div class="card"><h4>数据来源</h4><ul class="rule-list"><li>Banner：后台配置，支持图片URL + 跳转链接</li><li>今日推荐：后台手动选择商品（最多配20个）</li><li>热销排行：按近30天销量降序，取 TOP 10</li><li>分类入口：读取一级分类列表（后台维护）</li></ul></div>
+    <div class="card"><h4>加载策略</h4><ul class="rule-list"><li>首页数据一次性加载（非分页）</li><li>Banner / 推荐 / 排行 三个接口并行请求</li><li>分类数据可缓存（更新频率低）</li></ul></div>
+  </div>
+</div>
+
+<h2 id="s5">5. 小程序 · 分类商品列表 <span class="tag tag-blue">P0</span></h2>
+
+<div class="g2">
+  <div>
+    <div class="preview-label">UI 视觉稿</div>
+    <div class="phone">
+      <div class="phone-top">9:41</div>
+      <div class="phone-nav"><span class="back">‹</span><span class="title">蔬菜</span><span style="font-size:16px">🔍</span></div>
+      <div class="phone-body">
+        <div style="background:#fff;padding:4px 10px;display:flex;gap:0;overflow-x:auto;border-bottom:1px solid #f0f0f0">
+          <span style="padding:8px 12px;font-size:12px;color:#1677ff;font-weight:600;border-bottom:2px solid #1677ff;white-space:nowrap">叶菜类</span>
+          <span style="padding:8px 12px;font-size:12px;color:#666;white-space:nowrap">根茎类</span>
+          <span style="padding:8px 12px;font-size:12px;color:#666;white-space:nowrap">茄果类</span>
+          <span style="padding:8px 12px;font-size:12px;color:#666;white-space:nowrap">菌菇类</span>
+        </div>
+        <div style="background:#fff;padding:6px 10px;display:flex;align-items:center;gap:6px;font-size:11px;border-bottom:1px solid #f5f5f5">
+          <span class="c-gray">价格</span><input class="inp" placeholder="最低" style="width:50px"><span class="c-gray">-</span><input class="inp" placeholder="最高" style="width:50px">
+          <span class="c-gray" style="margin-left:auto">排序:</span><span class="c-blue fw6">综合</span><span>销量↓</span><span>价格</span>
+        </div>
+        <div style="display:flex;padding:10px;gap:10px;background:#fff;border-bottom:1px solid #f5f5f5">
+          <div style="width:90px;height:90px;background:#f0fff0;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:36px;flex-shrink:0">🥬</div>
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between">
+            <div><div class="f13 fw6">大白菜</div><div class="f10 c-gray">月销 3200单</div></div>
+            <div class="flex between center"><div><span class="c-red fw6" style="font-size:16px">¥1.50</span><span class="f10 c-gray">/斤</span></div><button style="width:24px;height:24px;border-radius:12px;background:#1677ff;color:#fff;border:none;font-size:16px;line-height:1">+</button></div>
+          </div>
+        </div>
+        <div style="display:flex;padding:10px;gap:10px;background:#fff;border-bottom:1px solid #f5f5f5">
+          <div style="width:90px;height:90px;background:#f5fff5;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:36px;flex-shrink:0">🥬</div>
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between">
+            <div><div class="f13 fw6">菠菜</div><div class="f10 c-red">🔴 库存紧张</div></div>
+            <div class="flex between center"><div><span class="c-red fw6" style="font-size:16px">¥4.80</span><span class="f10 c-gray">/斤</span></div><button style="width:24px;height:24px;border-radius:12px;background:#1677ff;color:#fff;border:none;font-size:16px;line-height:1">+</button></div>
+          </div>
+        </div>
+        <div style="text-align:center;padding:14px;color:#999;font-size:11px">── 上拉加载更多 ──</div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="card"><h4>交互规则</h4><ul class="rule-list"><li>二级分类Tab横向滑动，点击切换 → 刷新商品列表</li><li>点击商品 → 商品详情页</li><li>点击"+"按钮 → 加入购物车（取该商品默认SKU，即第一个有库存的SKU），toast"已加入购物车"</li><li>上拉触底 → 加载下一页（每页20条）</li><li>价格筛选输入后点"确认"触发</li></ul></div>
+    <div class="card"><h4>排序逻辑</h4><ul class="rule-list"><li><b>综合</b>：权重 = 销量×0.6 + 库存充足×0.2 + 上架时间×0.2</li><li><b>销量↓</b>：近30天销量降序</li><li><b>价格↑</b>：取默认SKU的价格升序</li><li><b>价格↓</b>：取默认SKU的价格降序</li></ul></div>
+    <div class="card"><h4>筛选逻辑</h4><ul class="rule-list"><li>价格筛选：取商品的最低价SKU价格，落在 [min, max] 区间</li><li>库存紧张：当前商品任一SKU库存 < 阈值(默认10)</li></ul></div>
+  </div>
+</div>
+
+<h2 id="s6">6. 小程序 · 商品详情页 <span class="tag tag-blue">P0</span></h2>
+
+<div class="g2">
+  <div>
+    <div class="preview-label">UI 视觉稿</div>
+    <div class="phone">
+      <div class="phone-top">9:41</div>
+      <div class="phone-nav"><span class="back">‹</span><span class="title">商品详情</span><span>⋯</span></div>
+      <div class="phone-body">
+        <div style="background:linear-gradient(135deg,#fff5f5,#fff0e0);height:240px;display:flex;align-items:center;justify-content:center;font-size:80px">🍅</div>
+        <div style="background:#fff;padding:12px;margin-bottom:6px">
+          <div class="f16 fw6">新鲜西红柿 <span class="tag tag-green f10">现货</span></div>
+          <div class="f11 c-gray mt8">自然成熟 · 沙瓤多汁</div>
+          <div style="font-size:22px;font-weight:700;color:#f5222d;margin-top:6px">¥5.80<span class="f11 c-gray" style="font-weight:400">/斤</span></div>
+          <div class="f10 c-gray">已售 5200单</div>
+        </div>
+        <div style="background:#fff;padding:12px;margin-bottom:6px">
+          <div class="f12 c-gray mb8">规格</div>
+          <div class="flex gap8 wrap">
+            <span style="padding:5px 14px;border:1px solid #d9d9d9;border-radius:16px;font-size:12px">中果(150-200g) ¥5.80</span>
+            <span style="padding:5px 14px;border:1px solid #1677ff;border-radius:16px;font-size:12px;background:#e6f4ff;color:#1677ff">大果(200-250g) ¥7.20</span>
+            <span style="padding:5px 14px;border:1px solid #d9d9d9;border-radius:16px;font-size:12px">小果(100-150g) ¥4.50</span>
+          </div>
+          <div class="f12 c-gray mb8 mt12">包装</div>
+          <div class="flex gap8"><span style="padding:5px 14px;border:1px solid #1677ff;border-radius:16px;font-size:12px;background:#e6f4ff;color:#1677ff">散装</span><span style="padding:5px 14px;border:1px solid #d9d9d9;border-radius:16px;font-size:12px">礼盒装</span></div>
+        </div>
+        <div style="background:#fff;padding:12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
+          <span class="f13">购买数量</span>
+          <div class="flex"><button style="width:28px;height:28px;border:1px solid #d9d9d9;background:#fff;font-size:16px">−</button><span style="width:40px;text-align:center;line-height:28px">10</span><button style="width:28px;height:28px;border:1px solid #d9d9d9;background:#fff;font-size:16px">+</button></div>
+        </div>
+        <button style="display:block;width:calc(100% - 20px);margin:8px 10px;padding:12px;background:#1677ff;color:#fff;border:none;border-radius:22px;font-size:15px;font-weight:600">加入购物车</button>
+        <div style="background:#fff;padding:12px;margin-top:6px"><div class="fw6 f13 mb8">── 商品详情 ──</div><div class="f11 c-gray">产地：山东寿光 · 储存：常温/冷藏 · 产地直发，每日新鲜采摘</div></div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="card"><h4>规格选择逻辑</h4><ul class="rule-list"><li>默认选中第一个"有库存"的规格组合</li><li>选择规格后：价格联动、库存数联动</li><li>某规格组合库存=0 → 对应选项置灰不可选</li><li>如果选中的规格组合库存=0 → 自动回退到有库存的默认组合</li><li>SKU价格：不同规格不同价格，实时切换</li></ul></div>
+    <div class="card"><h4>加入购物车逻辑</h4><ul class="rule-list"><li>点击"加入购物车" → 取当前选中的SKU + 数量 → 写入购物车</li><li>同一SKU在购物车已存在 → <b>数量叠加</b>（SKU级别合并）</li><li>叠加后数量 > 库存 → 限制为库存最大值，toast提示</li><li>加购成功 → toast "已加入购物车" + 购物车角标+1</li><li>不需要选规格也能加购（取默认规格）</li></ul></div>
+    <div class="card"><h4>数量步进器</h4><ul class="rule-list"><li>最小：1</li><li>最大：当前选中SKU的库存数</li><li>达到最大值时"+"按钮置灰</li><li>计价单位按商品SPU的unit字段显示（斤/kg/个/托）</li></ul></div>
+    <div class="card warn"><h4>异常处理</h4><ul class="rule-list"><li>商品已下架：详情页可看但加购按钮置灰+"商品已下架"</li><li>全部规格库存为0：加购按钮置灰+"暂时缺货"</li><li>商品被删除：跳转404提示页</li></ul></div>
+  </div>
+</div>
+
+<h2 id="s7">7. 小程序 · 购物车 <span class="tag tag-blue">P0</span></h2>
+
+<div class="g2">
+  <div>
+    <div class="preview-label">UI 视觉稿</div>
+    <div class="phone">
+      <div class="phone-top">9:41</div>
+      <div class="phone-nav"><span class="title">购物车 (3件)</span><span class="f12 c-gray">管理</span></div>
+      <div class="phone-body">
+        <div style="display:flex;padding:10px;gap:10px;background:#fff;align-items:center;border-bottom:1px solid #f5f5f5">
+          <div style="width:18px;height:18px;border-radius:50%;border:2px solid #1677ff;background:#1677ff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;flex-shrink:0">✓</div>
+          <div style="width:56px;height:56px;background:#fff0f0;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🍅</div>
+          <div style="flex:1"><div class="f12 fw6">新鲜西红柿</div><div class="f10 c-gray">大果 / 散装</div><div class="c-red fw6">¥7.20/斤</div></div>
+          <div class="flex"><button style="width:26px;height:26px;border:1px solid #ddd;background:#fff">−</button><span style="width:36px;text-align:center;line-height:26px;font-size:13px">10</span><button style="width:26px;height:26px;border:1px solid #ddd;background:#fff">+</button></div>
+        </div>
+        <div style="display:flex;padding:10px;gap:10px;background:#fff;align-items:center;border-bottom:1px solid #f5f5f5">
+          <div style="width:18px;height:18px;border-radius:50%;border:2px solid #1677ff;background:#1677ff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;flex-shrink:0">✓</div>
+          <div style="width:56px;height:56px;background:#fff5f5;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🥩</div>
+          <div style="flex:1"><div class="f12 fw6">猪五花肉</div><div class="f10 c-gray">散装</div><div class="c-red fw6">¥32.00/斤</div><div class="f10 c-red">🔴 库存紧张</div></div>
+          <div class="flex"><button style="width:26px;height:26px;border:1px solid #ddd;background:#fff">−</button><span style="width:36px;text-align:center;line-height:26px;font-size:13px">5</span><button style="width:26px;height:26px;border:1px solid #ddd;background:#fff">+</button></div>
+        </div>
+        <div style="display:flex;padding:10px;gap:10px;background:#fff;align-items:center">
+          <div style="width:18px;height:18px;border-radius:50%;border:2px solid #d9d9d9;flex-shrink:0"></div>
+          <div style="width:56px;height:56px;background:#fffde7;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🥚</div>
+          <div style="flex:1"><div class="f12 fw6">散养鸡蛋 30枚/托</div><div class="f10 c-gray">散装</div><div class="c-red fw6">¥22.00/托</div></div>
+          <div class="flex"><button style="width:26px;height:26px;border:1px solid #ddd;background:#fff">−</button><span style="width:36px;text-align:center;line-height:26px;font-size:13px">2</span><button style="width:26px;height:26px;border:1px solid #ddd;background:#fff">+</button></div>
+        </div>
+        <div style="background:#fff;padding:10px;display:flex;align-items:center;gap:8px;border-top:1px solid #eee;margin-top:auto">
+          <div class="flex center gap8"><div style="width:18px;height:18px;border-radius:50%;border:2px solid #1677ff;background:#1677ff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px">✓</div><span class="f12">全选</span></div>
+          <div style="flex:1;text-align:right"><span class="f11 c-gray">合计 </span><span class="c-red" style="font-size:20px;font-weight:700">¥232.00</span></div>
+          <button style="padding:8px 22px;background:#1677ff;color:#fff;border:none;border-radius:20px;font-size:14px;font-weight:600">去结算(2)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="card"><h4>勾选与全选</h4><ul class="rule-list"><li>每个商品行前有勾选圈，点击切换选中/取消</li><li>全选：勾选/取消所有商品</li><li>底部合计只计算<b>选中商品</b>的总金额</li><li>"去结算(N)"显示选中商品数量</li><li>未选中任何商品 → 去结算按钮置灰不可点</li></ul></div>
+    <div class="card"><h4>数量修改</h4><ul class="rule-list"><li>每次 +/- 步进 1</li><li>每次修改实时调后端查当前SKU最新库存</li><li>库存不足：+按钮置灰，toast "库存不足"</li><li>数量减到 0 → 自动从购物车移除该商品</li></ul></div>
+    <div class="card"><h4>去结算校验（顺序执行）</h4><ul class="rule-list"><li>① 所有选中商品库存是否充足 → 不足则toast"XX商品库存不足，请调整"</li><li>② 月结客户：CHECK可用额度 ≥ 选中商品总额 → 不足则阻断"额度不足，请联系BD或切换微信支付"</li><li>③ 待收款：CHECK该企业是否有未清待收款 → 有待收款则弹窗引导支付</li><li>④ 全部通过 → 跳转订单确认页</li></ul></div>
+    <div class="card"><h4>管理模式</h4><ul class="rule-list"><li>点击右上角"管理" → 每行显示删除按钮</li><li>可多选后批量删除</li><li>空购物车：显示空态插图 + "去逛逛"按钮</li></ul></div>
+  </div>
+</div>
+
+<h2 id="s8">8. 小程序 · 订单确认页 <span class="tag tag-red">⭐核心</span></h2>
+
+<div class="g2">
+  <div>
+    <div class="preview-label">UI 视觉稿</div>
+    <div class="phone">
+      <div class="phone-top">9:41</div>
+      <div class="phone-nav"><span class="back">‹</span><span class="title">确认订单</span></div>
+      <div class="phone-body">
+        <div style="background:#fff;margin:10px;border-radius:8px;padding:12px">
+          <div class="f12 c-gray mb4">📍 收货地址</div>
+          <div class="f14 fw6">张三 138****8888</div>
+          <div class="f11 c-gray">深圳市南山区科技园XX栋XX号</div>
+          <div class="flex gap12 mt8 f11"><label><input type="radio" name="t">上午</label><label><input type="radio" name="t">下午</label><label><input type="radio" name="t" checked>不限</label></div>
+        </div>
+        <div style="background:#fff;margin:10px;border-radius:8px;padding:12px">
+          <div class="f12 fw6 mb8">📦 商品明细 (2件)</div>
+          <div class="flex between f12" style="padding:3px 0"><span>西红柿 大果/散装 ×10斤</span><span>¥72.00</span></div>
+          <div class="flex between f12" style="padding:3px 0"><span>猪五花肉 散装 ×5斤</span><span>¥160.00</span></div>
+        </div>
+        <div style="background:#fff;margin:10px;border-radius:8px;padding:12px">
+          <div class="flex between f13"><span>商品合计</span><span class="c-red fw6" style="font-size:18px">¥232.00</span></div>
+        </div>
+        <div style="background:#fffbe6;margin:10px;border-radius:8px;padding:10px;font-size:11px;color:#ad6800">
+          ⚠️ 生鲜商品按实际称重结算。分拣后金额可能有微量调整：差额多退少补（少补金额下次下单前支付）。今日22:00截单，截单前可退款。
+        </div>
+        <div style="background:#fff;margin:10px;border-radius:8px;padding:12px">
+          <div class="fw6 f13 mb8">💳 支付方式</div>
+          <label class="flex center gap8" style="padding:5px 0;font-size:13px"><input type="radio" name="pay" checked> 微信支付（下单即扣款 ¥232.00）</label>
+          <label class="flex center gap8" style="padding:5px 0;font-size:13px;color:#999"><input type="radio" name="pay" disabled> 月结挂账（非月结客户不可用）</label>
+        </div>
+        <div style="background:#fff;margin:10px;border-radius:8px;padding:10px"><textarea placeholder="📝 备注" style="width:100%;border:none;font-size:12px;outline:none;height:36px;resize:none"></textarea></div>
+        <button style="display:block;width:calc(100% - 20px);margin:8px 10px;padding:14px;background:#ff6b35;color:#fff;border:none;border-radius:22px;font-size:16px;font-weight:600">提交订单 · ¥232.00</button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="card"><h4>页面初始化</h4><ul class="rule-list"><li>从购物车传入：选中商品列表 + 数量 + SKU</li><li>收货地址：取该采购员所属企业的默认地址（含GPS坐标）</li><li>地址不可修改，不可新增</li><li>支付方式：根据企业月结状态动态显示（见§2.3 支付方式判断表）</li></ul></div>
+    <div class="card"><h4>金额计算</h4><ul class="rule-list"><li>商品合计 = Σ(SKU价格 × 数量)</li><li>下单金额 = 商品合计（无运费、无优惠）</li><li>下方提示中的"差额多退少补"不是本次操作，仅告知</li></ul></div>
+    <div class="card"><h4>提交订单逻辑（完整）</h4><ol style="font-size:12px;padding-left:16px;line-height:2.2">
+      <li>再次校验库存（防止下单途中库存变化）</li>
+      <li><b>微信支付</b>：调用微信支付SDK → 扣款 ¥232.00 → 成功 → 创建订单 → 状态"已创建"</li>
+      <li><b>月结挂账</b>：不扣款，仅校验额度 → 创建订单 → 状态"已创建"</li>
+      <li>下单成功后清空购物车中已下单的商品</li>
+      <li>跳转订单详情页，toast"下单成功"</li>
+      <li>记录下单时间戳</li>
+    </ol></div>
+    <div class="card warn"><h4>异常处理</h4><ul class="rule-list"><li>微信支付失败：订单不创建，提示"支付失败，请重试"</li><li>下单途中库存售罄：提示"XX商品已售罄，请返回购物车调整"</li><li>额度校验失败：提示"可用额度不足（可用¥XX，需¥XX），请切换微信支付或联系BD"</li><li>有待收款未清：弹窗"您有待收款 ¥X.XX 需先支付"→ 引导支付 → 支付成功后方可继续下单</li></ul></div>
+  </div>
+</div>
+
+<h2 id="s9">9. 小程序 · 订单详情页 <span class="tag tag-red">⭐核心</span></h2>
+
+<div class="g2">
+  <div>
+    <div class="preview-label">UI 视觉稿（配送中状态）</div>
+    <div class="phone">
+      <div class="phone-top">9:41</div>
+      <div class="phone-nav"><span class="back">‹</span><span class="title">订单详情</span></div>
+      <div class="phone-body">
+        <div style="background:#fff;padding:12px;margin-bottom:6px">
+          <div class="f11 c-gray">订单号：2026061700123</div>
+          <div class="mt4"><span class="tag tag-blue">🚚 配送中</span></div>
+        </div>
+        <div style="background:#fff;padding:12px;margin-bottom:6px">
+          <div class="fw6 f13 mb8">📊 订购 vs 实发</div>
+          <table style="width:100%;font-size:11px;border-collapse:collapse"><tr style="background:#fafafa"><th style="padding:6px">商品</th><th>订购</th><th>实发</th><th>差</th></tr>
+          <tr><td style="padding:6px">西红柿 大果</td><td>10斤</td><td>9.8斤</td><td class="c-green">-0.2</td></tr>
+          <tr><td style="padding:6px">猪五花肉</td><td>5斤</td><td>5.2斤</td><td class="c-red">+0.2</td></tr></table>
+          <div class="flex between mt8 f12" style="border-top:1px solid #f0f0f0;padding-top:8px"><span>订购 <span class="c-gray" style="text-decoration:line-through">¥232.00</span></span><span>实发 <span class="c-red fw6" style="font-size:16px">¥231.20</span></span></div>
+          <div class="c-green f10" style="text-align:right">差额 -¥0.80（已退款）</div>
+        </div>
+        <div style="background:#fff;padding:12px;margin-bottom:6px"><div class="f11 c-gray">📍 收货人</div><div class="f13">张三 138****8888</div><div class="f11 c-gray">南山区科技园XX栋</div></div>
+        <div style="background:#fff;padding:12px;margin-bottom:6px">
+          <div class="fw6 f12 mb6">🚚 物流信息</div>
+          <div class="f11 c-gray" style="line-height:2">
+            <div class="c-green">● 分拣完成 06-17 04:30</div>
+            <div class="c-green">● 司机取货 06-17 05:15</div>
+            <div class="c-blue fw6">● 配送中 06-17 05:30</div>
+            <div>○ 预计送达 06-17 06:30</div>
+          </div>
+          <div class="f11 c-gray mt8">司机：李师傅 138****9999</div>
+        </div>
+        <div style="background:#fff;padding:12px;margin-bottom:6px"><div class="flex between f12"><span class="c-gray">支付方式</span><span>微信支付</span></div><div class="flex between f12"><span class="c-gray">实付金额</span><span class="c-red fw6">¥231.20</span></div></div>
+        <div style="background:#fff;padding:12px;margin-bottom:6px"><div class="fw6 f12 mb6">⏱ 时间线</div><div class="f10 c-gray" style="line-height:2.2"><div>下单：06-17 08:02</div><div>截单：06-17 22:00</div><div>分拣完成：06-17 04:30</div><div>发货：06-17 05:30</div></div></div>
+        <div class="flex gap8" style="padding:10px"><button style="flex:1;padding:10px;background:#1677ff;color:#fff;border:none;border-radius:20px;font-size:14px;font-weight:600">确认签收</button><button style="flex:1;padding:10px;background:#fff;border:1px solid #d9d9d9;border-radius:20px;font-size:13px">申请售后</button></div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="card"><h4>按状态动态显示</h4><table><tr><th>订单状态</th><th>显示内容</th><th>可操作按钮</th></tr>
+      <tr><td>已创建</td><td>商品明细 + 订购金额 + 截单倒计时</td><td>申请退款(截单前)</td></tr>
+      <tr><td>已锁定</td><td>商品明细 + "已截单，正在备货"</td><td>-</td></tr>
+      <tr><td>分拣中</td><td>"仓库正在分拣称重中"</td><td>-</td></tr>
+      <tr><td>已分拣</td><td>订购vs实发对比 + 实发金额</td><td>-</td></tr>
+      <tr><td>配送中</td><td>对比表 + 物流信息 + 司机</td><td>确认签收</td></tr>
+      <tr><td>已签收</td><td>对比表(三栏) + 结算金额</td><td>申请售后</td></tr>
+      <tr><td>已完成</td><td>最终结算信息 + 退款/待收款记录</td><td>再次购买</td></tr>
+      <tr><td>退货处理中</td><td>退货进度</td><td>-</td></tr>
+      <tr><td>已取消</td><td>退款信息</td><td>-</td></tr></table></div>
+    <div class="card"><h4>订购vs实发 对比表</h4><ul class="rule-list"><li>仅在状态 ≥ "已分拣"时显示</li><li>计算每行差异：实发量 - 订购量</li><li>差异 < 0：绿色（退款）</li><li>差异 > 0：红色（待收款）</li><li>差额金额 = 差异 × SKU价格</li><li>实发金额 = 订购金额 + 差额合计</li></ul></div>
+    <div class="card"><h4>确认签收</h4><ul class="rule-list"><li>点击弹出签收确认弹窗</li><li>列出每件商品实发量，采购员确认</li><li>正常签收：确认 → 状态→已签收 → 触发结算</li><li>有问题：点击"申请售后"→ 跳转退货申请页</li><li>签收后不可撤销</li></ul></div>
+  </div>
+</div>
+
+<h2 id="s10">10. 小程序 · 订单列表 <span class="tag tag-green">P1</span></h2>
+
+<div class="g2">
+  <div>
+    <div class="preview-label">UI 视觉稿</div>
+    <div class="phone">
+      <div class="phone-top">9:41</div>
+      <div class="phone-nav"><span class="title">我的订单</span></div>
+      <div class="phone-body">
+        <div class="phone-tabs"><span class="on">全部</span><span>已创建</span><span>已锁定</span><span>已分拣</span><span>配送中</span><span>已完成</span></div>
+        <div style="background:#fff;margin:10px;border-radius:8px;padding:12px">
+          <div class="flex between center mb6"><span class="f11 c-gray">2026061700123</span><span class="tag tag-blue f10">配送中</span></div>
+          <div class="f11 c-gray">西红柿 大果×9.8斤 | 猪五花×5.2斤</div>
+          <div class="f11 mt4">共2件 · 实发 <span class="c-red fw6">¥231.20</span></div>
+          <div class="flex gap8 mt8" style="justify-content:flex-end"><button class="btn f11">查看详情</button><button class="btn pri f11">确认签收</button></div>
+        </div>
+        <div style="background:#fff;margin:10px;border-radius:8px;padding:12px">
+          <div class="flex between center mb6"><span class="f11 c-gray">2026061600098</span><span class="tag tag-green f10">已完成</span></div>
+          <div class="f11 c-gray">鸡蛋 30枚×4托 | 大白菜×19.5斤</div>
+          <div class="f11 mt4">共2件 · 结算 <span class="c-red fw6">¥108.00</span></div>
+          <div class="flex gap8 mt8" style="justify-content:flex-end"><button class="btn f11">查看详情</button><button class="btn pri f11">再次购买</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="card"><h4>列表规则</h4><ul class="rule-list"><li>按状态Tab筛选，默认"全部"</li><li>每个Tab显示数量角标</li><li>排序：按下单时间倒序（最新的在前）</li><li>分页：每页15条，下拉加载更多</li><li>订单卡片显示：订单号、状态、商品摘要（取前2个商品名+实发量）、件数、金额</li></ul></div>
+    <div class="card"><h4>操作按钮按状态</h4><table><tr><th>状态</th><th>按钮</th></tr><tr><td>已创建</td><td>查看详情 / 申请退款</td></tr><tr><td>已锁定</td><td>查看详情</td></tr><tr><td>分拣中</td><td>查看详情</td></tr><tr><td>已分拣</td><td>查看详情</td></tr><tr><td>配送中</td><td>查看详情 / 确认签收</td></tr><tr><td>已签收</td><td>查看详情 / 申请售后</td></tr><tr><td>已完成</td><td>查看详情 / 再次购买</td></tr></table></div>
+    <div class="card"><h4>"再次购买"逻辑</h4><ul class="rule-list"><li>将订单中的商品(SKU+数量)重新加入购物车</li><li>已下架SKU跳过并提示</li><li>库存不足的SKU取最大可用库存</li><li>全部加购完成后跳转购物车</li></ul></div>
+  </div>
+</div>
+
+<h2 id="s11">11. 小程序 · 退货申请 <span class="tag tag-blue">P0</span></h2>
+
+<div class="g2">
+  <div>
+    <div class="preview-label">UI 视觉稿</div>
+    <div class="phone">
+      <div class="phone-top">9:41</div>
+      <div class="phone-nav"><span class="back">‹</span><span class="title">申请售后</span></div>
+      <div class="phone-body">
+        <div style="background:#fff;padding:12px;margin:10px;border-radius:8px"><div class="f11 c-gray">关联订单：2026061600098</div><div class="f13 mt4">鸡蛋 30枚/托 ×4托</div></div>
+        <div style="background:#fff;padding:12px;margin:10px;border-radius:8px">
+          <div class="fw6 f13 mb8">退货原因 *</div>
+          <div class="flex gap8 wrap">
+            <span style="padding:5px 14px;border:1px solid #1677ff;border-radius:16px;font-size:12px;background:#e6f4ff;color:#1677ff">质量问题</span>
+            <span style="padding:5px 14px;border:1px solid #d9d9d9;border-radius:16px;font-size:12px">数量不足</span>
+            <span style="padding:5px 14px;border:1px solid #d9d9d9;border-radius:16px;font-size:12px">规格不符</span>
+            <span style="padding:5px 14px;border:1px solid #d9d9d9;border-radius:16px;font-size:12px">其他</span>
+          </div>
+        </div>
+        <div style="background:#fff;padding:12px;margin:10px;border-radius:8px">
+          <div class="fw6 f13 mb8">问题描述 *</div><textarea placeholder="请详细描述遇到的问题..." style="width:100%;border:1px solid #e0e0e0;border-radius:6px;padding:8px;font-size:12px;height:70px;resize:none"></textarea>
+        </div>
+        <div style="background:#fff;padding:12px;margin:10px;border-radius:8px">
+          <div class="fw6 f13 mb8">上传凭证 *</div>
+          <div class="flex gap8"><div style="width:64px;height:64px;border:1px dashed #d9d9d9;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#bbb">+</div><div style="width:64px;height:64px;border:1px dashed #d9d9d9;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#bbb">+</div></div>
+          <div class="f10 c-gray mt4">最多9张，支持拍照或相册</div>
+        </div>
+        <button style="display:block;width:calc(100% - 20px);margin:8px 10px;padding:12px;background:#ff6b35;color:#fff;border:none;border-radius:20px;font-size:15px;font-weight:600">提交申请</button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="card"><h4>退货类型</h4><ul class="rule-list"><li><b>质量问题</b>：腐烂、损坏、变质、不新鲜</li><li><b>数量不足</b>：实发量明显少于订购量（超过正常偏差范围）</li><li><b>规格不符</b>：发的商品规格与订单不一致</li><li><b>其他</b>：需详细文字说明</li></ul></div>
+    <div class="card"><h4>提交流程</h4><ul class="rule-list"><li>必须选择退货原因（四选一）</li><li>必须上传至少1张照片（最多9张）</li><li>提交 → 生成ReturnOrder → 状态"待审核"</li><li>关联原订单，运营在后台审核</li></ul></div>
+    <div class="card"><h4>图片上传</h4><ul class="rule-list"><li>支持拍照 / 从相册选择</li><li>上传到OSS，返回URL存入数据库</li><li>单张最大10MB，超过压缩后再上传</li></ul></div>
+    <div class="card warn"><h4>约束</h4><ul class="rule-list"><li>仅"已签收"和"已完成"状态的订单可申请售后</li><li>同一订单不可重复申请（已有进行中的退货单时提示"已有售后在处理中"）</li></ul></div>
+  </div>
+</div>
+
+<!-- ======================== SECTION 12-17: BACKEND ======================== -->
+<h2 id="s12">12. 后台 · 订单管理列表 <span class="tag tag-orange">P0</span></h2>
+
+<div class="g2">
+  <div>
+    <div class="preview-label">UI 视觉稿</div>
+    <div class="desktop">
+      <div class="desktop-top">🥬 鲜选后台 &nbsp; <span style="font-size:12px;font-weight:400;opacity:.7">订单管理 / 商品管理 / 客户管理 / 系统管理</span></div>
+      <div class="desktop-body">
+        <div class="desktop-side"><div class="mi on">● 订单列表</div><div class="mi">● 退货审核</div><div style="padding:8px 16px;font-size:10px;color:#999">商品</div><div class="mi">● 商品列表</div><div class="mi">● 分类管理</div></div>
+        <div class="desktop-main">
+          <div class="crumb">🏠 首页 > 订单管理</div>
+          <div class="flex gap8 wrap mb8"><select class="sel"><option>订单状态 ▼</option></select><select class="sel"><option>下单时间 ▼</option></select><select class="sel"><option>客户企业 ▼</option></select><input class="inp" placeholder="订单号搜索"><button class="btn pri">搜索</button><button class="btn">导出</button></div>
+          <div class="flex gap0 mb8 f12" style="background:#fff;border-radius:4px;padding:4px"><span style="padding:4px 10px;border-radius:3px">全部 <b>128</b></span><span style="padding:4px 10px;border-radius:3px;background:#1677ff;color:#fff">已创建 <b>45</b></span><span style="padding:4px 10px">已锁定 <b>12</b></span><span style="padding:4px 10px">分拣中 <b>8</b></span><span style="padding:4px 10px">已分拣 <b>10</b></span><span style="padding:4px 10px">配送中 <b>23</b></span><span style="padding:4px 10px">已签收 <b>20</b></span><span style="padding:4px 10px">已完成 <b>10</b></span><span style="padding:4px 10px">退货中 <b>3</b></span></div>
+          <table style="width:100%;font-size:12px;background:#fff;border-collapse:collapse"><tr style="background:#fafafa"><th style="padding:8px">订单号</th><th>客户</th><th>件数</th><th>订购金额</th><th>下单时间</th><th>支付</th><th>状态</th><th>操作</th></tr>
+          <tr><td style="color:#1677ff;padding:8px">2026061700123</td><td>深圳XX餐饮</td><td>3</td><td>¥262.00</td><td>06-17 07:02</td><td><span class="tag tag-blue">月结</span></td><td><span class="tag tag-blue">已创建</span></td><td><button class="btn f10">详情</button></td></tr>
+          <tr style="background:#fffbe6"><td style="color:#1677ff;padding:8px">2026061700122</td><td>广州XX食堂 <span class="tag tag-orange">🟡缺货</span></td><td>5</td><td>¥580.00</td><td>06-17 06:30</td><td><span class="tag tag-green">微信</span></td><td><span class="tag tag-blue">已创建</span></td><td><button class="btn f10">详情</button></td></tr></table>
+          <div class="f11 c-gray" style="text-align:right;margin-top:8px">共128条 &lt; 1 2 3 ... 13 &gt;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="card"><h4>筛选规则</h4><ul class="rule-list"><li>支持按：订单状态、下单时间范围、客户企业、订单号搜索</li><li>状态Tab点击切换，显示每个状态的订单数量</li><li>"缺货标记"：系统检查订单商品库存，如有SKU库存=0则自动打标</li></ul></div>
+    <div class="card"><h4>列表排序</h4><ul class="rule-list"><li>默认排序：按状态优先级 + 下单时间倒序</li><li>状态优先级：已创建 > 分拣中 > 已分拣 > 配送中 > 已签收 > 已完成</li><li>同一优先级内按下单时间升序（早下单的优先处理）</li></ul></div>
+    <div class="card"><h4>操作入口</h4><ul class="rule-list"><li><b>已创建/已锁定</b>：详情</li><li><b>分拣中</b>：继续分拣 / 详情</li><li><b>已分拣</b>：创建TMS运单 / 详情</li><li><b>配送中</b>：查看物流 / 详情</li><li><b>已签收/已完成</b>：详情</li><li><b>退货中</b>：审核 / 详情</li></ul></div>
+  </div>
+</div>
+
+<h2 id="s13">13. 后台 · 分拣操作页 <span class="tag tag-red">⭐生鲜核心</span></h2>
+
+<div class="g2">
+  <div>
+    <div class="preview-label">UI 视觉稿</div>
+    <div class="desktop">
+      <div class="desktop-top">🥬 分拣操作 · 订单 2026061700123 · 深圳XX餐饮</div>
+      <div class="desktop-main">
+        <div style="background:#fff;border-radius:6px;padding:12px;margin-bottom:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+          <div><span class="c-gray">收货地址：</span>南山区科技园XX栋XX号</div><div><span class="c-gray">联系人：</span>张三 138****8888</div>
+          <div><span class="c-gray">备注：</span>请尽量选成熟度适中的</div><div><span class="c-gray">支付：</span><span class="tag tag-blue">月结</span> 可用¥48,000</div>
+        </div>
+        <div style="background:#fff;border-radius:6px;padding:12px;margin-bottom:10px">
+          <div class="fw6 f13 mb8">📋 分拣明细</div>
+          <table style="width:100%;font-size:12px;border-collapse:collapse"><tr style="background:#fafafa"><th style="text-align:left;padding:8px">SKU</th><th style="padding:8px">订购量</th><th style="padding:8px">实发量</th><th style="padding:8px">差异</th><th style="padding:8px">状态</th></tr>
+          <tr><td style="padding:8px"><b>西红柿</b><br><span class="f10 c-gray">大果/散装</span></td><td style="text-align:center">10斤</td><td style="text-align:center"><input class="inp" value="9.8" style="width:55px"> 斤</td><td style="text-align:center" class="c-green fw6">-0.2</td><td style="text-align:center">✅</td></tr>
+          <tr style="background:#fffbe6"><td style="padding:8px"><b>猪五花肉</b><br><span class="f10 c-gray">散装</span></td><td style="text-align:center">5斤</td><td style="text-align:center"><input class="inp" value="5.2" style="width:55px;border-color:#fa8c16"> 斤</td><td style="text-align:center" class="c-red fw6">+0.2</td><td style="text-align:center">⚠️</td></tr>
+          <tr><td style="padding:8px"><b>鸡蛋</b><br><span class="f10 c-gray">30枚/托</span></td><td style="text-align:center">2托</td><td style="text-align:center"><input class="inp" value="2" style="width:55px"> 托</td><td style="text-align:center">0</td><td style="text-align:center">✅</td></tr></table>
+          <div class="flex between mt8 f12" style="border-top:1px solid #f0f0f0;padding-top:8px"><span>订购 <span style="text-decoration:line-through;color:#999">¥262.00</span></span><span>实发 <span class="c-red fw6" style="font-size:16px">¥261.16</span></span><span class="c-green">差额 -¥0.84</span></div>
+        </div>
+        <div style="background:#fffbe6;border:1px solid #ffe58f;padding:8px 12px;border-radius:4px;font-size:12px;margin-bottom:10px">⚠️ 猪五花肉实发量超出订购量 <label style="margin-left:12px"><input type="checkbox"> 已电话沟通客户确认</label></div>
+        <div class="flex gap8"><button class="btn">💾 暂存</button><button class="btn pri">✅ 确认分拣</button><button class="btn dan">标记缺货</button></div>
+        <div class="f10 c-gray mt8">确认后 → 状态变更为"已分拣" → 金额按实发锁定 → 微信支付发起差额退款 / 生成待收款 → 月结等待签收后扣减</div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="card"><h4>分拣操作逻辑</h4><ul class="rule-list"><li>实发量输入框默认预填订购量</li><li>运营修改实发量 → 差异自动计算（实发 - 订购）</li><li>差异在 ±10% 以内 → 显示黄色</li><li>差异超过 ±10% → 显示红色</li><li>实发量 > 订购量 → 系统弹出确认框"已电话沟通客户确认?"</li><li>实发量 = 0 → 该商品标记为缺货</li></ul></div>
+    <div class="card"><h4>确认分拣后触发</h4><ol style="font-size:12px;padding-left:16px;line-height:2.2">
+      <li>订单状态 → "已分拣"</li>
+      <li>实发金额锁定 = Σ(实发量 × SKU单价)</li>
+      <li><b>微信支付订单</b>：自动计算差额 → 实发<订购?发起原路退款 : 生成待收款记录</li>
+      <li><b>月结订单</b>：不做任何扣款（等待签收后）</li>
+      <li>记录操作人和时间戳</li>
+    </ol></div>
+    <div class="card"><h4>暂存逻辑</h4><ul class="rule-list"><li>保存当前填写进度，不改变订单状态</li><li>其他运营可继续分拣</li><li>订单状态保持在"分拣中"</li></ul></div>
+    <div class="card warn"><h4>标记缺货</h4><ul class="rule-list"><li>被标记缺货的商品：实发量强制置0</li><li>订单确认分拣时：该商品金额自动全额退款</li><li>微信支付：原路退该商品金额</li><li>月结：不扣减该商品金额</li></ul></div>
+  </div>
+</div>
+
+<h2 id="s14">14. 后台 · 退货审核 <span class="tag tag-orange">P0</span></h2>
+
+<div class="g2">
+  <div>
+    <div class="preview-label">UI 视觉稿</div>
+    <div class="desktop">
+      <div class="desktop-body"><div class="desktop-main">
+        <div class="crumb">🏠 > 订单管理 > 退货审核 · <span class="c-gray">R2026061700001 · 关联 2026061600098</span></div>
+        <div style="background:#fff;border-radius:6px;padding:12px;margin-bottom:10px"><div class="fw6 f13 mb8">📝 采购员申请</div><div class="f12" style="line-height:2"><div>申请人：张三（深圳XX餐饮） · 06-17 09:00</div><div>类型：<span class="tag tag-red">质量问题（部分）</span></div><div>描述：西红柿约3斤过熟软化，无法使用</div><div class="flex gap8 mt8"><div style="width:72px;height:72px;background:#f5f5f5;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999">📷 照片1</div><div style="width:72px;height:72px;background:#f5f5f5;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999">📷 照片2</div></div></div></div>
+        <div style="background:#fff;border-radius:6px;padding:12px;margin-bottom:10px"><div class="fw6 f13 mb8">💰 退款方案</div>
+          <div class="flex gap12 mb8 f12"><label><input type="radio" name="rt" checked> 仅退款</label><label><input type="radio" name="rt"> 退货退款（TMS取回）</label></div>
+          <div style="background:#fafafa;padding:10px;border-radius:4px;font-size:12px">
+            <div class="flex between" style="padding:3px 0"><span>退款商品</span><span>西红柿 大果/散装</span></div>
+            <div class="flex between" style="padding:3px 0"><span>退款数量</span><span><input class="inp" value="3" style="width:50px"> 斤</span></div>
+            <div class="flex between" style="padding:3px 0"><span>退款单价</span><span>¥7.20/斤</span></div>
+            <div class="flex between fw6" style="padding:6px 0 0;border-top:1px solid #eee;margin-top:4px"><span>退款金额</span><span class="c-red" style="font-size:16px">¥21.60</span></div>
+          </div>
+          <div class="flex gap12 mt8 f12"><label><input type="radio" name="ref" checked> 额度冲销(月结)</label><label><input type="radio" name="ref"> 原路退回(微信)</label></div>
+        </div>
+        <div class="flex gap8 mb8"><span class="f12 c-gray">审核意见：</span><input class="inp" placeholder="选填" style="flex:1"></div>
+        <div class="flex gap8"><button class="btn pri">✅ 审核通过</button><button class="btn dan">❌ 驳回申请</button></div>
+      </div></div>
+    </div>
+  </div>
+  <div>
+    <div class="card"><h4>审核通过处理</h4><ul class="rule-list"><li>仅退款：ReturnOrder状态→"已退款"，执行退款（微信原路退回/月结额度冲销）</li><li>退货退款：ReturnOrder状态→"待退回"，通知TMS上门取货 → 退货入库确认 → 退款</li><li>关联订单状态保持原样（已签收/已完成）</li></ul></div>
+    <div class="card"><h4>驳回处理</h4><ul class="rule-list"><li>ReturnOrder状态→"已驳回"</li><li>采购员在小程序可见驳回状态 + 审核意见</li><li>采购员可修改后重新提交</li></ul></div>
+    <div class="card"><h4>退款金额计算</h4><ul class="rule-list"><li>退款金额 = 退款数量 × 退款单价</li><li>退款单价默认取该SKU在订单中的实发价格</li><li>运营可手动修改退款数量</li></ul></div>
+  </div>
+</div>
+
+<h2 id="s15">15. 后台 · 商品管理（含SKU） <span class="tag tag-orange">P0</span></h2>
+
+<div class="g2">
+  <div>
+    <div class="preview-label">UI 视觉稿</div>
+    <div class="desktop"><div class="desktop-main">
+      <div class="flex between center mb8"><div class="crumb" style="margin:0">🏠 > 商品管理</div><button class="btn pri">+ 新增商品</button></div>
+      <div class="flex gap8 mb8"><input class="inp" placeholder="🔍 搜索商品名称"><select class="sel"><option>分类：全部 ▼</option></select><select class="sel"><option>状态：全部 ▼</option></select></div>
+      <table style="width:100%;font-size:12px;background:#fff;border-collapse:collapse"><tr style="background:#fafafa"><th>图</th><th>商品名称</th><th>分类</th><th>SKU数</th><th>价格区间</th><th>库存</th><th>状态</th><th>操作</th></tr>
+      <tr><td style="font-size:24px;text-align:center">🍅</td><td>新鲜西红柿</td><td>蔬菜>茄果</td><td>6</td><td>¥4.50-10.80</td><td>326</td><td><span class="tag tag-green">上架</span></td><td><button class="btn f10">编辑</button> <button class="btn f10">下架</button></td></tr>
+      <tr><td style="font-size:24px;text-align:center">🥚</td><td>散养鸡蛋 30枚</td><td>蛋奶>蛋类</td><td>1</td><td>¥22.00</td><td>0</td><td><span class="tag tag-red">下架</span></td><td><button class="btn f10">编辑</button> <button class="btn pri f10">上架</button></td></tr></table>
+    </div></div>
+  </div>
+  <div>
+    <div class="card"><h4>商品SPU状态</h4><ul class="rule-list"><li><b>上架</b>：小程序可见可买</li><li><b>下架</b>：小程序不可见（已加购的保留但不支持下单时选择）</li><li>下架操作：即时生效，小程序端实时隐藏</li><li>上架操作：即时生效</li></ul></div>
+    <div class="card"><h4>SKU管理</h4><ul class="rule-list"><li>规格维度：最多3组（如：大小、包装、等级）</li><li>SKU自动组合：所有规格值笛卡尔积</li><li>每个SKU独立设置：价格、库存、启用/停用</li><li>SKU编码自动生成：商品拼音首字母-规格值首字母-序号</li><li>停用SKU：不影响已存在订单中的该SKU</li></ul></div>
+    <div class="card"><h4>商品编辑约束</h4><ul class="rule-list"><li>分类不可修改（需删除重建）</li><li>规格维度不可删除（已有订单引用），可新增规格值</li><li>已下单的SKU不可删除，可停用</li></ul></div>
+  </div>
+</div>
+
+<h2 id="s16">16. 后台 · 客户企业管理 <span class="tag tag-orange">P0</span></h2>
+
+<div class="g2">
+  <div>
+    <div class="preview-label">UI 视觉稿</div>
+    <div class="desktop"><div class="desktop-main">
+      <div class="crumb">🏠 > 客户管理</div>
+      <div class="flex gap8 mb8"><input class="inp" placeholder="🔍 搜索企业名称/手机号"><select class="sel"><option>月结状态：全部 ▼</option></select></div>
+      <table style="width:100%;font-size:12px;background:#fff;border-collapse:collapse"><tr style="background:#fafafa"><th>企业名称</th><th>联系人</th><th>月结额度</th><th>已挂账</th><th>待收款</th><th>可用额度</th><th>状态</th><th>操作</th></tr>
+      <tr><td>深圳XX餐饮</td><td>张三</td><td>¥50,000</td><td>¥2,500</td><td>¥0</td><td>¥47,500</td><td><span class="tag tag-green">🟢 正常</span></td><td><button class="btn f10">详情</button></td></tr>
+      <tr><td>广州XX食堂</td><td>李四</td><td>¥30,000</td><td>¥28,000</td><td>¥200</td><td>¥1,800</td><td><span class="tag tag-orange">🟡 预警</span></td><td><button class="btn f10">详情</button></td></tr>
+      <tr style="background:#fff2f0"><td>东莞XX食品厂</td><td>王五</td><td>¥20,000</td><td>¥20,000</td><td>¥500</td><td>¥0</td><td><span class="tag tag-red">🔴 超额</span></td><td><button class="btn pri f10">详情</button></td></tr>
+      <tr><td>惠州XX学校食堂</td><td>赵六</td><td>¥10,000</td><td>¥0</td><td>¥0</td><td>¥10,000</td><td><span class="c-gray">⚫ 已冻结</span></td><td><button class="btn f10">详情</button></td></tr></table>
+    </div></div>
+  </div>
+  <div>
+    <div class="card"><h4>额度状态自动判定</h4><pre class="code">
+正常：credit_status = 'open' AND credit_used < credit_limit × 0.8
+预警：credit_status = 'open' AND credit_used ≥ credit_limit × 0.8 AND credit_used < credit_limit
+超额：credit_status = 'open' AND credit_used ≥ credit_limit
+冻结：credit_status = 'frozen'
+待收款：SELECT SUM(amount) FROM pending_payments WHERE customer_id = ? AND status = 'unpaid'</pre></div>
+    <div class="card"><h4>客户详情操作</h4><ul class="rule-list"><li>查看/编辑企业基本信息</li><li>查看/管理采购员账号（增删改）</li><li>调整月结额度（记录操作日志）</li><li>冻结/解冻月结</li><li>查看挂账记录、还款记录、待收款记录</li><li>查看该企业所有订单</li></ul></div>
+    <div class="card warn"><h4>额度调整约束</h4><ul class="rule-list"><li>调低额度时：如果新额度 < 已挂账 → 提示"新额度不能低于当前已挂账金额"</li><li>冻结操作：确认弹窗"冻结后该企业将无法使用月结，确认？"</li></ul></div>
+  </div>
+</div>
+
+<h2 id="s17">17. 后台 · 权限管理（RBAC） <span class="tag tag-orange">P0</span></h2>
+
+<div class="g2">
+  <div>
+    <div class="preview-label">UI 视觉稿</div>
+    <div class="desktop"><div class="desktop-main">
+      <div class="crumb">🏠 > 系统管理 > 权限管理</div>
+      <div class="g2">
+        <div style="background:#fff;border-radius:6px;padding:12px"><div class="fw6 f13 mb8">角色列表 <button class="btn pri f10" style="float:right">+新增</button></div>
+          <table style="width:100%;font-size:12px"><tr><td style="padding:6px">超级管理员</td><td class="c-gray">1人</td></tr><tr style="background:#e6f4ff"><td style="padding:6px;color:#1677ff">运营主管</td><td class="c-gray">3人</td></tr><tr><td style="padding:6px">仓库管理员</td><td class="c-gray">5人</td></tr><tr><td style="padding:6px">BD人员</td><td class="c-gray">4人</td></tr></table></div>
+        <div style="background:#fff;border-radius:6px;padding:12px"><div class="fw6 f13 mb8">账号列表 <button class="btn pri f10" style="float:right">+新增</button></div>
+          <table style="width:100%;font-size:12px"><tr><td style="padding:4px">陈总</td><td>超级管理员</td><td><span class="tag tag-green">启用</span></td></tr><tr><td style="padding:4px">小王</td><td>仓库管理员</td><td><span class="tag tag-green">启用</span></td></tr><tr><td style="padding:4px">小李</td><td>客服</td><td><span class="tag tag-red">停用</span></td></tr></table></div>
+      </div>
+      <div style="background:#fff;border-radius:6px;padding:12px;margin-top:10px"><div class="fw6 f13 mb8">角色权限配置 · 当前：仓库管理员</div>
+        <div style="font-size:12px;line-height:2.4">
+          <div><input type="checkbox" checked> <b>订单管理</b></div>
+          <div style="margin-left:20px"><input type="checkbox" checked> 订单列表 &nbsp; <input type="checkbox" checked> 分拣操作 &nbsp; <input type="checkbox"> 退货审核</div>
+          <div><input type="checkbox" checked> <b>商品管理</b></div>
+          <div style="margin-left:20px"><input type="checkbox" checked> 查看商品 &nbsp; <input type="checkbox"> 编辑商品 &nbsp; <input type="checkbox"> 上下架</div>
+          <div><input type="checkbox"> <b>客户管理</b></div>
+          <div><input type="checkbox"> <b>系统管理</b></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+  <div>
+    <div class="card"><h4>权限模型</h4><ul class="rule-list"><li><b>角色(Role)</b>：绑定一组菜单权限</li><li><b>账号(Account)</b>：绑定一个角色</li><li>一个账号只能有一个角色</li><li>权限粒度到菜单项（二级）</li><li>MVP不做数据权限（不区分"只能看自己的订单"）</li></ul></div>
+    <div class="card"><h4>预设角色</h4><table><tr><th>角色</th><th>权限范围</th></tr><tr><td>超级管理员</td><td>全部菜单</td></tr><tr><td>运营主管</td><td>订单管理+商品管理+客户管理（含编辑权限）</td></tr><tr><td>仓库管理员</td><td>订单管理（查看+分拣操作），商品管理（仅查看）</td></tr><tr><td>客服</td><td>订单管理（查看+退货审核），客户管理（仅查看）</td></tr><tr><td>BD人员</td><td>客户管理（全部）+ 企微H5</td></tr></table></div>
+    <div class="card"><h4>账号状态</h4><ul class="rule-list"><li>启用：可正常登录使用</li><li>停用：无法登录，提示"账号已停用"</li></ul></div>
+  </div>
+</div>
+
+<!-- ======================== SECTION 18: BD H5 ======================== -->
+<h2 id="s18">18. BD移动端H5（企微内嵌） <span class="tag tag-blue">P0</span></h2>
+
+<div class="g3">
+  <div>
+    <div class="preview-label">客户列表</div>
+    <div style="width:340px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.1);margin:0 auto">
+      <div style="background:#1677ff;color:#fff;padding:12px 14px;font-size:15px;font-weight:600">← 客户管理 <span class="f12" style="float:right;font-weight:400">+ 新增</span></div>
+      <div style="padding:10px;background:#f7f8fa;min-height:400px">
+        <div style="background:#fff;border-radius:6px;padding:8px 10px;margin-bottom:8px;display:flex;align-items:center;gap:8px;color:#bbb;font-size:13px">🔍 搜索企业</div>
+        <div style="background:#fff;border-radius:8px;padding:12px;margin-bottom:8px;border-left:3px solid #52c41a">
+          <div class="fw6 f14">深圳XX餐饮有限公司</div>
+          <div class="flex between f12 mt4"><span>额度 ¥50,000</span><span>欠款 ¥2,500</span></div>
+          <div class="flex between f12"><span class="c-gray">本月12单</span><span class="c-blue fw6">可用 ¥47,500</span></div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:12px;margin-bottom:8px;border-left:3px solid #fa8c16">
+          <div class="fw6 f14">广州XX食堂 <span class="tag tag-orange f10">⚠️预警</span></div>
+          <div class="flex between f12 mt4"><span>额度 ¥30,000</span><span>欠款 ¥28,000</span></div>
+          <div class="flex between f12"><span class="c-gray">本月8单</span><span style="color:#fa8c16">可用 ¥2,000</span></div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:12px;margin-bottom:8px;border-left:3px solid #f5222d">
+          <div class="fw6 f14">东莞XX食品厂 <span class="tag tag-red f10">超额</span></div>
+          <div class="flex between f12 mt4"><span>额度 ¥20,000</span><span>欠款 ¥20,000</span></div>
+          <div class="flex between f12"><span class="c-gray">本月5单</span><span class="c-red">待收款 ¥500</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="preview-label">客户详情</div>
+    <div style="width:340px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.1);margin:0 auto">
+      <div style="background:#1677ff;color:#fff;padding:12px 14px;font-size:15px;font-weight:600">← 客户详情</div>
+      <div style="padding:10px;background:#f7f8fa;min-height:400px">
+        <div style="background:#fff;border-radius:8px;padding:12px;margin-bottom:8px"><div class="fw6" style="font-size:17px">深圳XX餐饮有限公司</div><div class="mt4"><span class="tag tag-green">🟢 月结已开通</span></div></div>
+        <div style="background:#fff;border-radius:8px;padding:12px;margin-bottom:8px"><div class="fw6 f13 mb6">👤 联系人</div><div class="f12 c-gray" style="line-height:2"><div>张三 · 138****8888</div><div>南山区科技园XX栋</div><div>GPS: 22.5431, 113.9544</div></div></div>
+        <div style="background:#fff;border-radius:8px;padding:12px;margin-bottom:8px"><div class="fw6 f13 mb6">💰 额度</div>
+          <div class="flex between f12" style="padding:3px 0"><span>总额度</span><span class="fw6">¥50,000</span></div>
+          <div class="flex between f12" style="padding:3px 0"><span>已挂账</span><span class="c-red">¥2,500</span></div>
+          <div class="flex between f12" style="padding:3px 0"><span>待收款</span><span style="color:#fa8c16">¥0</span></div>
+          <div class="flex between f12 fw6" style="padding:6px 0 0;border-top:1px solid #f0f0f0;margin-top:4px"><span>可用</span><span class="c-green" style="font-size:16px">¥47,500</span></div>
+        </div>
+        <div class="flex gap8 mb8"><button class="btn pri" style="flex:1">调整额度</button><button class="btn dan" style="flex:1">冻结月结</button></div>
+        <div style="background:#fff;border-radius:8px;padding:12px"><div class="fw6 f13 mb6">🚚 配送GPS轨迹</div><div style="background:#f5f5f5;height:80px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#999;font-size:11px">📍 实时轨迹地图（TMS回传）</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="preview-label">BD录入客户</div>
+    <div style="width:340px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.1);margin:0 auto">
+      <div style="background:#1677ff;color:#fff;padding:12px 14px;font-size:15px;font-weight:600">← 新建客户企业</div>
+      <div style="padding:10px;background:#f7f8fa;min-height:400px">
+        <div style="background:#fff;border-radius:8px;padding:12px;margin-bottom:8px"><div class="fw6 f13 mb8">企业信息</div>
+          <div style="margin-bottom:8px"><label class="f11 c-gray">企业名称 *</label><input class="inp" style="width:100%" placeholder="请输入"></div>
+          <div style="margin-bottom:8px"><label class="f11 c-gray">统一社会信用代码</label><input class="inp" style="width:100%" placeholder="请输入"></div>
+          <div><label class="f11 c-gray">营业执照</label><div style="height:60px;border:1px dashed #d9d9d9;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:12px">📷 点击上传</div></div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:12px;margin-bottom:8px"><div class="fw6 f13 mb8">联系人信息</div>
+          <div style="margin-bottom:8px"><label class="f11 c-gray">联系人 *</label><input class="inp" style="width:100%" placeholder="请输入"></div>
+          <div style="margin-bottom:8px"><label class="f11 c-gray">手机号 *</label><input class="inp" style="width:100%" placeholder="请输入"></div>
+          <div style="margin-bottom:8px"><label class="f11 c-gray">收货地址 *</label><input class="inp" style="width:100%" placeholder="请输入详细地址"></div>
+          <div><label class="f11 c-gray">GPS坐标 *（对接TMS）</label><input class="inp" style="width:100%" placeholder="纬度,经度 例：22.5431,113.9544"></div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:12px;margin-bottom:8px"><div class="fw6 f13 mb8">月结设置</div>
+          <div class="flex between center mb8 f13"><span>开通月结</span><span style="width:40px;height:22px;background:#1677ff;border-radius:11px;display:inline-block;position:relative"><span style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;right:2px"></span></span></div>
+          <div style="margin-bottom:8px"><label class="f11 c-gray">月结额度 *</label><input class="inp" style="width:100%" value="¥ 50,000"></div>
+          <div><label class="f11 c-gray">有效期</label><div class="flex gap8 center"><input class="inp" style="flex:1" value="2026-06-17"><span>~</span><input class="inp" style="flex:1" value="永久"></div></div>
+        </div>
+        <button class="btn pri" style="width:100%;padding:12px;font-size:15px;font-weight:600">确认创建</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt16">
+  <h3>BD H5 业务逻辑</h3>
+  <div class="g2">
+    <div>
+      <h4>录入客户校验</h4>
+      <ul class="rule-list">
+        <li>企业名称、联系人、手机号、收货地址、GPS坐标为必填</li>
+        <li>GPS坐标格式：纬度,经度（逗号分隔，保留4位小数），非法格式提示"请输入正确的GPS坐标"</li>
+        <li>月结默认开通（BD有直接开通权限）</li>
+        <li>创建成功后自动生成采购员账号（手机号=登录账号），密码初始随机，引导采购员首次微信登录绑定</li>
+        <li>GPS坐标写入Customer表，后续订单直接下发TMS</li>
+      </ul>
+    </div>
+    <div>
+      <h4>GPS轨迹查看</h4>
+      <ul class="rule-list">
+        <li>仅BD端H5可查看配送中的订单GPS轨迹</li>
+        <li>数据来源：TMS实时回传</li>
+        <li>小程序端不展示GPS（仅显示预计送达时间）</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== FOOTER ======================== -->
+<div style="text-align:center;color:#999;padding:40px 0 20px;font-size:12px;line-height:2">
+  <b>生鲜 B2B 商城 PRD v1.2</b><br>
+  覆盖：全局规则 · 订单状态机 · 支付引擎 · 13个页面（视觉+交互+逻辑+异常）<br>
+  配合 <a href="./SPEC-v1.0.md">SPEC v1.1</a> 阅读 · 2026-06-17
+</div>
+
+</main>
+</body>
+</html>
