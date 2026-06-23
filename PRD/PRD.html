@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>门店选址平台 - PRD 产品需求文档</title>
+<style>
+/* ========== CSS Reset & Variables ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --c-primary: #4F46E5;
+  --c-primary-light: #EEF2FF;
+  --c-primary-dark: #3730A3;
+  --c-accent: #0891B2;
+  --c-success: #059669;
+  --c-warning: #D97706;
+  --c-danger: #DC2626;
+  --c-bg: #F1F5F9;
+  --c-surface: #FFFFFF;
+  --c-text: #1E293B;
+  --c-text2: #64748B;
+  --c-text3: #94A3B8;
+  --c-border: #E2E8F0;
+  --c-border-light: #F1F5F9;
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+  --shadow: 0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.05),0 2px 4px rgba(0,0,0,.04);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,.06),0 4px 10px rgba(0,0,0,.03);
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;
+  background: var(--c-bg);
+  color: var(--c-text);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ========== Left Sidebar Navigation ========== */
+.sidebar {
+  position: fixed; top: 0; left: 0; z-index: 1000;
+  width: 260px; height: 100vh;
+  background: #1E293B;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.sidebar .sb-header {
+  padding: 28px 22px 20px;
+  border-bottom: 1px solid #334155;
+  flex-shrink: 0;
+}
+.sidebar .sb-header .logo {
+  font-size: 16px; font-weight: 700; color: #F1F5F9;
+  display: flex; align-items: center; gap: 8px;
+}
+.sidebar .sb-header .logo span { font-size: 22px; }
+.sidebar .sb-header .ver {
+  font-size: 11px; color: #64748B; margin-top: 4px;
+}
+.sidebar .sb-nav {
+  flex: 1; overflow-y: auto; padding: 8px 0;
+}
+.sidebar .sb-nav .grp {
+  padding: 16px 22px 6px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: #475569;
+}
+.sidebar .sb-nav a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 22px;
+  font-size: 13px; color: #94A3B8; text-decoration: none;
+  font-weight: 500; transition: all .12s;
+  border-left: 3px solid transparent;
+}
+.sidebar .sb-nav a:hover { background: #334155; color: #E2E8F0; }
+.sidebar .sb-nav a.active {
+  background: #1E3A5F; color: #60A5FA;
+  border-left-color: #60A5FA;
+}
+.sidebar .sb-nav a .dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  margin-left: auto;
+}
+.sidebar .sb-nav a .dot.d1 { background: #4F46E5; } .sidebar .sb-nav a .dot.d2 { background: #0891B2; }
+.sidebar .sb-nav a .dot.d3 { background: #059669; } .sidebar .sb-nav a .dot.d4 { background: #D97706; }
+.sidebar .sb-nav a .dot.d5 { background: #DC2626; } .sidebar .sb-nav a .dot.d6 { background: #7C3AED; }
+.sidebar .sb-nav a .dot.d7 { background: #DB2777; } .sidebar .sb-nav a .dot.d8 { background: #0891B2; }
+.sidebar .sb-nav a .dot.d9 { background: #4F46E5; } .sidebar .sb-nav a .dot.d10 { background: #059669; }
+.sidebar .sb-nav a .dot.d11 { background: #D97706; } .sidebar .sb-nav a .dot.d12 { background: #DC2626; }
+.sidebar .sb-footer {
+  padding: 14px 22px; border-top: 1px solid #334155;
+  font-size: 11px; color: #475569; flex-shrink: 0;
+}
+
+/* ========== Main Layout ========== */
+body { padding-left: 260px; }
+.wrap { padding: 28px 36px; }
+
+/* ========== Hero Section ========== */
+.hero {
+  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 40%, #0891B2 100%);
+  border-radius: var(--radius-lg);
+  padding: 48px 56px;
+  color: #fff;
+  margin-bottom: 40px;
+  position: relative; overflow: hidden;
+}
+.hero::after {
+  content: ''; position: absolute;
+  top: -60px; right: -60px;
+  width: 300px; height: 300px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.06);
+}
+.hero h1 { font-size: 36px; font-weight: 800; margin-bottom: 8px; position: relative; z-index: 1; }
+.hero .sub { font-size: 16px; opacity: .85; position: relative; z-index: 1; margin-bottom: 24px; }
+.hero .tags { display: flex; gap: 10px; flex-wrap: wrap; position: relative; z-index: 1; }
+.hero .tags span {
+  background: rgba(255,255,255,.18);
+  padding: 5px 16px; border-radius: 20px;
+  font-size: 13px; font-weight: 500;
+}
+
+/* ========== Stat Row ========== */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 40px;
+}
+.stat {
+  background: var(--c-surface);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  text-align: center;
+  border: 1px solid var(--c-border-light);
+}
+.stat .num { font-size: 34px; font-weight: 800; color: var(--c-primary); line-height: 1; }
+.stat .lbl { font-size: 13px; color: var(--c-text2); margin-top: 6px; font-weight: 500; }
+
+/* ========== Section Title ========== */
+.sec-title {
+  display: flex; align-items: center; gap: 14px;
+  font-size: 24px; font-weight: 700;
+  margin-bottom: 6px; padding-bottom: 16px;
+  border-bottom: 2px solid var(--c-border);
+}
+.sec-title .ico { font-size: 28px; }
+.sec-title .num {
+  background: var(--c-primary); color: #fff;
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700;
+}
+.sec-wrap { margin-bottom: 48px; }
+.sec-desc { color: var(--c-text2); font-size: 14px; margin-bottom: 20px; }
+
+/* ========== Cards ========== */
+.card {
+  background: var(--c-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--c-border-light);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.card-hd {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--c-border-light);
+  display: flex; align-items: center; justify-content: space-between;
+  background: #FAFBFC;
+}
+.card-hd h3 { font-size: 16px; font-weight: 700; }
+.card-hd .tag {
+  font-size: 12px; padding: 4px 12px; border-radius: 12px;
+  font-weight: 600;
+}
+.tag-blue { background: #EEF2FF; color: #4F46E5; }
+.tag-green { background: #ECFDF5; color: #059669; }
+.tag-orange { background: #FFFBEB; color: #D97706; }
+.tag-red { background: #FEF2F2; color: #DC2626; }
+.tag-gray { background: #F8FAFC; color: #64748B; }
+.card-bd { padding: 24px; }
+
+/* ========== Sub-section title ========== */
+.ss-title {
+  font-size: 15px; font-weight: 700; color: #334155;
+  padding: 6px 0; margin: 20px 0 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.ss-title::before {
+  content: ''; width: 4px; height: 18px; border-radius: 2px;
+  background: var(--c-primary); display: inline-block;
+}
+
+/* ========== Tables ========== */
+.tbl-wrap { overflow-x: auto; margin: 12px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th {
+  background: #F8FAFC; font-weight: 600; color: #475569;
+  padding: 10px 14px; text-align: left; border-bottom: 2px solid var(--c-border);
+  font-size: 12px; text-transform: uppercase; letter-spacing: .3px;
+  white-space: nowrap;
+}
+tbody td { padding: 10px 14px; border-bottom: 1px solid var(--c-border-light); }
+tbody tr { transition: background .1s; }
+tbody tr:hover { background: #FAFBFC; }
+td code {
+  background: #F1F5F9; padding: 3px 8px; border-radius: 4px;
+  font-size: 12px; color: #E11D48; font-family: "SF Mono","Fira Code","Consolas",monospace;
+  white-space: nowrap;
+}
+
+/* ========== API Method Badges ========== */
+.mtd {
+  display: inline-block; padding: 3px 10px; border-radius: 4px;
+  font-size: 11px; font-weight: 700; letter-spacing: .5px; text-align: center; min-width: 52px;
+}
+.mtd-get { background: #ECFDF5; color: #059669; }
+.mtd-post { background: #EEF2FF; color: #4F46E5; }
+.mtd-put { background: #FFFBEB; color: #D97706; }
+.mtd-del { background: #FEF2F2; color: #DC2626; }
+
+/* ========== Flow / Status ========== */
+.flow-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  padding: 20px; background: #F8FAFC; border-radius: var(--radius);
+}
+.flow-dot {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: 20px;
+  font-size: 13px; font-weight: 600;
+  background: #fff; border: 2px solid var(--c-border);
+  white-space: nowrap;
+}
+.flow-dot::before {
+  content: ''; width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.flow-dot.c1::before { background: #94A3B8; } .flow-dot.c1 { border-color: #CBD5E1; color: #64748B; }
+.flow-dot.c2::before { background: #60A5FA; } .flow-dot.c2 { border-color: #93C5FD; color: #2563EB; }
+.flow-dot.c3::before { background: #F59E0B; } .flow-dot.c3 { border-color: #FCD34D; color: #D97706; }
+.flow-dot.c4::before { background: #10B981; } .flow-dot.c4 { border-color: #6EE7B7; color: #059669; }
+.flow-dot.c5::before { background: #EF4444; } .flow-dot.c5 { border-color: #FCA5A5; color: #DC2626; }
+.flow-dot.c6::before { background: #8B5CF6; } .flow-dot.c6 { border-color: #C4B5FD; color: #6D28D9; }
+.flow-dot.c7::before { background: #06B6D4; } .flow-dot.c7 { border-color: #67E8F9; color: #0891B2; }
+.flow-arr { font-size: 18px; color: #CBD5E1; font-weight: 700; margin: 0 2px; }
+
+/* ========== Info / Highlight Boxes ========== */
+.infobox {
+  padding: 14px 20px; border-radius: var(--radius); margin: 16px 0;
+  font-size: 13px; line-height: 1.8; display: flex; align-items: flex-start; gap: 12px;
+}
+.infobox::before { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.infobox.info { background: #EEF2FF; border: 1px solid #C7D2FE; color: #3730A3; }
+.infobox.info::before { content: '💡'; }
+.infobox.warn { background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; }
+.infobox.warn::before { content: '⚠️'; }
+.infobox.ok { background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; }
+.infobox.ok::before { content: '✅'; }
+
+/* ========== Grids ========== */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.g3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+.g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+.g-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+
+/* ========== Mini Card ========== */
+.minicard {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-light);
+  border-radius: var(--radius);
+  padding: 20px; text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+.minicard .ic { font-size: 28px; margin-bottom: 8px; }
+.minicard .tt { font-size: 14px; font-weight: 700; color: var(--c-text); margin-bottom: 4px; }
+.minicard .ds { font-size: 12px; color: var(--c-text2); line-height: 1.5; }
+
+/* ========== Module Card Grid ========== */
+.modgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
+.modcard {
+  background: var(--c-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--c-border-light);
+  padding: 20px 24px;
+  cursor: pointer;
+  transition: all .2s;
+  border-left: 4px solid transparent;
+}
+.modcard:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); }
+.modcard.m1 { border-left-color: #4F46E5; } .modcard.m2 { border-left-color: #0891B2; }
+.modcard.m3 { border-left-color: #059669; } .modcard.m4 { border-left-color: #D97706; }
+.modcard.m5 { border-left-color: #DC2626; } .modcard.m6 { border-left-color: #7C3AED; }
+.modcard.m7 { border-left-color: #DB2777; } .modcard.m8 { border-left-color: #0891B2; }
+.modcard.m9 { border-left-color: #4F46E5; } .modcard.m10 { border-left-color: #059669; }
+.modcard.m11 { border-left-color: #D97706; } .modcard.m12 { border-left-color: #DC2626; }
+.modcard h4 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.modcard .dsc { font-size: 13px; color: var(--c-text2); line-height: 1.6; }
+.modcard .svc { font-size: 11px; margin-top: 10px; font-weight: 600; }
+
+/* ========== Footer ========== */
+.ft {
+  text-align: center; padding: 40px 0; border-top: 1px solid var(--c-border);
+  color: var(--c-text3); font-size: 13px; margin-top: 20px;
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 900px) {
+  .sidebar { width: 220px; }
+  body { padding-left: 220px; }
+  .wrap { padding: 20px 20px; }
+  .hero { padding: 32px 24px; }
+  .hero h1 { font-size: 24px; }
+  .g2, .g3, .g4 { grid-template-columns: 1fr; }
+  .modgrid { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .sidebar { display: none; }
+  body { padding-left: 0; }
+  .wrap { padding: 16px 14px; }
+}
+
+@media print {
+  .sidebar { display: none; }
+  body { padding-left: 0; background: #fff; }
+  .card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+  .hero { background: #4F46E5 !important; -webkit-print-color-adjust: exact; }
+}
+
+/* ========== Table of Contents Grid ========== */
+.toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.toc-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px; background: var(--c-surface);
+  border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  border: 1px solid var(--c-border-light);
+  text-decoration: none; color: var(--c-text);
+  transition: all .15s; font-weight: 500; font-size: 14px;
+}
+.toc-item:hover { box-shadow: var(--shadow-md); border-color: var(--c-primary); color: var(--c-primary); }
+.toc-item .n {
+  width: 28px; height: 28px; border-radius: 6px;
+  background: var(--c-primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+
+<!-- ====== Left Sidebar Navigation ====== -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-header">
+    <div class="logo"><span>📍</span>门店选址平台</div>
+    <div class="ver">PRD 产品需求文档 · v1.0</div>
+  </div>
+  <nav class="sb-nav">
+    <div class="grp">总览</div>
+    <a href="#overview" class="active">概览与定位</a>
+    <a href="#flow">核心业务流程</a>
+    <div class="grp">核心功能模块</div>
+    <a href="#m1"><span>🏙️</span> 城市沙盘<span class="dot d1"></span></a>
+    <a href="#m2"><span>📈</span> 拓展管理<span class="dot d2"></span></a>
+    <a href="#m3"><span>📍</span> 点位管理<span class="dot d3"></span></a>
+    <a href="#m4"><span>🔥</span> 热力图分析<span class="dot d4"></span></a>
+    <a href="#m5"><span>🏪</span> 铺位管理<span class="dot d5"></span></a>
+    <a href="#m6"><span>🗺️</span> 地图服务<span class="dot d6"></span></a>
+    <a href="#m7"><span>🏷️</span> 品牌管理<span class="dot d7"></span></a>
+    <div class="grp">业务模块</div>
+    <a href="#m8"><span>🤝</span> 加盟商管理<span class="dot d8"></span></a>
+    <a href="#m9"><span>📊</span> 统计分析<span class="dot d9"></span></a>
+    <a href="#m10"><span>🖥️</span> 工作台<span class="dot d10"></span></a>
+    <a href="#m11"><span>🔐</span> 权限管理<span class="dot d11"></span></a>
+    <a href="#m12"><span>🔗</span> 系统集成<span class="dot d12"></span></a>
+    <div class="grp">附录</div>
+    <a href="#workflow"><span>📝</span> 任务工作流</a>
+    <a href="#dict"><span>📖</span> 数据字典</a>
+  </nav>
+  <div class="sb-footer">© 2026 门店选址平台</div>
+</aside>
+
+<div class="wrap">
+
+<!-- ====== Hero ====== -->
+<div class="hero">
+  <h1>门店选址平台</h1>
+  <div class="sub">Product Requirements Document · 产品需求文档 v1.0 · 2026-06-17</div>
+  <div class="tags">
+    <span>🏗️ Spring Cloud 微服务</span>
+    <span>📐 12 大功能模块</span>
+    <span>🔗 20+ 外部系统集成</span>
+    <span>📋 30+ REST 控制器</span>
+  </div>
+</div>
+
+<!-- ====== Stats ====== -->
+<div class="stats">
+  <div class="stat"><div class="num">12</div><div class="lbl">核心功能模块</div></div>
+  <div class="stat"><div class="num">7</div><div class="lbl">Maven 子模块</div></div>
+  <div class="stat"><div class="num">30+</div><div class="lbl">REST 控制器</div></div>
+  <div class="stat"><div class="num">80+</div><div class="lbl">MyBatis Mapper</div></div>
+  <div class="stat"><div class="num">70+</div><div class="lbl">数据实体 (DO)</div></div>
+  <div class="stat"><div class="num">20+</div><div class="lbl">外部系统集成</div></div>
+</div>
+
+<!-- ====== Section: Overview ====== -->
+<div class="sec-wrap" id="overview">
+  <div class="sec-title"><span class="ico">📋</span>产品概述</div>
+  <div class="sec-desc">门店选址平台是一套面向零售门店拓展选址的<strong>全流程数字化管理系统</strong>，为拓展团队提供从城市沙盘分析、点位甄选、热力图评估、拓展任务指派、铺位考察到签约开店的完整业务闭环。</div>
+
+  <div class="g3">
+    <div class="minicard">
+      <div class="ic">👔</div>
+      <div class="tt">拓展管理者</div>
+      <div class="ds">设定拓展目标、指派任务、审批评估、查看统计报表</div>
+    </div>
+    <div class="minicard">
+      <div class="ic">🚶</div>
+      <div class="tt">一线拓展人员</div>
+      <div class="ds">录入拓展信息、执行任务、GPS 打卡、提交评估</div>
+    </div>
+    <div class="minicard">
+      <div class="ic">🔍</div>
+      <div class="tt">选址分析人员</div>
+      <div class="ds">热力图分析、点位甄选、可达圈分析、品牌竞争分析</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Section: Module Overview ====== -->
+<div class="sec-wrap">
+  <div class="sec-title"><span class="ico">🗂️</span>功能模块总览</div>
+  <div class="modgrid">
+    <a class="modcard m1" href="#m1"><h4>🏙️ 城市沙盘</h4><div class="dsc">以城市为维度展示小区门店覆盖情况，辅助发现可拓展区域和覆盖盲区。</div><div class="svc tag-blue">store-locationservice</div></a>
+    <a class="modcard m2" href="#m2"><h4>📈 拓展管理</h4><div class="dsc">核心业务模块：目标设定(V1/V2)、信息录入、任务指派、评估审批。</div><div class="svc tag-blue">store-locationservice</div></a>
+    <a class="modcard m3" href="#m3"><h4>📍 点位管理</h4><div class="dsc">点位甄选、推荐等级维护、甄选规则配置、潜力点位管理（60+分析维度）。</div><div class="svc tag-blue">store-locationservice</div></a>
+    <a class="modcard m4" href="#m4"><h4>🔥 热力图分析</h4><div class="dsc">基于地理网格的竞品品牌热度可视化，网格评分、商圈排行。</div><div class="svc tag-blue">store-locationservice</div></a>
+    <a class="modcard m5" href="#m5"><h4>🏪 铺位管理</h4><div class="dsc">铺位全生命周期管理（7种状态流转），考察人配置，租赁/运营信息。</div><div class="svc tag-blue">store-locationservice</div></a>
+    <a class="modcard m6" href="#m6"><h4>🗺️ 地图服务</h4><div class="dsc">集成高德+百度+腾讯三套地图，门店/点位/铺位/品牌可视化展示。</div><div class="svc tag-blue">store-locationservice</div></a>
+    <a class="modcard m7" href="#m7"><h4>🏷️ 品牌管理</h4><div class="dsc">竞品品牌信息管理，支持全国性/区域性品牌区分，为热力图提供基础数据。</div><div class="svc tag-blue">store-locationservice</div></a>
+    <a class="modcard m8" href="#m8"><h4>🤝 加盟商管理</h4><div class="dsc">独立微服务：加盟商CRUD、招商会管理、签约OA流程、资质审核、报表分析。</div><div class="svc tag-green">store-location-franchisee</div></a>
+    <a class="modcard m9" href="#m9"><h4>📊 统计分析</h4><div class="dsc">多维度报表：签约趋势、目标达成、城市排名、人员排名、拓展概况。</div><div class="svc tag-blue">store-locationservice</div></a>
+    <a class="modcard m10" href="#m10"><h4>🖥️ 工作台</h4><div class="dsc">一站式视图：目标达成、通知公告、近期门店动态、任务统计。</div><div class="svc tag-blue">store-locationservice</div></a>
+    <a class="modcard m11" href="#m11"><h4>🔐 权限管理</h4><div class="dsc">权限同步服务：5种权限类型、MQ用户变更监听、定时同步任务。</div><div class="svc tag-orange">store-location-auth-syn</div></a>
+    <a class="modcard m12" href="#m12"><h4>🔗 系统集成</h4><div class="dsc">企业微信/OA/BI/SAP/高德/百度/腾讯/AI/OSS/MQ等20+外部集成。</div><div class="svc tag-red">多模块</div></a>
+  </div>
+</div>
+
+<!-- ====== Section: Business Flow ====== -->
+<div class="sec-wrap" id="flow">
+  <div class="sec-title"><span class="ico">🔄</span>核心业务流程</div>
+  <div class="card">
+    <div class="card-bd">
+      <div class="flow-row" style="justify-content:center">
+        <div class="flow-dot c4">🏙️ 城市沙盘分析</div><div class="flow-arr">→</div>
+        <div class="flow-dot c2">📍 点位甄选</div><div class="flow-arr">→</div>
+        <div class="flow-dot c3">🔥 热力图评估</div><div class="flow-arr">→</div>
+        <div class="flow-dot c2">📝 拓展信息录入</div><div class="flow-arr">→</div>
+        <div class="flow-dot c6">📋 任务指派</div><div class="flow-arr">→</div>
+        <div class="flow-dot c7">🔍 铺位考察</div><div class="flow-arr">→</div>
+        <div class="flow-dot c3">✅ 评估审批</div><div class="flow-arr">→</div>
+        <div class="flow-dot c4">✍️ 签约开店</div>
+      </div>
+      <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--c-text2)">
+        ↘ 加盟商匹配贯穿全流程 &nbsp;&nbsp;|&nbsp;&nbsp; ↘ 统计分析实时反馈各环节数据
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================================== -->
+<!-- MODULE 1: 城市沙盘 -->
+<!-- ================================================================================== -->
+<div class="sec-wrap" id="m1">
+  <div class="sec-title"><span class="num">1</span>城市沙盘</div>
+  <div class="sec-desc">城市沙盘是选址分析的<strong>起点模块</strong>，以城市为维度展示小区的门店覆盖情况，辅助管理者快速发现可拓展区域和门店覆盖盲区。</div>
+  <div class="card">
+    <div class="card-hd"><h3>API 接口列表</h3><span class="tag tag-blue">Controller: CitySandTableController</span></div>
+    <div class="card-bd">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>方法</th><th>接口路径</th><th>功能说明</th><th>权限控制</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/citySandTable/expandableRecmmond</code></td><td>基于门店覆盖盲区推荐可拓展小区</td><td><span class="tag tag-orange">数据权限</span></td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/citySandTable/storeStatisticalIdx</code></td><td>城市维度签约数/开店数/目标达成统计</td><td><span class="tag tag-gray">公开</span></td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/citySandTable/cityBasicInfo</code></td><td>城市基础数据（人口、GDP等）查询</td><td><span class="tag tag-gray">公开</span></td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/citySandTable/listCommunity</code></td><td>城市下小区分页列表（多维度筛选）</td><td><span class="tag tag-gray">公开</span></td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/citySandTable/communityExport</code></td><td>小区数据 Excel 导出</td><td><span class="tag tag-gray">公开</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================================== -->
+<!-- MODULE 2: 拓展管理 -->
+<!-- ================================================================================== -->
+<div class="sec-wrap" id="m2">
+  <div class="sec-title"><span class="num">2</span>拓展管理</div>
+  <div class="sec-desc">拓展管理是系统的<strong>核心业务模块</strong>，覆盖从拓展目标设定到小区评估审批的完整工作流，分为<strong>目标管理、信息管理、任务管理</strong>三个子模块。</div>
+
+  <!-- 2.1 拓展目标 -->
+  <div class="card">
+    <div class="card-hd"><h3>2.1 拓展目标管理</h3><span class="tag tag-blue">Controller: ExpandTargetController</span></div>
+    <div class="card-bd">
+      <div class="infobox info">
+        <div><strong>目标体系：</strong>城市级目标 · 个人级目标 &nbsp;|&nbsp; <strong>目标维度（V2）：</strong>签约目标(sign) · 开店目标(open) · 增长目标(growth) &nbsp;|&nbsp; <strong>版本：</strong>V1 基础版 + V2 三维度增强版</div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>方法</th><th>接口路径</th><th>功能说明</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/expandTarget/get</code></td><td>获取拓展目标（支持 V1 / V2）</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/expandTarget/update</code></td><td>更新拓展目标（含版本校验防并发冲突）</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/expandTarget/modifyLogs</code></td><td>查看目标修改历史追溯</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/expandTarget/targetList</code></td><td>目标列表视图（支持 V1 / V2）</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/expandTarget/listGoalAchievement</code></td><td>目标达成情况统计</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/expandTarget/exportGoalAchievement</code></td><td>目标达成情况 Excel 导出</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2.2 拓展信息 -->
+  <div class="card">
+    <div class="card-hd"><h3>2.2 拓展信息管理</h3><span class="tag tag-blue">Controller: ExpandInfoController</span></div>
+    <div class="card-bd">
+      <div class="infobox ok">
+        <div><strong>拓展信息包含 6 大数据维度：</strong>基本信息 · 铺位信息 · 客户信息 · 商圈信息 · 评估信息 · 跟进信息</div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>方法</th><th>接口路径</th><th>功能说明</th><th>权限</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/expandinfo/getExpandInfo</code></td><td>根据小区ID获取综合拓展信息（含6大数据维度）</td><td><span class="tag tag-gray">—</span></td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/expandinfo/saveExpandInfo</code></td><td>录入小区拓展信息</td><td><span class="tag tag-orange">LJTZ_BT</span></td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/expandinfo/getCityAreaStoreInfo</code></td><td>根据地级市查询附近门店集合</td><td><span class="tag tag-gray">—</span></td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/expandinfo/getNearCommunityInfoByUser</code></td><td>点位拓展时获取附近相关点位</td><td><span class="tag tag-gray">—</span></td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/expandinfo/getStatisticsExpandInfo</code></td><td>拓展记录-统计概括</td><td><span class="tag tag-gray">—</span></td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/expandinfo/getDetailExpandInfo</code></td><td>拓展记录-拓展明细</td><td><span class="tag tag-gray">—</span></td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/expandinfo/getExpandInfoById</code></td><td>根据ID获取单条拓展详情</td><td><span class="tag tag-gray">—</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2.3 拓展任务 -->
+  <div class="card">
+    <div class="card-hd"><h3>2.3 拓展任务管理</h3><span class="tag tag-blue">Controller: TaskAssignmentController</span></div>
+    <div class="card-bd">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>方法</th><th>接口路径</th><th>功能说明</th><th>权限</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/taskAssignment/listExpandTask</code></td><td>拓展任务列表（指派给我 / 我指派的）</td><td><span class="tag tag-gray">—</span></td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/taskAssignment/listExpandUsers</code></td><td>根据条件获取可指派的拓展人员</td><td><span class="tag tag-gray">—</span></td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/taskAssignment/expandPublish</code></td><td>将小区指派给拓展人员</td><td><span class="tag tag-orange">XQZP_BT</span></td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/taskAssignment/expandEvaluation</code></td><td>查询历史评估记录</td><td><span class="tag tag-gray">—</span></td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/taskAssignment/submitExpandEvaluation</code></td><td>提交小区拓展评估</td><td><span class="tag tag-orange">XQPG_BT</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ss-title">任务评估状态流转</div>
+      <div class="flow-row">
+        <div class="flow-dot c1">待拓展 (0)</div><div class="flow-arr">→</div>
+        <div class="flow-dot c2">待评估 (1)</div><div class="flow-arr">→</div>
+        <div class="flow-dot c4">已评估 (2)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================================== -->
+<!-- MODULE 3: 点位管理 -->
+<!-- ================================================================================== -->
+<div class="sec-wrap" id="m3">
+  <div class="sec-title"><span class="num">3</span>点位管理</div>
+  <div class="sec-desc">点位管理是选址的<strong>核心分析模块</strong>，负责点位的甄选、评级、推荐规则配置和潜力点位的管理。每个点位包含<strong>60+</strong>个分析维度字段。</div>
+
+  <div class="card">
+    <div class="card-hd"><h3>点位核心数据维度</h3></div>
+    <div class="card-bd">
+      <div class="g3">
+        <div class="minicard"><div class="ic">🏘️</div><div class="tt">基础信息</div><div class="ds">点位名称、地址、GPS坐标、所属城市/区域/商圈</div></div>
+        <div class="minicard"><div class="ic">👥</div><div class="tt">人口统计</div><div class="ds">规划户数、入住户数、入住率、房屋均价、建成年份</div></div>
+        <div class="minicard"><div class="ic">🏗️</div><div class="tt">分类标签</div><div class="ds">物业类型、小区标签、社区类型、商业类型、楼层、电梯</div></div>
+        <div class="minicard"><div class="ic">💰</div><div class="tt">商业分析</div><div class="ds">预估客流/销售额/毛利、消费水平、居民特征</div></div>
+        <div class="minicard"><div class="ic">🏪</div><div class="tt">竞争分析</div><div class="ds">竞品品牌门店数、药店/中介/水果店/美容院/生鲜市场</div></div>
+        <div class="minicard"><div class="ic">🏫</div><div class="tt">基础设施</div><div class="ds">菜市场数量、小学/幼儿园、公交/地铁路线、便利店数量</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><h3>点位甄选与推荐</h3></div>
+    <div class="card-bd">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>方法</th><th>接口路径</th><th>功能说明</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/heatMap/point/check/create</code></td><td>基于规则创建点位甄选任务</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/heatMap/point/check/pageList</code></td><td>分页查询点位甄选列表</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/heatMap/point/check/detail</code></td><td>查看点位甄选详情</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/heatMap/point/againCheck/submit</code></td><td>小区点位复核提交</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/heatMap/point/estimatedPassenger</code></td><td>甄选小区预估客流计算</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/heatMap/point/singleDetail</code></td><td>甄选单个小区详细数据</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><h3>点位等级体系</h3></div>
+    <div class="card-bd">
+      <div class="flow-row">
+        <div class="flow-dot c1">1 - 潜在</div><div class="flow-arr">→</div>
+        <div class="flow-dot c2">2 - 有效</div><div class="flow-arr">→</div>
+        <div class="flow-dot c4">3 - 机会</div><div class="flow-arr">→</div>
+        <div class="flow-dot c5">4 - 无效</div>
+      </div>
+      <div class="ss-title">点位 ↔ 加盟商等级匹配</div>
+      <div class="flow-row">
+        <div class="flow-dot c4">点位 S 级</div><div class="flow-arr">→</div>
+        <div class="flow-dot c4">加盟商 S/A</div>
+        <span style="margin:0 16px;color:var(--c-text3)">|</span>
+        <div class="flow-dot c2">点位 A 级</div><div class="flow-arr">→</div>
+        <div class="flow-dot c2">加盟商 A/B+</div>
+        <span style="margin:0 16px;color:var(--c-text3)">|</span>
+        <div class="flow-dot c3">点位 B 级</div><div class="flow-arr">→</div>
+        <div class="flow-dot c3">加盟商 B+/B</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================================== -->
+<!-- MODULE 4: 热力图分析 -->
+<!-- ================================================================================== -->
+<div class="sec-wrap" id="m4">
+  <div class="sec-title"><span class="num">4</span>热力图分析</div>
+  <div class="sec-desc">基于<strong>地理网格</strong>的竞争品牌热度可视化分析能力。通过对竞品品牌分布的网格化评分，直观展示各商圈的竞争格局，辅助选址决策。</div>
+  <div class="card">
+    <div class="card-hd"><h3>API 接口列表</h3><span class="tag tag-blue">Controller: HeatMapController</span></div>
+    <div class="card-bd">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>方法</th><th>接口路径</th><th>功能说明</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/heatMap/list</code></td><td>热力图区域信息列表</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/heatMap/gridScore</code></td><td>单个网格竞争评分</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/heatMap/top/score</code></td><td>TopN 商圈得分排行</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/heatMap/densityScore</code></td><td>品牌密度得分计算</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/heatMap/villageData</code></td><td>大数据小区数据解析</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/heatMap/villageJsonData</code></td><td>大数据热力小区 JSON 数据解析</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/heatMap/save</code></td><td>保存热力图区域配置</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================================== -->
+<!-- MODULE 5: 铺位管理 -->
+<!-- ================================================================================== -->
+<div class="sec-wrap" id="m5">
+  <div class="sec-title"><span class="num">5</span>铺位管理</div>
+  <div class="sec-desc">覆盖铺位资源的<strong>全生命周期管理</strong>，包括铺位考察人员的配置管理和铺位状态流转。</div>
+
+  <div class="card">
+    <div class="card-hd"><h3>铺位生命周期（7 种状态流转）</h3></div>
+    <div class="card-bd">
+      <div class="flow-row">
+        <div class="flow-dot c1">在租 (1)</div><div class="flow-arr">→</div>
+        <div class="flow-dot c2">空置 (2)</div><div class="flow-arr">→</div>
+        <div class="flow-dot c3">洽谈中 (3)</div><div class="flow-arr">→</div>
+        <div class="flow-dot c6">看铺 (4)</div><div class="flow-arr">→</div>
+        <div class="flow-dot c7">签约中 (5)</div><div class="flow-arr">→</div>
+        <div class="flow-dot c4">已签约 (6)</div><div class="flow-arr">→</div>
+        <div class="flow-dot c4">已开业 (7)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><h3>考察人管理接口</h3><span class="tag tag-blue">Controller: FlowCheckUserController</span></div>
+    <div class="card-bd">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>方法</th><th>接口路径</th><th>功能说明</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/flowCheckUser/list</code></td><td>点位铺位考察人列表</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/flowCheckUser/addOrUpdate</code></td><td>添加或更新考察人信息</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/flowCheckUser/delete</code></td><td>删除考察人</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/flowCheckUser/getFrontCheckUser</code></td><td>根据铺位查询一线拓展人员</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/flowCheckUser/expend/user</code></td><td>获取拓展专员信息</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/flowCheckUser/list/region</code></td><td>查询行政区负责人</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================================== -->
+<!-- MODULE 6: 地图服务 -->
+<!-- ================================================================================== -->
+<div class="sec-wrap" id="m6">
+  <div class="sec-title"><span class="num">6</span>地图服务</div>
+  <div class="sec-desc">集成<strong>高德地图 + 百度地图 + 腾讯地图</strong>三套 LBS 服务，在地图上可视化展示门店、点位、铺位、品牌分布。支持坐标互转（百度⇔高德含偏移算法）。</div>
+  <div class="card">
+    <div class="card-hd"><h3>API 接口列表</h3><span class="tag tag-blue">Controller: MapController</span></div>
+    <div class="card-bd">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>方法</th><th>接口路径</th><th>功能说明</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/map/listQdmStore</code></td><td>所有门店的地图坐标数据</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/map/listAllDepotCenters</code></td><td>配送中心仓库的地图坐标</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/map/listLocationPoints</code></td><td>点位地图展示信息</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/map/listShops</code></td><td>铺位地图标记信息</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/map/listBrands</code></td><td>竞品品牌门店地图标记</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================================== -->
+<!-- MODULE 7: 品牌管理 -->
+<!-- ================================================================================== -->
+<div class="sec-wrap" id="m7">
+  <div class="sec-title"><span class="num">7</span>品牌管理</div>
+  <div class="sec-desc">管理竞品品牌信息，支持<strong>全国性品牌</strong>和<strong>区域性品牌</strong>区分，为热力图分析和竞争分析提供基础数据。</div>
+  <div class="card">
+    <div class="card-hd"><h3>API 接口列表</h3><span class="tag tag-blue">Controller: BrandController</span></div>
+    <div class="card-bd">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>方法</th><th>接口路径</th><th>功能说明</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/brand/save</code></td><td>新增或更新品牌信息</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/brand/{id}</code></td><td>根据ID获取品牌详情</td></tr>
+            <tr><td><span class="mtd mtd-del">DELETE</span></td><td><code>/brand/{id}</code></td><td>删除品牌</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/brand/listBrands</code></td><td>品牌分页列表</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/brand/updateDisplay</code></td><td>控制品牌在地图上显示/隐藏</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/brand/listBrandStores</code></td><td>查询品牌关联的门店信息</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================================== -->
+<!-- MODULE 8: 加盟商管理 -->
+<!-- ================================================================================== -->
+<div class="sec-wrap" id="m8">
+  <div class="sec-title"><span class="num">8</span>加盟商管理 <span style="font-size:13px;color:var(--c-success);font-weight:500;margin-left:8px">独立微服务</span></div>
+  <div class="sec-desc">加盟商模块是一个<strong>独立微服务</strong>（store-location-franchisee），管理加盟商的完整生命周期：从潜在加盟商信息登记、招商会管理、签约 OA 审批到报表分析。</div>
+
+  <!-- 8.1 加盟商信息 -->
+  <div class="card">
+    <div class="card-hd"><h3>8.1 加盟商信息管理</h3><span class="tag tag-green">Controller: FranchiseeController</span></div>
+    <div class="card-bd">
+      <div class="infobox info">
+        <div><strong>加盟商等级体系：</strong>S → A → B+ → B → C → D → E（S级最优，E级最低）&nbsp;|&nbsp; 信息包含：基本信息 · 收入信息 · 意向信息 · 其他信息 · 跟进信息</div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>方法</th><th>接口路径</th><th>功能说明</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/franchisee/{franchiseeCode}</code></td><td>根据编码获取加盟商详情</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/franchisee/list</code></td><td>分页查询加盟商（支持多条件筛选）</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/franchisee/addOrUpdate</code></td><td>新增或更新加盟商信息</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/franchisee/apply</code></td><td>意向加盟申请（短信验证码校验 + 防重复）</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/franchisee/import</code></td><td>Excel 批量导入加盟商信息</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/franchisee/export</code></td><td>Excel 导出加盟商列表</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/franchisee/assign</code></td><td>指派跟进人</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/franchisee/addFollowRecord</code></td><td>添加跟进记录</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8.2 招商会 -->
+  <div class="card">
+    <div class="card-hd"><h3>8.2 招商会管理</h3><span class="tag tag-green">Controller: FranchiseeMeetingController</span></div>
+    <div class="card-bd">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>方法</th><th>接口路径</th><th>功能说明</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/meeting</code></td><td>批量创建招商会（支持多时间段）</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/meeting/list</code></td><td>招商会分页列表</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/meeting/appointment</code></td><td>加盟商预约招商会（含短信通知）</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/meeting/qrcode/{id}</code></td><td>生成招商会带 Logo 二维码</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/meeting/sign</code></td><td>基于手机号的会议签到</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8.3 签约 -->
+  <div class="card">
+    <div class="card-hd"><h3>8.3 加盟商签约</h3><span class="tag tag-green">Controller: FranchiseeSignController</span></div>
+    <div class="card-bd">
+      <div class="infobox ok">
+        <div><strong>签约核心流程：</strong>签约校验 → 发起 OA 工作流审批（CreateWorkflowInfoBuilder 构建审批表单）→ 保存签约记录 → OA 审批回调 → 自动将加盟商状态更新为"已签约"</div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>方法</th><th>接口路径</th><th>功能说明</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/franchisee/sign/sign</code></td><td>发起签约流程</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/franchisee/sign/listSigned</code></td><td>已签约列表（含门店统计，Redis缓存策略）</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/franchisee/sign/confirmSign</code></td><td>OA 审批回调确认签约</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/franchisee/sign/sign/{franchiseeCode}</code></td><td>查看签约详情（从 SAP 获取）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8.4 报表 -->
+  <div class="card">
+    <div class="card-hd"><h3>8.4 加盟商报表分析</h3><span class="tag tag-green">Controller: ReportController</span></div>
+    <div class="card-bd">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>方法</th><th>接口路径</th><th>功能说明</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/report/potentialFranchisee</code></td><td>潜在加盟商分析（按区域/用户维度）</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/report/followAnalysis</code></td><td>加盟商跟进情况分析</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/report/meetingAnalysis</code></td><td>招商会数据统计分析</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================================== -->
+<!-- MODULE 9: 统计分析 -->
+<!-- ================================================================================== -->
+<div class="sec-wrap" id="m9">
+  <div class="sec-title"><span class="num">9</span>统计分析</div>
+  <div class="sec-desc">多维度拓展统计报表，覆盖<strong>时间×空间×人员×指标</strong>四维交叉分析。</div>
+  <div class="card">
+    <div class="card-hd"><h3>API 接口列表</h3><span class="tag tag-blue">Controller: StatisticsController</span></div>
+    <div class="card-bd">
+      <div class="infobox warn">
+        <div><strong>统计维度：</strong>时间（日/月/年）× 空间（全国/城市/区域）× 人员（团队/个人）× 指标（签约/开店/拓展/增长）</div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>方法</th><th>接口路径</th><th>功能说明</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/statistics/expandOverview</code></td><td>拓展概况（拓展/签约/开店核心指标）</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/statistics/signGoal</code></td><td>签约目标达成统计</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/statistics/signTrend</code></td><td>签约趋势图表数据</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/statistics/monthSignTrend</code></td><td>月度签约趋势分析</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/statistics/cityExpandIndex</code></td><td>城市拓展指标排名</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/statistics/usrExpandIndexRank</code></td><td>拓展人员排名</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/statistics/usrExpandStatis</code></td><td>拓展记录统计</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/statistics/usrExpandOverview</code></td><td>用户拓展概况</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/statistics/cmunityHouseholdsDistrib</code></td><td>城市-小区住户数分布统计</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================================== -->
+<!-- MODULE 10: 工作台 -->
+<!-- ================================================================================== -->
+<div class="sec-wrap" id="m10">
+  <div class="sec-title"><span class="num">10</span>工作台</div>
+  <div class="sec-desc">一站式工作视图，聚合目标达成、通知公告、近期门店动态、任务统计等关键信息。</div>
+  <div class="card">
+    <div class="card-hd"><h3>API 接口列表</h3><span class="tag tag-blue">Controller: WorkbenchController</span></div>
+    <div class="card-bd">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>方法</th><th>接口路径</th><th>功能说明</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/workbench/goalAchievement</code></td><td>目标 vs 实际达成实时数据</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/workbench/listRecentStoreBizInfo</code></td><td>近期门店经营动态</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/workbench/listUserNotice</code></td><td>当前用户通知消息列表</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/workbench/expand</code></td><td>拓展数据统计概览</td></tr>
+            <tr><td><span class="mtd mtd-get">GET</span></td><td><code>/v1/workbench/taskStats</code></td><td>个人任务完成统计</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/workbench/createNotice</code></td><td>创建系统通知公告</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/workbench/sendNotice/{id}</code></td><td>发送通知</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/workbench/recallNotice/{id}</code></td><td>撤回已发送通知</td></tr>
+            <tr><td><span class="mtd mtd-post">POST</span></td><td><code>/v1/workbench/deleteNotice/{id}</code></td><td>删除通知</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================================== -->
+<!-- MODULE 11: 权限管理 -->
+<!-- ================================================================================== -->
+<div class="sec-wrap" id="m11">
+  <div class="sec-title"><span class="num">11</span>权限管理 <span style="font-size:13px;color:var(--c-warning);font-weight:500;margin-left:8px">独立服务</span></div>
+  <div class="sec-desc">权限同步服务（store-location-auth-syn），负责将本地权限数据推送到统一权限中心，同时通过<strong>阿里云 MQ</strong> 监听用户变更事件实现实时同步。</div>
+
+  <div class="card">
+    <div class="card-hd"><h3>5 种权限类型</h3></div>
+    <div class="card-bd">
+      <div class="g4">
+        <div class="minicard"><div class="ic">📋</div><div class="tt">PC 菜单权限</div><div class="ds">后台管理系统菜单控制</div></div>
+        <div class="minicard"><div class="ic">📱</div><div class="tt">移动端菜单权限</div><div class="ds">移动端菜单控制</div></div>
+        <div class="minicard"><div class="ic">🔘</div><div class="tt">按钮权限</div><div class="ds">页面操作按钮级控制</div></div>
+        <div class="minicard"><div class="ic">🏘️</div><div class="tt">数据权限</div><div class="ds">社区门店 / 铺位加盟商数据隔离</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><h3>权限同步流程</h3></div>
+    <div class="card-bd">
+      <div class="flow-row" style="justify-content:center">
+        <div class="flow-dot c2">本地 DB</div><div class="flow-arr">→</div>
+        <div class="flow-dot c6">凌晨4:00 定时任务</div><div class="flow-arr">→</div>
+        <div class="flow-dot c4">按序推送 HTTP API</div><div class="flow-arr">→</div>
+        <div class="flow-dot c4">统一权限中心</div>
+      </div>
+      <div style="text-align:center;margin-top:12px;font-size:13px;color:var(--c-text2)">
+        推送顺序：菜单 → 角色 → 数据维度 → 用户角色与数据权限
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><h3>定时任务一览</h3></div>
+    <div class="card-bd">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>执行时间</th><th>任务方法</th><th>功能说明</th></tr></thead>
+          <tbody>
+            <tr><td>应用启动时</td><td><code>init()</code></td><td>补全用户信息 + 执行一次权限同步</td></tr>
+            <tr><td>凌晨 2:00</td><td><code>completeUserInfo()</code></td><td>从权限平台回填岗位、员工编号、邮箱等信息</td></tr>
+            <tr><td>凌晨 3:00</td><td><code>refreshCache()</code></td><td>刷新岗位 JetCache 缓存</td></tr>
+            <tr><td>凌晨 4:00</td><td><code>synAuth()</code></td><td>推送菜单/角色/数据/用户权限到统一权限中心</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="infobox info" style="margin-top:16px">
+        <div><strong>MQ 用户变更监听：</strong>两个独立线程分别监听 <code>TOPIC_USER_INFO</code>（新增/更新用户）和 <code>REMOVEUSER_TOPIC</code>（禁用/离职用户），消费后调用 SynPermissionService 更新本地权限。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================================== -->
+<!-- MODULE 12: 系统集成 -->
+<!-- ================================================================================== -->
+<div class="sec-wrap" id="m12">
+  <div class="sec-title"><span class="num">12</span>系统集成</div>
+  <div class="sec-desc">门店选址平台与 20+ 个外部系统深度集成。</div>
+  <div class="card">
+    <div class="card-bd">
+      <div class="g3">
+        <div class="minicard"><div class="ic">📱</div><div class="tt">企业微信</div><div class="ds">OAuth 登录 · 扫码登录 · JS-SDK 签名 · 消息推送</div></div>
+        <div class="minicard"><div class="ic">📋</div><div class="tt">OA 系统</div><div class="ds">审批流程发起 · 归档回调 · 用户同步 · 铺位评估数据</div></div>
+        <div class="minicard"><div class="ic">📊</div><div class="tt">BI 平台</div><div class="ds">门店指标统计 · 经营趋势 · 会员分析（OAuth2）</div></div>
+        <div class="minicard"><div class="ic">🏭</div><div class="tt">SAP</div><div class="ds">门店主数据同步 · Vendor 数据查询</div></div>
+        <div class="minicard"><div class="ic">🗺️</div><div class="tt">地图服务 (×3)</div><div class="ds">高德(主力) · 百度 · 腾讯 · 坐标互转</div></div>
+        <div class="minicard"><div class="ic">🤖</div><div class="tt">AI 平台</div><div class="ds">火山引擎 Ark SDK · Dify 工作流编排</div></div>
+        <div class="minicard"><div class="ic">📦</div><div class="tt">阿里云基础设施</div><div class="ds">OSS 对象存储 · MQ 消息队列 · Redis 缓存</div></div>
+        <div class="minicard"><div class="ic">🔧</div><div class="tt">微服务基础设施</div><div class="ds">Nacos 注册配置 · XXL-Job 调度 · Sentinel 限流</div></div>
+        <div class="minicard"><div class="ic">💰</div><div class="tt">钱盟 (QM)</div><div class="ds">加盟商数据 · 企业微信通知 · 推荐等级</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================================== -->
+<!-- 任务工作流 -->
+<!-- ================================================================================== -->
+<div class="sec-wrap" id="workflow">
+  <div class="sec-title"><span class="ico">📝</span>用户任务工作流 (UserTask)</div>
+
+  <div class="card">
+    <div class="card-hd"><h3>6 种任务状态</h3></div>
+    <div class="card-bd">
+      <div class="flow-row">
+        <div class="flow-dot c2">待处理 (1)</div>
+        <div class="flow-dot c4">已完成 (2)</div>
+        <div class="flow-dot c3">已逾期 (3)</div>
+        <div class="flow-dot c5">已终止 (4)</div>
+        <div class="flow-dot c6">待审核 (5)</div>
+        <div class="flow-dot c5">审核不通过 (6)</div>
+      </div>
+      <div class="infobox warn" style="margin-top:16px">
+        <div><strong>待办任务状态集合：</strong>待处理(1) + 已逾期(3) + 待审核(5) + 审核不通过(6)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><h3>8 种生命周期事件</h3></div>
+    <div class="card-bd">
+      <div class="flow-row">
+        <div class="flow-dot c1">创建 (1)</div><div class="flow-arr">→</div>
+        <div class="flow-dot c2">GPS打卡 (2)</div><div class="flow-arr">→</div>
+        <div class="flow-dot c2">提交 (3)</div><div class="flow-arr">→</div>
+        <div class="flow-dot c3">提交审核 (4)</div><div class="flow-arr">→</div>
+        <div class="flow-dot c5">审核驳回 (5)</div><span style="margin:0 8px;color:var(--c-text3)">/</span>
+        <div class="flow-dot c4">审核通过 (6)</div><div class="flow-arr">→</div>
+        <div class="flow-dot c5">终止 (7)</div><span style="margin:0 8px;color:var(--c-text3)">/</span>
+        <div class="flow-dot c1">修改 (8)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================================== -->
+<!-- 数据字典 -->
+<!-- ================================================================================== -->
+<div class="sec-wrap" id="dict">
+  <div class="sec-title"><span class="ico">📖</span>数据字典（关键字典类型）</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-hd"><h3>门店相关</h3></div>
+      <div class="card-bd">
+        <div class="tbl-wrap">
+          <table>
+            <tr><td><code>store_status</code></td><td>门店状态</td></tr>
+            <tr><td><code>store_scale</code></td><td>门店规模</td></tr>
+            <tr><td><code>store_kind</code></td><td>门店性质</td></tr>
+            <tr><td><code>store_type</code></td><td>门店类型</td></tr>
+            <tr><td><code>store_location</code></td><td>门店位置区域</td></tr>
+            <tr><td><code>open_status</code></td><td>开业状态</td></tr>
+            <tr><td><code>shop_level</code></td><td>铺位等级</td></tr>
+            <tr><td><code>berth_level</code></td><td>铺位空间等级</td></tr>
+            <tr><td><code>store_area</code></td><td>门店面积（新版）</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>选址相关</h3></div>
+      <div class="card-bd">
+        <div class="tbl-wrap">
+          <table>
+            <tr><td><code>city_level</code></td><td>城市等级</td></tr>
+            <tr><td><code>community_level</code></td><td>小区等级</td></tr>
+            <tr><td><code>community_type</code></td><td>小区类型</td></tr>
+            <tr><td><code>community_status</code></td><td>小区状态</td></tr>
+            <tr><td><code>biz_district</code></td><td>商业区</td></tr>
+            <tr><td><code>commercial_area</code></td><td>商圈（新版）</td></tr>
+            <tr><td><code>property_type</code></td><td>物业类型</td></tr>
+            <tr><td><code>construction_type</code></td><td>建筑类型</td></tr>
+            <tr><td><code>electricity</code></td><td>电力情况</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>加盟商相关</h3></div>
+      <div class="card-bd">
+        <div class="tbl-wrap">
+          <table>
+            <tr><td><code>franchisee_status</code></td><td>加盟商状态</td></tr>
+            <tr><td><code>franchisee_level</code></td><td>加盟商等级</td></tr>
+            <tr><td><code>franchisee_nature</code></td><td>加盟商性质</td></tr>
+            <tr><td><code>franchisee_channel</code></td><td>加盟商获取渠道</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>分析相关</h3></div>
+      <div class="card-bd">
+        <div class="tbl-wrap">
+          <table>
+            <tr><td><code>brand_type</code></td><td>品牌类型</td></tr>
+            <tr><td><code>competition_type</code></td><td>竞争关系</td></tr>
+            <tr><td><code>point_level</code></td><td>点位等级</td></tr>
+            <tr><td><code>point_data_source</code></td><td>点位数据来源</td></tr>
+            <tr><td><code>point_expansion_status</code></td><td>点位拓展状态</td></tr>
+            <tr><td><code>evaluation_status</code></td><td>拓展评估结果</td></tr>
+            <tr><td><code>resident_characteristic_type</code></td><td>居民特征类型</td></tr>
+            <tr><td><code>area_size</code></td><td>面积大小</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Footer ====== -->
+<div class="ft">
+  <p>📍 门店选址平台 · PRD 产品需求文档 v1.0 · 基于 SPEC.md 功能模块文档生成 · 2026-06-17</p>
+  <p style="margin-top:4px">技术栈：Spring Cloud · MyBatis-Plus · Nacos · Redis · MySQL · 高德/百度/腾讯地图 · 企业微信 · 火山引擎 AI</p>
+</div>
+
+</div><!-- /.wrap -->
+
+<script>
+// Sidebar navigation active state on scroll
+const navLinks = document.querySelectorAll('.sidebar .sb-nav a');
+const sections = [];
+navLinks.forEach(a => {
+  const id = a.getAttribute('href').slice(1);
+  const el = document.getElementById(id);
+  if (el) sections.push({ el, a });
+});
+
+function updateNav() {
+  let current = sections[0];
+  for (const s of sections) {
+    if (s.el.getBoundingClientRect().top <= 150) current = s;
+  }
+  navLinks.forEach(a => a.classList.remove('active'));
+  if (current) current.a.classList.add('active');
+  // Auto-scroll sidebar to keep active item visible
+  if (current) current.a.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+window.addEventListener('scroll', updateNav, { passive: true });
+
+// Smooth scroll for all anchor links
+document.querySelectorAll('.sidebar .sb-nav a').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.getElementById(a.getAttribute('href').slice(1));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+
+// Set initial active
+updateNav();
+</script>
+</body>
+</html>
