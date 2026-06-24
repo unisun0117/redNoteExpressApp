@@ -1,180 +1,74 @@
-# Ruflo — Claude Code Configuration
+# Ruflo — 多智能体协作框架
 
-## Rules
+## 这是什么？
 
-- Do what has been asked; nothing more, nothing less
-- NEVER create files unless absolutely necessary — prefer editing existing files
-- NEVER create documentation files unless explicitly requested
-- NEVER save working files or tests to root — use `/src`, `/tests`, `/docs`, `/config`, `/scripts`
-- ALWAYS read a file before editing it
-- NEVER commit secrets, credentials, or .env files
-- NEVER add a `Co-Authored-By` trailer to user commits unless this project's `.claude/settings.json` has `attribution.commit` set (#2078). The Claude Code Bash tool may suggest one in its default commit-message template — ignore it. `Co-Authored-By` is semantic authorship attribution under git/GitHub convention; the tool is the facilitator, not a co-author.
-- Keep files under 500 lines
-- Validate input at system boundaries
+Ruflo 是一个第三方开源项目（github.com/ruvnet/ruflo），它为 Claude Code 提供"多智能体协作"能力。简单说：当你要改很多文件、做复杂功能时，它可以同时启动多个 AI 助手分工合作——有人写代码、有人审代码、有人测代码。
 
-## Agent Comms (SendMessage-First Coordination)
+**当前状态：** 已安装但大部分功能并未实际运行。你日常开发红薯快写 App 时，**不需要主动使用它**。
 
-Named agents coordinate via `SendMessage`, not polling or shared state.
+## 对你有什么用？
+
+坦白说，对你当前阶段帮助有限。原因：
+
+1. **你的项目是单人开发** — Ruflo 的多智能体模式适合 3-5 人团队协作的场景
+2. **大部分功能需要额外付费的 API 调用** — 启动多个智能体会消耗大量 token
+3. **它的技能主要是给 Ruflo 框架本身开发用的** — 不是给你的红薯快写 App 用的
+
+## 什么时候可能有用？
+
+- 将来红薯快写 App 功能变复杂，一次要改 10+ 个文件的时候
+- 你想让 AI 写完代码后，另一个 AI 自动检查一遍
+- 你要做大规模重构（比如整个后端从 FastAPI 迁移到别的框架）
+
+## 目录说明
 
 ```
-Lead (you) ←→ architect ←→ developer ←→ tester ←→ reviewer
-              (named agents message each other directly)
+ruflo/
+├── CLAUDE.md              ← 当前文件
+├── ruflo.txt              ← 项目 GitHub 地址
+├── ruflo.html / ruflo.png ← 项目介绍的网页截图
+├── .claude-flow/          ← Ruflo 运行配置
+│   ├── config.yaml        ← 集群配置（最大15个智能体等）
+│   └── CAPABILITIES.md    ← 功能清单（英文原文）
+├── .claude/
+│   ├── agents/            ← 60+ 种智能体角色定义（程序员/审查员/测试员/架构师…）
+│   ├── skills/            ← 30 个技能（都是给 Ruflo 框架开发用的）
+│   └── commands/          ← 斜杠命令定义
 ```
 
-### Spawning a Coordinated Team
+## 配置要点
 
-```javascript
-// ALL agents in ONE message, each knows WHO to message next
-Agent({ prompt: "Research the codebase. SendMessage findings to 'architect'.",
-  subagent_type: "researcher", name: "researcher", run_in_background: true })
-Agent({ prompt: "Wait for 'researcher'. Design solution. SendMessage to 'coder'.",
-  subagent_type: "system-architect", name: "architect", run_in_background: true })
-Agent({ prompt: "Wait for 'architect'. Implement it. SendMessage to 'tester'.",
-  subagent_type: "coder", name: "coder", run_in_background: true })
-Agent({ prompt: "Wait for 'coder'. Write tests. SendMessage results to 'reviewer'.",
-  subagent_type: "tester", name: "tester", run_in_background: true })
-Agent({ prompt: "Wait for 'tester'. Review code quality and security.",
-  subagent_type: "reviewer", name: "reviewer", run_in_background: true })
-
-// Kick off the pipeline
-SendMessage({ to: "researcher", summary: "Start", message: "[task context]" })
+```yaml
+# .claude-flow/config.yaml 的关键设置
+swarm.maxAgents: 15     # 最多同时 15 个 AI 助手
+memory.backend: hybrid  # 混合记忆模式（文件 + 向量搜索）
+neural.enabled: true    # 启用自学习（记录成功/失败模式）
+mcp.autoStart: false    # MCP 服务不自动启动
 ```
 
-### Patterns
-
-| Pattern | Flow | Use When |
-|---------|------|----------|
-| **Pipeline** | A → B → C → D | Sequential dependencies (feature dev) |
-| **Fan-out** | Lead → A, B, C → Lead | Independent parallel work (research) |
-| **Supervisor** | Lead ↔ workers | Ongoing coordination (complex refactor) |
-
-### Rules
-
-- ALWAYS name agents — `name: "role"` makes them addressable
-- ALWAYS include comms instructions in prompts — who to message, what to send
-- Spawn ALL agents in ONE message with `run_in_background: true`
-- After spawning: STOP, tell user what's running, wait for results
-- NEVER poll status — agents message back or complete automatically
-
-## Swarm & Routing
-
-### Config
-- **Topology**: hierarchical-mesh (anti-drift)
-- **Max Agents**: 15
-- **Memory**: hybrid
-- **HNSW**: Enabled
-- **Neural**: Enabled
+## 可用命令（供参考，日常不需要用）
 
 ```bash
-npx @claude-flow/cli@latest swarm init --topology hierarchical --max-agents 8 --strategy specialized
-```
+# 启动多智能体集群
+npx ruflo@latest swarm init --topology hierarchical --max-agents 8
 
-### Agent Routing
+# 启动一个子智能体
+npx ruflo@latest agent spawn -t coder --name my-coder
 
-| Task | Agents | Topology |
-|------|--------|----------|
-| Bug Fix | researcher, coder, tester | hierarchical |
-| Feature | architect, coder, tester, reviewer | hierarchical |
-| Refactor | architect, coder, reviewer | hierarchical |
-| Performance | perf-engineer, coder | hierarchical |
-| Security | security-architect, auditor | hierarchical |
-
-### When to Swarm
-- **YES**: 3+ files, new features, cross-module refactoring, API changes, security, performance
-- **NO**: single file edits, 1-2 line fixes, docs updates, config changes, questions
-
-### 3-Tier Model Routing
-
-| Tier | Handler | Use Cases |
-|------|---------|-----------|
-| 1 | Agent Booster (WASM) | Simple transforms — skip LLM, use Edit directly |
-| 2 | Haiku | Simple tasks, low complexity |
-| 3 | Sonnet/Opus | Architecture, security, complex reasoning |
-
-## Memory & Learning
-
-### Before Any Task
-```bash
-npx @claude-flow/cli@latest memory search --query "[task keywords]" --namespace patterns
-npx @claude-flow/cli@latest hooks route --task "[task description]"
-```
-
-### After Success
-```bash
-npx @claude-flow/cli@latest memory store --namespace patterns --key "[name]" --value "[what worked]"
-npx @claude-flow/cli@latest hooks post-task --task-id "[id]" --success true --store-results true
-```
-
-### MCP Tools (use `ToolSearch("keyword")` to discover)
-
-| Category | Key Tools |
-|----------|-----------|
-| **Memory** | `memory_store`, `memory_search`, `memory_search_unified` |
-| **Bridge** | `memory_import_claude`, `memory_bridge_status` |
-| **Swarm** | `swarm_init`, `swarm_status`, `swarm_health` |
-| **Agents** | `agent_spawn`, `agent_list`, `agent_status` |
-| **Hooks** | `hooks_route`, `hooks_post-task`, `hooks_worker-dispatch` |
-| **Security** | `aidefence_scan`, `aidefence_is_safe`, `aidefence_has_pii` |
-| **Hive-Mind** | `hive-mind_init`, `hive-mind_consensus`, `hive-mind_spawn` |
-
-### Background Workers
-
-| Worker | When |
-|--------|------|
-| `audit` | After security changes |
-| `optimize` | After performance work |
-| `testgaps` | After adding features |
-| `map` | Every 5+ file changes |
-| `document` | After API changes |
-
-```bash
-npx @claude-flow/cli@latest hooks worker dispatch --trigger audit
-```
-
-## Agents
-
-**Core**: `coder`, `reviewer`, `tester`, `planner`, `researcher`
-**Architecture**: `system-architect`, `backend-dev`, `mobile-dev`
-**Security**: `security-architect`, `security-auditor`
-**Performance**: `performance-engineer`, `perf-analyzer`
-**Coordination**: `hierarchical-coordinator`, `mesh-coordinator`, `adaptive-coordinator`
-**GitHub**: `pr-manager`, `code-review-swarm`, `issue-tracker`, `release-manager`
-
-Any string works as a custom agent type.
-
-## Build & Test
-
-- ALWAYS run tests after code changes
-- ALWAYS verify build succeeds before committing
-
-```bash
-npm run build && npm test
-```
-
-## CLI Quick Reference
-
-```bash
-npx @claude-flow/cli@latest init --wizard           # Setup
-npx @claude-flow/cli@latest swarm init --v3-mode     # Start swarm
-npx @claude-flow/cli@latest memory search --query "" # Vector search
-npx @claude-flow/cli@latest hooks route --task ""    # Route to agent
-npx @claude-flow/cli@latest doctor --fix             # Diagnostics
-npx @claude-flow/cli@latest security scan            # Security scan
-npx @claude-flow/cli@latest performance benchmark    # Benchmarks
-```
-
-26 commands, 140+ subcommands. Use `--help` on any command for details.
-
-## Setup
-
-```bash
-claude mcp add claude-flow -- npx -y ruflo@latest mcp start
+# 诊断问题
 npx ruflo@latest doctor --fix
 ```
 
-> The background `daemon` is optional. It runs interval workers that each spawn
-> a headless `claude` session, so it consumes tokens continuously. Start it only
-> if you want those sweeps: `npx ruflo@latest daemon start` (self-stops after 12h
-> by default; `--ttl 0` to disable, `daemon status --all` to audit running daemons).
+## 真正对你有用的工具
 
-**Agent tool** handles execution (agents, files, code, git). **MCP tools** handle coordination (swarm, memory, hooks). **CLI** is the same via Bash.
+开发红薯快写 App 时，你应该用的是 Claude Code 内置的技能，而不是 Ruflo：
+
+| 场景 | 用什么 |
+|------|--------|
+| 开发新功能前先想清楚方案 | `/brainstorming` |
+| 写代码前先写测试 | `/test-driven-development` |
+| 代码出 bug 了 | `/systematic-debugging` |
+| 写完代码让 AI 检查 | `/code-review` |
+| 功能做完了合入主分支 | `/finishing-a-development-branch` |
+
+这些才是真正帮你提效的工具，不需要额外配置，直接用就行。

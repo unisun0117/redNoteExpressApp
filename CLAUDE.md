@@ -150,3 +150,20 @@ npx vite build       # 生产构建（Vercel 用的就是这个命令）
 - 用 `ToolSearch("关键词")` 发现可用的 MCP 工具
 - 通过 `SendMessage` 实现具名智能体协作（流水线/扇出/督导模式）
 - 完整文档见 `ruflo/CLAUDE.md`
+
+## 日常开发 — 真正帮你提效的 Claude Code 技能
+
+开发红薯快写 App 时，用这些内置技能就够了（不需要额外配置，直接输入斜杠命令）：
+
+| 场景 | 命令 | 说明 |
+|------|------|------|
+| 做新功能，先理清思路 | `/brainstorming` | AI 会引导你把需求想清楚再动手 |
+| 写代码前先写测试 | `/test-driven-development` | 先写测试，再写实现 |
+| 代码出 bug 找不到原因 | `/systematic-debugging` | 系统化排查，不是瞎猜 |
+| 写完代码让 AI 审一遍 | `/code-review` | 检查是否有逻辑漏洞、代码质量问题 |
+| 功能做完了要合并 | `/finishing-a-development-branch` | 帮你决定是合并还是提 PR |
+| 让 AI 帮你做实施计划 | `/writing-plans` | 复杂任务先出计划，确认后再执行 |
+
+### Ruflo（多智能体框架）
+
+`ruflo/` 目录是一个第三方开源的多智能体框架。**日常开发不需要用它**。它适合的场景是：当项目非常复杂、一次要改几十个文件时，启动多个 AI 助手并行工作。对你当前阶段帮助有限，详见 `ruflo/CLAUDE.md`。
