@@ -15,7 +15,7 @@ const DEFAULT_CONFIG: StyleConfig = {
 };
 
 export function GeneratorPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [images, setImages] = useState<File[]>([]);
   const [keywords, setKeywords] = useState("");
   const [storeName, setStoreName] = useState("");
@@ -52,6 +52,7 @@ export function GeneratorPage() {
       const data = await api.generate(fd);
       if (data.title) {
         setResult(data);
+        refreshUser(); // 生成成功后刷新点数显示
       } else {
         setError(data.detail || "生成失败，请重试");
       }

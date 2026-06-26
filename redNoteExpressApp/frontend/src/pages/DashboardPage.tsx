@@ -1,9 +1,24 @@
+import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { api } from "../services/api";
+import { ResultView } from "../components/ResultView";
 
 export function DashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      api.getGenerations(0, 20).then((data) => {
+        if (data.items) setHistory(data.items);
+        setLoading(false);
+      }).catch(() => setLoading(false));
+    }
+  }, [user]);
 
   if (!user) return null;
 
@@ -58,6 +73,48 @@ export function DashboardPage() {
       <button className="btn btn-outline" style={{ marginTop: 8, color: "#e74c3c" }} onClick={logout}>
         退出登录
       </button>
+
+      {/* 历史文章列表 */}
+      <div style={{ marginTop: 24 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
+          📝 历史文章 ({history.length})
+        </h2>
+
+        {loading && <div style={{ textAlign: "center", color: "#999", padding: 20 }}>加载中...</div>}
+
+        {!loading && history.length === 0 && (
+          <div style={{ textAlign: "center", color: "#999", padding: 20 }}>
+            还没有生成过文章，去<a href="/" style={{ color: "#ee5a24" }}>首页</a>试试吧～
+          </div>
+        )}
+
+        {history.map((item: any) => (
+          <div key={item.id} className="card" style={{ marginBottom: 8, cursor: "pointer" }}
+               onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>
+                  {item.generated_article?.title || "无标题"}
+                </div>
+                <div style={{ fontSize: 12, color: "#999", marginTop: 4 }}>
+                  {item.keywords && `🏷 ${item.keywords}`}
+                  {item.keywords && " · "}
+                  {new Date(item.created_at).toLocaleString("zh-CN")}
+                </div>
+              </div>
+              <span style={{ fontSize: 12, color: "#999" }}>
+                {expandedId === item.id ? "收起 ▲" : "展开 ▼"}
+              </span>
+            </div>
+
+            {expandedId === item.id && (
+              <div style={{ marginTop: 12, borderTop: "1px solid #eee", paddingTop: 12 }}>
+                <ResultView article={item.generated_article} />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

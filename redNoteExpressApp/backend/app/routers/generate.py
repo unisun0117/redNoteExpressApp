@@ -79,3 +79,49 @@ async def generate_article(
     db.commit()
 
     return GenerateResponse(**result)
+
+
+class HistoryItem(BaseModel):
+    id: str
+    keywords: str | None
+    style_config: dict | None
+    generated_article: dict | None
+    tokens_used: int
+    created_at: str
+
+
+class HistoryResponse(BaseModel):
+    items: list[HistoryItem]
+    total: int
+
+
+@router.get("/generations", response_model=HistoryResponse)
+def get_generations(
+    skip: int = 0,
+    limit: int = 20,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    total = db.query(Generation).filter(Generation.user_id == user.id).count()
+    items = (
+        db.query(Generation)
+        .filter(Generation.user_id == user.id)
+        .order_by(Generation.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return HistoryResponse(
+        items=[
+            HistoryItem(
+                id=g.id,
+                keywords=g.keywords,
+                style_config=g.style_config,
+                generated_article=g.generated_article,
+                tokens_used=g.tokens_used,
+                created_at=g.created_at.isoformat() if g.created_at else "",
+            )
+            for g in items
+        ],
+        total=total,
+    )

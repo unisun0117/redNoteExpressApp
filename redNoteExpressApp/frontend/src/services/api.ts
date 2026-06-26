@@ -104,6 +104,10 @@ export const api = {
   // Batch
   batchGenerate: (formData: FormData) =>
     authFetch("/batch/generate", { method: "POST", body: formData }).then((r) => r.json()),
+
+  // History
+  getGenerations: (skip = 0, limit = 20) =>
+    authFetch(`/generations?skip=${skip}&limit=${limit}`).then((r) => r.json()),
 };
 
 export { setTokens, clearTokens, accessToken };
