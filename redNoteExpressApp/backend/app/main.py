@@ -1,3 +1,6 @@
+import os
+os.environ.setdefault("NO_PROXY", "*")  # 绕过 Windows 系统代理，DeepSeek 国内直连
+
 from app.database import engine, Base
 from app.config import settings
 

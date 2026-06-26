@@ -1,4 +1,5 @@
 import json
+import httpx
 from openai import AsyncOpenAI
 from app.config import settings
 
@@ -24,9 +25,12 @@ TRACK_PROMPTS = {
 
 class ArticleGenerator:
     def __init__(self):
+        # 绕过系统代理，直连 DeepSeek（国内服务器）
+        http_client = httpx.AsyncClient(proxy=None, verify=True)
         self.client = AsyncOpenAI(
             api_key=settings.OPENAI_API_KEY,
             base_url=settings.LLM_BASE_URL,
+            http_client=http_client,
         )
 
     async def generate(
