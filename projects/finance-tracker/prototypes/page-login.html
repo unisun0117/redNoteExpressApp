@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375, initial-scale=1.0">
+<title>金橘记账 - 登录</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#FFF8F0; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .container { width:375px; padding:40px 24px; }
+  .logo { text-align:center; margin-bottom:40px; }
+  .logo .icon { font-size:56px; display:block; animation: float 3s ease-in-out infinite; }
+  @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+  .logo h1 { font-size:24px; color:#1F2937; margin-top:8px; }
+  .logo p { font-size:13px; color:#9CA3AF; margin-top:4px; }
+  .tabs { display:flex; background:#fff; border-radius:12px; padding:4px; margin-bottom:24px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  .tab-btn { flex:1; padding:10px; border:none; border-radius:10px; font-size:14px; font-weight:500; cursor:pointer; background:transparent; color:#9CA3AF; transition:all .2s; }
+  .tab-btn.active { background:#FEF3C7; color:#F59E0B; font-weight:600; }
+  .form { display:flex; flex-direction:column; gap:16px; }
+  .form-group { display:none; }
+  .form-group.active { display:flex; flex-direction:column; gap:16px; }
+  .label { font-size:13px; color:#6B7280; font-weight:500; }
+  .input-wrap { position:relative; }
+  .input { width:100%; padding:14px 16px; border:1px solid #F3E8DC; border-radius:10px; font-size:15px; background:#fff; outline:none; transition:border-color .2s, box-shadow .2s; }
+  .input:focus { border-color:#F59E0B; box-shadow:0 0 0 3px rgba(245,158,11,.1); }
+  .input.error { border-color:#EF4444; }
+  .pw-toggle { position:absolute; right:16px; top:50%; transform:translateY(-50%); background:none; border:none; font-size:18px; cursor:pointer; }
+  .btn { width:100%; padding:14px; border:none; border-radius:10px; font-size:16px; font-weight:600; cursor:pointer; transition:all .2s; }
+  .btn-primary { background:#F59E0B; color:#fff; }
+  .btn-primary:hover { background:#D97706; transform:translateY(-1px); box-shadow:0 4px 12px rgba(245,158,11,.3); }
+  .btn-primary:active { transform:translateY(0); }
+  .btn-primary:disabled { background:#FCD34D; cursor:not-allowed; transform:none; }
+  .footer { text-align:center; margin-top:24px; font-size:13px; color:#9CA3AF; }
+  .footer a { color:#F59E0B; text-decoration:none; }
+  .toast { position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#1F2937; color:#fff; padding:10px 20px; border-radius:20px; font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:999; }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">
+    <span class="icon">🍊</span>
+    <h1>金橘记账</h1>
+    <p>温暖治愈的个人记账工具</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('login')">登录</button>
+    <button class="tab-btn" onclick="switchTab('register')">注册</button>
+  </div>
+
+  <!-- 登录表单 -->
+  <div class="form-group active" id="form-login">
+    <div>
+      <div class="label">邮箱</div>
+      <input class="input" type="email" placeholder="请输入邮箱" value="demo@jijin.com">
+    </div>
+    <div>
+      <div class="label">密码</div>
+      <div class="input-wrap">
+        <input class="input" type="password" placeholder="请输入密码" value="123456">
+        <button class="pw-toggle" onclick="togglePw(this)">👁️</button>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">登录</button>
+  </div>
+
+  <!-- 注册表单 -->
+  <div class="form-group" id="form-register">
+    <div>
+      <div class="label">邮箱</div>
+      <input class="input" type="email" placeholder="请输入邮箱">
+    </div>
+    <div>
+      <div class="label">密码</div>
+      <div class="input-wrap">
+        <input class="input" type="password" placeholder="至少6位密码">
+        <button class="pw-toggle" onclick="togglePw(this)">👁️</button>
+      </div>
+    </div>
+    <div>
+      <div class="label">确认密码</div>
+      <input class="input" type="password" placeholder="再次输入密码">
+    </div>
+    <button class="btn btn-primary" onclick="doRegister()">注册</button>
+  </div>
+
+  <div class="footer">
+    登录即同意 <a href="#">用户协议</a> 和 <a href="#">隐私政策</a>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.form-group').forEach(f => f.classList.remove('active'));
+  if (tab === 'login') {
+    document.querySelectorAll('.tab-btn')[0].classList.add('active');
+    document.getElementById('form-login').classList.add('active');
+  } else {
+    document.querySelectorAll('.tab-btn')[1].classList.add('active');
+    document.getElementById('form-register').classList.add('active');
+  }
+}
+
+function togglePw(btn) {
+  const input = btn.parentElement.querySelector('input');
+  input.type = input.type === 'password' ? 'text' : 'password';
+  btn.textContent = input.type === 'password' ? '👁️' : '🙈';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function doLogin() {
+  showToast('登录成功，正在跳转...');
+  setTimeout(() => { window.location.href = 'page-dashboard.html'; }, 600);
+}
+
+function doRegister() {
+  showToast('注册成功！');
+  switchTab('login');
+}
+</script>
+</body>
+</html>

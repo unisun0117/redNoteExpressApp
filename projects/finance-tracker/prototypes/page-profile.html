@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375, initial-scale=1.0">
+<title>金橘记账 - 我的</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#FFF8F0; }
+  .page { max-width:480px; margin:0 auto; padding:24px 16px 100px; }
+  .header { margin-bottom:20px; }
+  .header h1 { font-size:20px; color:#1F2937; }
+  .profile-card { background:#fff; border-radius:16px; padding:24px; display:flex; align-items:center; gap:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  .profile-card .avatar { width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg, #FEF3C7, #FDE68A); display:flex; align-items:center; justify-content:center; font-size:28px; cursor:pointer; transition:transform .2s; }
+  .profile-card .avatar:hover { transform:scale(1.1); }
+  .profile-card .info { flex:1; }
+  .profile-card .info .name { font-size:18px; font-weight:600; color:#1F2937; }
+  .profile-card .info .email { font-size:13px; color:#9CA3AF; margin-top:2px; }
+  .profile-card .info .since { font-size:12px; color:#D1D5DB; margin-top:2px; }
+  .stats-row { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:16px; }
+  .stat-card { background:#fff; border-radius:12px; padding:16px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.06); transition:transform .2s; cursor:pointer; }
+  .stat-card:hover { transform:translateY(-2px); }
+  .stat-card .num { font-size:20px; font-weight:700; color:#1F2937; }
+  .stat-card .lbl { font-size:11px; color:#9CA3AF; margin-top:4px; }
+  .menu-section { background:#fff; border-radius:16px; overflow:hidden; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  .menu-section .title { font-size:12px; color:#9CA3AF; padding:14px 16px 6px; text-transform:uppercase; letter-spacing:1px; }
+  .menu-item { display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer; transition:background .15s; text-decoration:none; color:inherit; border:none; background:none; width:100%; font-size:15px; }
+  .menu-item:hover { background:#FFFDF7; }
+  .menu-item .icon { font-size:20px; width:28px; text-align:center; }
+  .menu-item .text { flex:1; color:#1F2937; }
+  .menu-item .arrow { color:#D1D5DB; font-size:14px; }
+  .menu-item .badge { background:#FEF3C7; color:#F59E0B; font-size:11px; padding:2px 8px; border-radius:10px; }
+  .menu-item.danger .text { color:#EF4444; }
+  .logout-btn { width:100%; padding:14px; background:#fff; border:1px solid #FEE2E2; border-radius:12px; font-size:15px; color:#EF4444; font-weight:500; cursor:pointer; margin-top:16px; transition:all .2s; }
+  .logout-btn:hover { background:#FEF2F2; }
+  .tab-bar { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:min(480px, 100vw); background:#fff; display:flex; border-top:1px solid #F3E8DC; padding:8px 0 env(safe-area-inset-bottom); z-index:100; }
+  .tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; background:none; border:none; color:#9CA3AF; font-size:11px; cursor:pointer; padding:6px; transition:color .2s; text-decoration:none; }
+  .tab:hover { color:#F59E0B; }
+  .tab.active { color:#F59E0B; }
+  .tab .icon { font-size:20px; transition:transform .2s; }
+  .tab:hover .icon { transform:scale(1.15); }
+  .toast { position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#1F2937; color:#fff; padding:10px 20px; border-radius:20px; font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:999; }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header"><h1>👤 我的</h1></div>
+
+  <!-- 个人信息卡片 -->
+  <div class="profile-card">
+    <div class="avatar">😊</div>
+    <div class="info">
+      <div class="name">阿珊</div>
+      <div class="email">demo@jijin.com</div>
+      <div class="since">2026年3月加入 · 已记账 128 天</div>
+    </div>
+    <span style="color:#D1D5DB; font-size:14px;">›</span>
+  </div>
+
+  <!-- 数据概览 -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="num">1,286</div>
+      <div class="lbl">总记账笔数</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" style="color:#10B981;">¥52,800</div>
+      <div class="lbl">累计收入</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" style="color:#EF4444;">¥38,420</div>
+      <div class="lbl">累计支出</div>
+    </div>
+  </div>
+
+  <!-- 功能菜单 -->
+  <div class="menu-section">
+    <div class="title">数据管理</div>
+    <a class="menu-item" href="page-list.html"><span class="icon">📋</span><span class="text">全部账单</span><span class="arrow">›</span></a>
+    <div class="menu-item" onclick="showToast('导出功能开发中...')"><span class="icon">📥</span><span class="text">导出数据</span><span class="badge">CSV/Excel</span><span class="arrow">›</span></div>
+    <div class="menu-item" onclick="showToast('可选择按月份/分类导出')"><span class="icon">📊</span><span class="text">月度报表</span><span class="arrow">›</span></div>
+  </div>
+
+  <div class="menu-section">
+    <div class="title">设置</div>
+    <div class="menu-item" onclick="showToast('修改昵称和头像')"><span class="icon">✏️</span><span class="text">编辑资料</span><span class="arrow">›</span></div>
+    <div class="menu-item" onclick="showToast('可设置月度预算提醒')"><span class="icon">🔔</span><span class="text">提醒设置</span><span class="arrow">›</span></div>
+    <div class="menu-item" onclick="showToast('分类管理：增删改查自定义分类')"><span class="icon">🏷️</span><span class="text">分类管理</span><span class="arrow">›</span></div>
+    <div class="menu-item" onclick="showToast('浅色/深色/跟随系统')"><span class="icon">🎨</span><span class="text">外观设置</span><span class="arrow">›</span></div>
+  </div>
+
+  <div class="menu-section">
+    <div class="title">其他</div>
+    <div class="menu-item" onclick="showToast('金橘记账 v1.0.0')"><span class="icon">ℹ️</span><span class="text">关于</span><span class="badge">v1.0.0</span><span class="arrow">›</span></div>
+    <div class="menu-item" onclick="showToast('帮助文档和常见问题')"><span class="icon">❓</span><span class="text">帮助与反馈</span><span class="arrow">›</span></div>
+  </div>
+
+  <!-- 退出登录 -->
+  <button class="logout-btn" onclick="doLogout()">退出登录</button>
+</div>
+
+<div class="tab-bar">
+  <a class="tab" href="page-dashboard.html"><span class="icon">🏠</span>首页</a>
+  <a class="tab" href="page-list.html"><span class="icon">📋</span>账单</a>
+  <a class="tab" href="page-form.html"><span class="icon">➕</span>记账</a>
+  <a class="tab" href="page-budget.html"><span class="icon">🎯</span>预算</a>
+  <a class="tab active" href="page-profile.html"><span class="icon">👤</span>我的</a>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+function doLogout() {
+  if (confirm('确定退出登录吗？')) {
+    showToast('已退出登录');
+    setTimeout(() => { window.location.href = 'page-login.html'; }, 500);
+  }
+}
+</script>
+</body>
+</html>

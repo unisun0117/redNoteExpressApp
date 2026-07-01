@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375, initial-scale=1.0">
+<title>金橘记账 - 账单列表</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#FFF8F0; }
+  .page { max-width:480px; margin:0 auto; padding:24px 16px 100px; }
+  .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .header h1 { font-size:20px; color:#1F2937; }
+  .header .month { font-size:13px; color:#F59E0B; cursor:pointer; transition:opacity .2s; }
+  .header .month:hover { opacity:.7; }
+  .summary { display:flex; gap:8px; margin-bottom:16px; }
+  .summary-item { flex:1; background:#fff; border-radius:12px; padding:12px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.06); cursor:pointer; transition:all .2s; text-decoration:none; color:inherit; }
+  .summary-item:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.1); }
+  .summary-item .num { font-size:18px; font-weight:700; }
+  .summary-item .lbl { font-size:11px; color:#9CA3AF; margin-top:2px; }
+  .filters { display:flex; gap:6px; margin-bottom:16px; overflow-x:auto; padding-bottom:4px; }
+  .filter-tag { padding:6px 14px; border-radius:20px; font-size:13px; border:1px solid #F3E8DC; background:#fff; color:#6B7280; white-space:nowrap; cursor:pointer; transition:all .2s; }
+  .filter-tag:hover { border-color:#F59E0B; color:#F59E0B; }
+  .filter-tag.active { background:#F59E0B; color:#fff; border-color:#F59E0B; }
+  .search { width:100%; padding:10px 16px 10px 36px; border:1px solid #F3E8DC; border-radius:10px; font-size:14px; background:#fff url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%239CA3AF" viewBox="0 0 16 16"><path d="M11.7 10.3l3.6 3.6a1 1 0 01-1.4 1.4l-3.6-3.6A6 6 0 1110.3 11.7z"/></svg>') 12px center no-repeat; margin-bottom:16px; outline:none; transition:border-color .2s, box-shadow .2s; }
+  .search:focus { border-color:#F59E0B; box-shadow:0 0 0 3px rgba(245,158,11,.1); }
+  .date-header { font-size:13px; color:#9CA3AF; font-weight:500; padding:8px 0; }
+  .txn-list { display:flex; flex-direction:column; gap:6px; margin-bottom:8px; }
+  .txn-item { display:flex; align-items:center; gap:12px; background:#fff; padding:14px 16px; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.06); cursor:pointer; transition:all .2s; text-decoration:none; color:inherit; }
+  .txn-item:hover { background:#FFFDF7; transform:translateX(4px); }
+  .txn-item .cat-icon { font-size:28px; }
+  .txn-item .info { flex:1; }
+  .txn-item .info .name { font-size:15px; color:#1F2937; font-weight:500; }
+  .txn-item .info .meta { font-size:12px; color:#9CA3AF; margin-top:2px; }
+  .txn-item .amount { font-size:16px; font-weight:600; }
+  .amount.expense { color:#EF4444; }
+  .amount.income { color:#10B981; }
+  .tab-bar { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:min(480px, 100vw); background:#fff; display:flex; border-top:1px solid #F3E8DC; padding:8px 0 env(safe-area-inset-bottom); z-index:100; }
+  .tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; background:none; border:none; color:#9CA3AF; font-size:11px; cursor:pointer; padding:6px; transition:color .2s; text-decoration:none; }
+  .tab:hover { color:#F59E0B; }
+  .tab.active { color:#F59E0B; }
+  .tab .icon { font-size:20px; transition:transform .2s; }
+  .tab:hover .icon { transform:scale(1.15); }
+  .empty { text-align:center; padding:40px; color:#9CA3AF; display:none; }
+  .empty.show { display:block; }
+  .empty .icon { font-size:48px; margin-bottom:12px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <a href="page-dashboard.html" style="text-decoration:none; color:#1F2937; display:flex; align-items:center; gap:8px;">
+      <span style="font-size:20px;">←</span> <h1>全部账单</h1>
+    </a>
+    <span class="month">2026年6月 ▾</span>
+  </div>
+
+  <div class="summary">
+    <a class="summary-item" href="?filter=income"><div class="num" style="color:#10B981;">+12,800</div><div class="lbl">收入</div></a>
+    <a class="summary-item" href="?filter=expense"><div class="num" style="color:#EF4444;">-4,379</div><div class="lbl">支出</div></a>
+    <div class="summary-item"><div class="num">+8,421</div><div class="lbl">结余</div></div>
+  </div>
+
+  <input class="search" type="text" placeholder="搜索账单..." oninput="filterList(this.value)">
+
+  <div class="filters" id="cat-filters">
+    <span class="filter-tag active" onclick="filterCat(this)">全部</span>
+    <span class="filter-tag" onclick="filterCat(this)">🍽️ 餐饮</span>
+    <span class="filter-tag" onclick="filterCat(this)">🚇 交通</span>
+    <span class="filter-tag" onclick="filterCat(this)">🛍️ 购物</span>
+    <span class="filter-tag" onclick="filterCat(this)">🎬 娱乐</span>
+    <span class="filter-tag" onclick="filterCat(this)">🏠 住房</span>
+    <span class="filter-tag" onclick="filterCat(this)">📌 其他</span>
+  </div>
+
+  <div id="txn-container">
+    <div class="date-header">今天 · 6月29日</div>
+    <div class="txn-list">
+      <a class="txn-item" href="page-form.html?edit=1">
+        <span class="cat-icon">🍽️</span>
+        <div class="info"><div class="name">午餐 - 黄焖鸡</div><div class="meta">12:30 · 餐饮</div></div>
+        <span class="amount expense">- ¥32.00</span>
+      </a>
+      <a class="txn-item" href="page-form.html?edit=2">
+        <span class="cat-icon">🚇</span>
+        <div class="info"><div class="name">地铁通勤</div><div class="meta">08:15 · 交通</div></div>
+        <span class="amount expense">- ¥6.00</span>
+      </a>
+    </div>
+
+    <div class="date-header">昨天 · 6月28日</div>
+    <div class="txn-list">
+      <a class="txn-item" href="page-form.html?edit=3">
+        <span class="cat-icon">💰</span>
+        <div class="info"><div class="name">工资</div><div class="meta">10:00 · 收入</div></div>
+        <span class="amount income">+ ¥12,800.00</span>
+      </a>
+      <a class="txn-item" href="page-form.html?edit=4">
+        <span class="cat-icon">🥤</span>
+        <div class="info"><div class="name">奶茶</div><div class="meta">15:20 · 餐饮</div></div>
+        <span class="amount expense">- ¥18.00</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="empty" id="empty-state">
+    <div class="icon">🔍</div>
+    <p>没有找到相关账单</p>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <a class="tab" href="page-dashboard.html"><span class="icon">🏠</span>首页</a>
+  <a class="tab active" href="page-list.html"><span class="icon">📋</span>账单</a>
+  <a class="tab" href="page-form.html"><span class="icon">➕</span>记账</a>
+  <a class="tab" href="page-budget.html"><span class="icon">🎯</span>预算</a>
+  <a class="tab" href="page-profile.html"><span class="icon">👤</span>我的</a>
+</div>
+
+<script>
+function filterCat(el) {
+  document.querySelectorAll('#cat-filters .filter-tag').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+function filterList(q) {
+  document.getElementById('empty-state').classList.toggle('show', q.length > 0 && q !== '黄焖鸡');
+}
+</script>
+</body>
+</html>
