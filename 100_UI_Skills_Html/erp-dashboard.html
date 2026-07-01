@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>企源通 — 供应商管理系统</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;900&display=swap');
+
+:root {
+  --bg:#f7f8fa; --card:#fff; --border:#e2e6eb; --text:#1e293b; --muted:#94a3b8;
+  --steel:#475569; --steel-dark:#334155; --steel-light:#f1f5f9;
+  --emerald:#0f766e; --emerald-light:#ccfbf1;
+  --success:#10b981; --warn:#f59e0b; --danger:#ef4444;
+  --radius:12px; --shadow:0 1px 2px rgba(0,0,0,.03); --shadow-lg:0 6px 20px rgba(51,65,85,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter','Noto Sans SC',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px;}
+
+.app{display:flex;min-height:100vh;}
+.sidebar{width:210px;background:var(--steel-dark);flex-shrink:0;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;z-index:10;}
+.side-logo{padding:18px 16px;display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:#fff;border-bottom:1px solid rgba(255,255,255,.08);}
+.side-logo span{width:30px;height:30px;background:var(--emerald);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;flex-shrink:0;font-weight:800;}
+.nav-sec{font-size:9px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1px;padding:14px 16px 5px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 12px;margin:2px 10px;border-radius:7px;font-size:13px;font-weight:500;color:rgba(255,255,255,.5);cursor:pointer;transition:all .15s;border:none;background:none;width:calc(100% - 20px);text-align:left;}
+.nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.8);}
+.nav-item.active{background:rgba(255,255,255,.1);color:#fff;font-weight:600;}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;}
+
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.topbar{height:52px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:5;}
+.top-title{font-size:14px;font-weight:600;color:var(--steel-dark);}
+.top-sub{font-size:10px;color:var(--muted);display:block;text-transform:uppercase;letter-spacing:.4px;}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--steel);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:12px;}
+.content{padding:20px 24px;flex:1;overflow-y:auto;}
+
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);transition:box-shadow .25s;}
+.card:hover{box-shadow:var(--shadow-lg);}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.card-hd h3{font-size:13px;font-weight:600;color:var(--steel-dark);}
+
+.btn{font-size:11px;font-weight:500;padding:6px 12px;border-radius:7px;border:none;cursor:pointer;transition:all .15s;}
+.btn-p{background:var(--steel);color:#fff;}
+.btn-p:hover{background:var(--steel-dark);}
+.btn-e{background:var(--emerald);color:#fff;}
+.btn-e:hover{background:#115e59;}
+.btn-g{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-g:hover{background:#f8fafc;}
+.inp{font-size:12px;padding:6px 10px;border-radius:7px;border:1px solid var(--border);outline:none;background:#f8fafc;transition:border-color .15s;}
+.inp:focus{border-color:#94a3b8;background:#fff;}
+
+.pil{display:inline-flex;align-items:center;padding:2px 8px;border-radius:11px;font-size:10px;font-weight:600;gap:3px;}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{text-align:left;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:2px solid #e2e6eb;}
+.tbl td{padding:10px;font-size:12px;color:var(--steel-dark);border-bottom:1px solid #f1f5f9;}
+.tbl tbody tr:hover td{background:#f8fafc;}
+
+@media(max-width:768px){.sidebar{display:none;}.content{padding:10px;}}
+
+/* Layout 1: 工作台 - Newspaper (大头条 + 三栏) */
+.newspaper-hero{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px;}
+.hero-main{background:linear-gradient(135deg,#334155 0%,#475569 50%,#0f766e 100%);border-radius:14px;padding:28px 30px;color:#fff;position:relative;overflow:hidden;}
+.hero-main::after{content:'';position:absolute;right:-30px;bottom:-30px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.04);}
+.hero-side{display:flex;flex-direction:column;gap:14px;}
+.hero-mini{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:16px 18px;display:flex;align-items:center;gap:12px;}
+.news-col3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+.news-bottom{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+
+/* Layout 2: 供应商 - Split Panel */
+.split-panel{display:grid;grid-template-columns:280px 1fr;gap:14px;height:calc(100vh - 140px);}
+.supplier-list{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow-y:auto;}
+.supplier-list-item{padding:12px 16px;cursor:pointer;border-bottom:1px solid #f1f5f9;transition:background .12s;display:flex;align-items:center;gap:10px;}
+.supplier-list-item:hover,.supplier-list-item.active{background:var(--steel-light);}
+.supplier-list-item .idx{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.supplier-detail{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:20px;overflow-y:auto;}
+.detail-tabs{display:flex;gap:0;border-bottom:2px solid #e2e6eb;margin-bottom:16px;}
+.detail-tab{padding:8px 16px;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .12s;}
+.detail-tab.active{color:var(--steel-dark);border-bottom-color:var(--emerald);font-weight:600;}
+
+/* Layout 3: 采购订单 - Status Pipeline */
+.pipeline{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;}
+.pipeline-stage{flex:1;min-width:200px;background:#f1f5f9;border-radius:10px;padding:12px;}
+.pipeline-stage .stage-hd{font-size:12px;font-weight:700;color:var(--steel-dark);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #e2e6eb;display:flex;align-items:center;gap:6px;}
+.pipeline-card{background:var(--card);border-radius:8px;padding:12px;margin-bottom:6px;box-shadow:0 1px 2px rgba(0,0,0,.02);border:1px solid var(--border);cursor:pointer;font-size:12px;}
+.pipeline-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.05);}
+
+/* Layout 4: 合同管理 - Expiration Timeline */
+.contract-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+.contract-hero-card{border-radius:12px;padding:20px;color:#fff;position:relative;overflow:hidden;min-height:110px;}
+.contract-hero-card::after{content:'';position:absolute;right:-15px;bottom:-15px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.06);}
+.expire-timeline{display:flex;gap:10px;overflow-x:auto;padding:8px 0;}
+.expire-card{min-width:200px;background:var(--card);border-radius:10px;border:1px solid var(--border);padding:14px;flex-shrink:0;border-left:4px solid #e2e6eb;}
+.expire-card.urgent{border-left-color:var(--danger);background:#fef2f2;}
+.expire-card.warning{border-left-color:var(--warn);background:#fffbeb;}
+.expire-card.normal{border-left-color:var(--success);}
+
+/* Layout 5: 质量管理 - Scorecard Matrix */
+.scorecard-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+.scorecard{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:20px;text-align:center;}
+.scorecard .grade{font-size:48px;font-weight:900;line-height:1;}
+.scorecard .supplier-name{font-size:14px;font-weight:600;color:var(--steel-dark);margin-top:4px;}
+.score-matrix{display:grid;grid-template-columns:auto repeat(5,1fr);gap:1px;background:#e2e6eb;border:1px solid #e2e6eb;border-radius:8px;overflow:hidden;}
+.mx-hd{background:var(--steel-light);padding:8px;font-size:10px;font-weight:700;color:var(--steel);text-align:center;}
+.mx-cell{background:var(--card);padding:8px;text-align:center;font-size:11px;font-weight:500;}
+
+/* Layout 6: 应付账款 - Waterfall + Aging */
+.aging-buckets{display:flex;gap:10px;margin-bottom:14px;}
+.aging-bucket{flex:1;background:var(--card);border-radius:10px;border:1px solid var(--border);padding:16px;text-align:center;}
+.aging-bucket .amount{font-size:24px;font-weight:800;color:var(--steel-dark);}
+.aging-bucket .period{font-size:10px;color:var(--muted);margin-top:2px;}
+.aging-bucket.overdue{border-color:var(--danger);background:#fef2f2;}
+.aging-bucket.overdue .amount{color:var(--danger);}
+.waterfall-grid{display:grid;grid-template-columns:auto repeat(6,1fr);gap:2px;}
+.wf-row{display:contents;}
+.wf-cell{background:var(--card);padding:10px;text-align:center;font-size:11px;border:1px solid #f1f5f9;}
+.wf-label{font-weight:500;text-align:left;}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="side-logo"><span>企</span>企源通</div>
+    <div class="nav-sec">核心业务</div>
+    <button class="nav-item active" data-pg="dash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>工作台</button>
+    <button class="nav-item" data-pg="supplier"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>供应商管理</button>
+    <button class="nav-item" data-pg="po"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/></svg>采购订单</button>
+    <button class="nav-item" data-pg="contract"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>合同管理</button>
+    <div class="nav-sec">管控</div>
+    <button class="nav-item" data-pg="quality"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>质量管理</button>
+    <button class="nav-item" data-pg="payable"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>应付账款</button>
+    <div class="nav-sec">系统</div>
+    <button class="nav-item" data-pg="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>系统设置</button>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div><span class="top-sub" id="bc">工作台 / 概览</span><span class="top-title" id="pt">工作台</span></div>
+      <div style="display:flex;align-items:center;gap:12px;"><span style="font-size:11px;color:var(--muted);" id="clock">2026-07-01</span><div class="avatar">王</div></div>
+    </header>
+    <div class="content" id="ct"></div>
+  </div>
+</div>
+
+<script>
+var P = {dash:'工作台',supplier:'供应商管理',po:'采购订单',contract:'合同管理',quality:'质量管理',payable:'应付账款',set:'系统设置'};
+
+// ===== PAGE 1: 工作台 - Newspaper 大头条 + 三栏 =====
+function pgDash(){var h='';
+h+='<div class="newspaper-hero">';
+h+='<div class="hero-main"><div style="position:relative;z-index:1;"><div style="font-size:10px;opacity:.6;text-transform:uppercase;letter-spacing:1px;">ERP Supplier Management</div><h2 style="font-size:20px;font-weight:800;margin:6px 0;">供应商管理驾驶舱</h2><div style="font-size:11px;opacity:.7;">实时监控 186 家供应商 · 2,480 份有效合同 · ¥4.86亿年度采购额</div></div></div>';
+h+='<div class="hero-side">';
+h+='<div class="hero-mini"><div style="width:40px;height:40px;border-radius:10px;background:#ecfdf5;display:flex;align-items:center;justify-content:center;font-size:18px;">✅</div><div><div style="font-size:22px;font-weight:800;color:var(--steel-dark);">94.2<span style="font-size:12px;">%</span></div><div style="font-size:10px;color:var(--muted);">准时交付率</div></div></div>';
+h+='<div class="hero-mini"><div style="width:40px;height:40px;border-radius:10px;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-size:18px;">⚠️</div><div><div style="font-size:22px;font-weight:800;color:#b45309;">8</div><div style="font-size:10px;color:var(--muted);">需跟进异常</div></div></div>';
+h+='</div></div>';
+
+h+='<div class="news-col3">';
+h+='<div class="card" style="padding:18px;"><div class="card-hd"><h3>采购金额趋势 (百万)</h3></div><div id="d1bars" style="display:flex;align-items:flex-end;gap:8px;height:140px;"></div></div>';
+h+='<div class="card" style="padding:18px;"><div class="card-hd"><h3>供应商状态分布</h3></div><div id="d1status"></div></div>';
+h+='<div class="card" style="padding:18px;"><div class="card-hd"><h3>待处理事项</h3></div><div id="d1todo"></div></div>';
+h+='</div>';
+
+h+='<div class="news-bottom">';
+h+='<div class="card" style="padding:18px;"><div class="card-hd"><h3>最新采购订单</h3></div><div id="d1recent"></div></div>';
+h+='<div class="card" style="padding:18px;"><div class="card-hd"><h3>供应商评估排名</h3></div><div id="d1rank"></div></div>';
+h+='</div>';
+return h;
+}
+
+// ===== PAGE 2: 供应商管理 - Split Panel =====
+function pgSupplier(){var h='';
+h+='<div class="split-panel">';
+h+='<div class="supplier-list" id="s2list"></div>';
+h+='<div class="supplier-detail" id="s2detail"><div style="text-align:center;padding:40px;color:var(--muted);">👈 选择供应商查看详情</div></div>';
+h+='</div>';
+return h;
+}
+
+// ===== PAGE 3: 采购订单 - Status Pipeline =====
+function pgPO(){var h='';
+h+='<div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;"><input class="inp" placeholder="🔍 搜索订单号/供应商..." style="width:200px;"><select class="inp"><option>全部类型</option><option>原材料</option><option>零部件</option><option>服务</option></select><button class="btn btn-p">查询</button><button class="btn btn-e" style="margin-left:auto;">+ 新建订单</button></div>';
+h+='<div class="pipeline" id="p3pipe"></div>';
+return h;
+}
+
+// ===== PAGE 4: 合同管理 - Expiration Timeline =====
+function pgContract(){var h='';
+h+='<div class="contract-grid">';
+h+='<div class="contract-hero-card" style="background:linear-gradient(135deg,#334155,#475569);"><div style="position:relative;z-index:1;"><div style="font-size:28px;font-weight:900;">2,480</div><div style="font-size:11px;opacity:.7;">有效合同总数</div><div style="font-size:9px;opacity:.5;margin-top:2px;">总金额 ¥12.86亿</div></div></div>';
+h+='<div class="contract-hero-card" style="background:linear-gradient(135deg,#0f766e,#14b8a6);"><div style="position:relative;z-index:1;"><div style="font-size:28px;font-weight:900;">32</div><div style="font-size:11px;opacity:.7;">30天内到期</div><div style="font-size:9px;opacity:.5;margin-top:2px;">需续签关注</div></div></div>';
+h+='<div class="contract-hero-card" style="background:linear-gradient(135deg,#b45309,#f59e0b);"><div style="position:relative;z-index:1;"><div style="font-size:28px;font-weight:900;">5</div><div style="font-size:11px;opacity:.7;">已逾期未续</div><div style="font-size:9px;opacity:.5;margin-top:2px;">需紧急处理</div></div></div>';
+h+='</div>';
+h+='<div class="card" style="padding:18px;margin-bottom:14px;"><div class="card-hd"><h3>即将到期合同时间线</h3></div><div class="expire-timeline" id="c4expire"></div></div>';
+h+='<div class="card" style="padding:18px;"><div class="card-hd"><h3>合同列表</h3><button class="btn btn-e">+ 新建合同</button></div><div style="overflow-x:auto;"><table class="tbl"><thead><tr><th>合同编号</th><th>供应商</th><th>类型</th><th>金额(万元)</th><th>签署日期</th><th>到期日期</th><th>状态</th></tr></thead><tbody id="c4tbl"></tbody></table></div></div>';
+return h;
+}
+
+// ===== PAGE 5: 质量管理 - Scorecard Matrix =====
+function pgQuality(){var h='';
+h+='<div class="scorecard-grid" id="q5scores"></div>';
+h+='<div class="card" style="padding:18px;"><div class="card-hd"><h3>供应商质量评估矩阵</h3><select class="inp"><option>2026 Q2</option><option>2026 Q1</option></select></div><div class="score-matrix" id="q5matrix"></div></div>';
+return h;
+}
+
+// ===== PAGE 6: 应付账款 - Aging Waterfall =====
+function pgPayable(){var h='';
+h+='<div class="aging-buckets" id="a6aging"></div>';
+h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">';
+h+='<div class="card" style="padding:18px;"><div class="card-hd"><h3>月度付款趋势 (万元)</h3></div><div id="a6flow" style="display:flex;align-items:flex-end;gap:8px;height:160px;"></div></div>';
+h+='<div class="card" style="padding:18px;"><div class="card-hd"><h3>供应商应付Top5</h3></div><div id="a6top"></div></div>';
+h+='</div>';
+h+='<div class="card" style="padding:18px;margin-top:14px;"><div class="card-hd"><h3>应付账款明细</h3></div><div style="overflow-x:auto;"><table class="tbl"><thead><tr><th>发票号</th><th>供应商</th><th>金额(万元)</th><th>账期</th><th>到期日</th><th>逾期天数</th><th>状态</th></tr></thead><tbody id="a6tbl"></tbody></table></div></div>';
+return h;
+}
+
+// ===== PAGE 7: 系统设置 =====
+function pgSet(){var h='';
+h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">';
+h+='<div class="card" style="padding:20px;"><h3 style="font-size:14px;font-weight:600;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;">👤 个人信息</h3><div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;"><div class="avatar" style="width:48px;height:48px;font-size:16px;">王</div><div><div style="font-weight:600;">王总监</div><div style="font-size:11px;color:var(--muted);">采购部 · 供应链总监</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'+['姓名:王总监','工号:ERP-20210001','部门:采购部','手机:139****9999','邮箱:wang@qiyuantong.com'].map(function(f){var p=f.split(':');return'<div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:2px;">'+p[0]+'</label><input class="inp" value="'+p[1]+'" style="width:100%;"></div>';}).join('')+'</div><button class="btn btn-p" style="margin-top:12px;">保存修改</button></div>';
+h+='<div class="card" style="padding:20px;"><h3 style="font-size:14px;font-weight:600;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;">🔐 安全 & 偏好</h3>'+[{l:'修改密码',d:'上次: 2026-01-10',b:'修改',c:'g'},{l:'审批权限',d:'当前: 总监级',b:'查看',c:'g'},{l:'预警通知',d:'合同到期/质检异常',b:'配置',c:'p'},{l:'数据导出',d:'供应商报表导出',b:'管理',c:'g'}].map(function(x){return'<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f5f5f4;"><div><div style="font-weight:500;font-size:13px;">'+x.l+'</div><div style="font-size:11px;color:var(--muted);">'+x.d+'</div></div><button class="btn btn-'+x.c+'">'+x.b+'</button></div>';}).join('')+'</div>';
+h+='<div class="card" style="padding:20px;grid-column:span 2;"><h3 style="font-size:14px;font-weight:600;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;">ℹ 系统信息</h3><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px;"><div><span style="color:var(--muted);">系统版本：</span>企源通 v2.4.0</div><div><span style="color:var(--muted);">运行状态：</span><span style="color:var(--success);font-weight:600;">● 正常</span></div><div><span style="color:var(--muted);">数据库：</span>PostgreSQL 16</div><div><span style="color:var(--muted);">许可证：</span>企源通科技有限公司</div></div></div>';
+h+='</div>';
+return h;
+}
+
+// ============================================================
+// ROUTER & INIT
+// ============================================================
+var renders = {dash:pgDash,supplier:pgSupplier,po:pgPO,contract:pgContract,quality:pgQuality,payable:pgPayable,set:pgSet};
+
+function navTo(pg){
+  var btns = document.querySelectorAll('.nav-item');
+  for(var i=0;i<btns.length;i++){btns[i].classList.remove('active');}
+  document.querySelector('[data-pg="'+pg+'"]').classList.add('active');
+  document.getElementById('bc').textContent=P[pg]+' / 概览';
+  document.getElementById('pt').textContent=P[pg];
+  document.getElementById('ct').innerHTML=renders[pg]();
+  initPg(pg);
+}
+
+setInterval(function(){
+  var n=new Date();var w=['日','一','二','三','四','五','六'];
+  document.getElementById('clock').textContent=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')+' 周'+w[n.getDay()]+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+},30000);
+
+function bar(el,vals,lbs,h,mx,c1,c2){
+  if(!el) return;
+  c1=c1||'var(--steel)';c2=c2||'#94a3b8';
+  el.innerHTML=vals.map(function(v,i){return'<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><span style="font-size:9px;font-weight:600;color:'+(i===vals.length-1?c1:'var(--muted)')+';">'+v+'</span><div style="width:100%;height:'+(v/mx*h)+'px;background:'+(i===vals.length-1?c1:c2)+';border-radius:4px 4px 0 0;"></div><span style="font-size:8px;color:var(--muted);">'+lbs[i]+'</span></div>';}).join('');
+}
+
+function initPg(pg){
+  setTimeout(function(){
+    if(pg==='dash') initDash();
+    if(pg==='supplier') initSupplier();
+    if(pg==='po') initPO();
+    if(pg==='contract') initContract();
+    if(pg==='quality') initQuality();
+    if(pg==='payable') initPayable();
+  },0);
+}
+
+function initDash(){
+  var el=document.getElementById('d1bars');if(el){var v=[32,28,35,30,38,42];var l=['1月','2月','3月','4月','5月','6月'];bar(el,v,l,120,45);}
+  var s2=document.getElementById('d1status');if(s2){s2.innerHTML=[{n:'Active 活跃',v:142,p:76,c:'var(--success)'},{n:'Inactive 休眠',v:28,p:15,c:'var(--muted)'},{n:'Blacklist 黑名单',v:3,p:2,c:'var(--danger)'},{n:'Under Review 评估中',v:13,p:7,c:'var(--warn)'}].map(function(d){return'<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;font-size:12px;"><span style="display:flex;align-items:center;gap:6px;"><span class="dot" style="background:'+d.c+';"></span>'+d.n+'</span><span style="color:var(--muted);">'+d.v+'家</span><div style="width:50px;height:4px;background:#e2e6eb;border-radius:2px;overflow:hidden;"><div style="height:100%;width:'+d.p+'%;background:'+d.c+';border-radius:2px;"></div></div></div>';}).join('');}
+  var t3=document.getElementById('d1todo');if(t3){t3.innerHTML='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;font-size:12px;"><span class="dot" style="background:var(--danger);"></span>5份合同已逾期，需立即续签</div><div style="display:flex;align-items:center;gap:8px;padding:7px 0;font-size:12px;"><span class="dot" style="background:var(--warn);"></span>3家供应商Q2质量评分下降</div><div style="display:flex;align-items:center;gap:8px;padding:7px 0;font-size:12px;"><span class="dot" style="background:var(--steel);"></span>本月应付账款 ¥4,280万待审批</div>';}
+  var r4=document.getElementById('d1recent');if(r4){r4.innerHTML=[{id:'PO-20260701-001',supplier:'恒达电子',amt:'¥386万',status:'审批中',c:'var(--warn)'},{id:'PO-20260630-005',supplier:'明辉精密',amt:'¥152万',status:'已下单',c:'var(--success)'},{id:'PO-20260630-003',supplier:'天工机械',amt:'¥568万',status:'已到货',c:'var(--steel)'}].map(function(o){return'<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:12px;"><span style="font-family:monospace;font-size:10px;color:var(--muted);">'+o.id+'</span><span style="font-weight:500;">'+o.supplier+'</span><span style="font-weight:600;">'+o.amt+'</span><span class="pil" style="background:'+(o.c==='var(--success)'?'#ecfdf5':o.c==='var(--warn)'?'#fef3c7':'#f1f5f9')+';color:'+o.c+';">'+o.status+'</span></div>';}).join('');}
+  var r5=document.getElementById('d1rank');if(r5){r5.innerHTML=[{n:'明辉精密',s:'A+',sc:98.5,c:'var(--success)'},{n:'天工机械',s:'A',sc:95.2,c:'var(--success)'},{n:'恒达电子',s:'A-',sc:91.8,c:'var(--emerald)'},{n:'华正材料',s:'B+',sc:86.3,c:'var(--warn)'},{n:'东升零部件',s:'B',sc:82.0,c:'var(--warn)'}].map(function(r,i){return'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;"><span style="font-weight:700;color:'+(i<3?'var(--steel)':'var(--muted)')+';">'+(i+1)+'</span><span style="font-weight:500;flex:1;">'+r.n+'</span><span style="font-weight:700;color:'+r.c+';">'+r.s+'</span><span style="color:var(--muted);font-size:10px;">'+r.sc+'分</span></div>';}).join('');}
+}
+
+function initSupplier(){
+  var suppliers=[{id:'S001',n:'恒达电子',cat:'电子元器件',score:'A-',status:'active',contact:'张总',phone:'138****1234',addr:'深圳市宝安区',orders:48,amount:'¥2,860万',lastOrder:'2026-06-28'},{id:'S002',n:'明辉精密',cat:'精密加工',score:'A+',status:'active',contact:'李总',phone:'139****5678',addr:'东莞市长安镇',orders:62,amount:'¥4,120万',lastOrder:'2026-07-01'},{id:'S003',n:'天工机械',cat:'机械设备',score:'A',status:'active',contact:'赵总',phone:'136****9012',addr:'苏州市工业园区',orders:35,amount:'¥3,580万',lastOrder:'2026-06-30'},{id:'S004',n:'华正材料',cat:'原材料',score:'B+',status:'active',contact:'陈总',phone:'137****3456',addr:'佛山市顺德区',orders:22,amount:'¥1,240万',lastOrder:'2026-06-25'},{id:'S005',n:'东升零部件',cat:'汽车零部件',score:'B',status:'inactive',contact:'刘总',phone:'135****7890',addr:'重庆市渝北区',orders:8,amount:'¥420万',lastOrder:'2026-05-15'}];
+  var sc={A:'var(--success)',Aplus:'var(--success)','A-':'var(--emerald)','B+':'var(--warn)',B:'var(--warn)'};
+  var st={active:'活跃',inactive:'休眠'};
+  var el=document.getElementById('s2list');if(!el) return;
+  el.innerHTML=suppliers.map(function(s,i){return'<div class="supplier-list-item'+(i===0?' active':'')+'" data-sid="'+i+'" onclick="showSupplierDetail('+i+')"><div class="idx" style="background:'+(i===0?'var(--steel-light)':'#f1f5f9')+';color:'+(i===0?'var(--steel)':'var(--muted)')+';">'+(i+1)+'</div><div><div style="font-weight:600;font-size:13px;">'+s.n+'</div><div style="font-size:10px;color:var(--muted);">'+s.cat+'</div></div><span class="pil" style="background:'+(s.status==='active'?'#ecfdf5':'#f1f5f9')+';color:'+(s.status==='active'?'var(--success)':'var(--muted)')+';margin-left:auto;">'+st[s.status]+'</span></div>';}).join('');
+  showSupplierDetail(0);
+}
+
+function showSupplierDetail(idx){
+  var suppliers=[{id:'S001',n:'恒达电子',cat:'电子元器件',score:'A-',status:'active',contact:'张总',phone:'138****1234',addr:'深圳市宝安区',orders:48,amount:'¥2,860万',lastOrder:'2026-06-28'},{id:'S002',n:'明辉精密',cat:'精密加工',score:'A+',status:'active',contact:'李总',phone:'139****5678',addr:'东莞市长安镇',orders:62,amount:'¥4,120万',lastOrder:'2026-07-01'},{id:'S003',n:'天工机械',cat:'机械设备',score:'A',status:'active',contact:'赵总',phone:'136****9012',addr:'苏州市工业园区',orders:35,amount:'¥3,580万',lastOrder:'2026-06-30'},{id:'S004',n:'华正材料',cat:'原材料',score:'B+',status:'active',contact:'陈总',phone:'137****3456',addr:'佛山市顺德区',orders:22,amount:'¥1,240万',lastOrder:'2026-06-25'},{id:'S005',n:'东升零部件',cat:'汽车零部件',score:'B',status:'inactive',contact:'刘总',phone:'135****7890',addr:'重庆市渝北区',orders:8,amount:'¥420万',lastOrder:'2026-05-15'}];
+  var s=suppliers[idx];
+  var items=document.querySelectorAll('.supplier-list-item');
+  for(var i=0;i<items.length;i++){items[i].classList.remove('active');items[i].querySelector('.idx').style.background='#f1f5f9';items[i].querySelector('.idx').style.color='var(--muted)';}
+  items[idx].classList.add('active');items[idx].querySelector('.idx').style.background='var(--steel-light)';items[idx].querySelector('.idx').style.color='var(--steel)';
+  var d=document.getElementById('s2detail');if(!d) return;
+  d.innerHTML='<h3 style="font-size:16px;font-weight:700;color:var(--steel-dark);margin-bottom:4px;">'+s.n+'</h3><div style="font-size:11px;color:var(--muted);margin-bottom:12px;">'+s.cat+' · 编号 '+s.id+'</div>'+
+    '<div class="detail-tabs"><div class="detail-tab active">基本信息</div><div class="detail-tab">采购记录</div><div class="detail-tab">质量评估</div></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'+
+    ['供应商编号:'+s.id,'联系人:'+s.contact,'联系电话:'+s.phone,'地址:'+s.addr,'累计订单:'+s.orders+'笔','累计金额:'+s.amount,'最近订单:'+s.lastOrder,'质量评分:<b style="color:var(--emerald);">'+s.score+'</b>'].map(function(f){var p=f.split(':');return'<div><span style="font-size:11px;color:var(--muted);">'+p[0]+'</span><div style="font-weight:500;font-size:13px;">'+p.slice(1).join(':')+'</div></div>';}).join('')+
+    '</div>';
+}
+
+function initPO(){
+  var stages=[{title:'待审批',count:12,color:'var(--warn)',items:[{id:'PO-0701-001',s:'恒达电子',amt:'¥386万',d:'2026-07-01'},{id:'PO-0701-002',s:'华正材料',amt:'¥128万',d:'2026-07-01'}]},{title:'已下单',count:8,color:'var(--steel)',items:[{id:'PO-0630-005',s:'明辉精密',amt:'¥152万',d:'2026-06-30'},{id:'PO-0630-003',s:'天工机械',amt:'¥568万',d:'2026-06-30'},{id:'PO-0628-008',s:'恒达电子',amt:'¥215万',d:'2026-06-28'}]},{title:'运输中',count:5,color:'#0ea5e9',items:[{id:'PO-0625-002',s:'明辉精密',amt:'¥320万',d:'2026-06-25'},{id:'PO-0620-007',s:'东升零部件',amt:'¥86万',d:'2026-06-20'}]},{title:'已到货',count:18,color:'var(--success)',items:[{id:'PO-0618-001',s:'天工机械',amt:'¥445万',d:'2026-06-18'},{id:'PO-0615-004',s:'恒达电子',amt:'¥198万',d:'2026-06-15'}]}];
+  var el=document.getElementById('p3pipe');if(!el) return;
+  el.innerHTML=stages.map(function(st){return'<div class="pipeline-stage"><div class="stage-hd"><span class="dot" style="background:'+st.color+';"></span>'+st.title+'<span class="pil" style="background:#fff;margin-left:auto;">'+st.count+'</span></div>'+st.items.map(function(it){return'<div class="pipeline-card"><div style="font-weight:600;">'+it.s+'</div><div style="font-size:10px;color:var(--muted);">'+it.id+'</div><div style="display:flex;justify-content:space-between;margin-top:6px;"><span style="font-weight:700;">'+it.amt+'</span><span style="font-size:10px;color:var(--muted);">'+it.d+'</span></div></div>';}).join('')+'</div>';}).join('');
+}
+
+function initContract(){
+  var el=document.getElementById('c4expire');if(!el) return;
+  el.innerHTML=[{n:'恒达电子-元器件供应协议',d:'07-15',days:14,level:'warning',amt:'¥860万'},{n:'天工机械-设备采购框架',d:'07-20',days:19,level:'warning',amt:'¥1,280万'},{n:'东升零部件-年度供货合同',d:'07-05',days:4,level:'urgent',amt:'¥420万'},{n:'华正材料-原材料长期协议',d:'07-30',days:29,level:'normal',amt:'¥560万'},{n:'明辉精密-质量保证协议',d:'08-10',days:40,level:'normal',amt:'¥320万'}].map(function(c){return'<div class="expire-card '+c.level+'"><div style="font-weight:700;font-size:12px;margin-bottom:4px;">'+c.n+'</div><div style="font-size:10px;color:var(--muted);">'+c.amt+' · 到期 '+c.d+'</div><div style="font-size:20px;font-weight:900;color:'+(c.level==='urgent'?'var(--danger)':c.level==='warning'?'var(--warn)':'var(--success)')+';margin-top:6px;">'+c.days+'<span style="font-size:11px;">天</span></div></div>';}).join('');
+  var t=document.getElementById('c4tbl');if(!t) return;
+  t.innerHTML=[{c:'CT-2024-0086',s:'恒达电子',type:'供货协议',amt:'860',sign:'2024-07-15',exp:'2026-07-15',st:'即将到期'},{c:'CT-2025-0012',s:'天工机械',type:'采购框架',amt:'1,280',sign:'2025-07-20',exp:'2026-07-20',st:'即将到期'},{c:'CT-2023-0045',s:'明辉精密',type:'质量协议',amt:'320',sign:'2023-08-10',exp:'2026-08-10',st:'正常'},{c:'CT-2025-0028',s:'东升零部件',type:'年度合同',amt:'420',sign:'2025-07-05',exp:'2026-07-05',st:'已逾期'}].map(function(r){var sc={正常:'var(--success)',即将到期:'var(--warn)',已逾期:'var(--danger)'};return'<tr><td style="font-size:10px;color:var(--steel);">'+r.c+'</td><td style="font-weight:500;">'+r.s+'</td><td>'+r.type+'</td><td style="font-weight:600;">¥'+r.amt+'万</td><td>'+r.sign+'</td><td>'+r.exp+'</td><td><span class="pil" style="background:'+(r.st==='正常'?'#ecfdf5':r.st==='即将到期'?'#fef3c7':'#fef2f2')+';color:'+sc[r.st]+';">'+r.st+'</span></td></tr>';}).join('');
+}
+
+function initQuality(){
+  var el=document.getElementById('q5scores');if(!el) return;
+  el.innerHTML=[{n:'明辉精密',grade:'A+',score:98.5,color:'var(--success)',bg:'#ecfdf5',dims:'交付98 · 品质99 · 服务97 · 价格96'},{n:'天工机械',grade:'A',score:95.2,color:'var(--emerald)',bg:'#ccfbf1',dims:'交付94 · 品质96 · 服务93 · 价格95'},{n:'恒达电子',grade:'A-',score:91.8,color:'var(--steel)',bg:'#f1f5f9',dims:'交付92 · 品质90 · 服务91 · 价格93'}].map(function(s){return'<div class="scorecard" style="border-top:3px solid '+s.color+';"><div class="grade" style="color:'+s.color+';">'+s.grade+'</div><div class="supplier-name">'+s.n+'</div><div style="font-size:11px;color:var(--muted);">'+s.dims+'</div><div style="font-size:32px;font-weight:900;color:'+s.color+';margin-top:6px;">'+s.score+'</div></div>';}).join('');
+  var m=document.getElementById('q5matrix');if(!m) return;
+  var dims=['交付准时率','产品合格率','服务响应','价格竞争力','合作稳定性'];
+  var scores=[{n:'明辉精密',v:[98,99,97,96,95]},{n:'天工机械',v:[94,96,93,95,92]},{n:'恒达电子',v:[92,90,91,93,88]},{n:'华正材料',v:[85,88,82,90,86]},{n:'东升零部件',v:[80,82,78,85,75]}];
+  m.innerHTML='<div class="mx-hd">供应商</div>'+dims.map(function(d){return'<div class="mx-hd">'+d+'</div>';}).join('')+scores.map(function(s){return'<div class="mx-cell" style="font-weight:600;text-align:left;">'+s.n+'</div>'+s.v.map(function(v){var c=v>=95?'var(--success)':v>=85?'var(--emerald)':v>=75?'var(--warn)':'var(--danger)';return'<div class="mx-cell" style="color:'+c+';font-weight:700;">'+v+'</div>';}).join('');}).join('');
+}
+
+function initPayable(){
+  var el=document.getElementById('a6aging');if(!el) return;
+  el.innerHTML=[{amt:'¥2,860万',period:'未到期',pct:58,cls:''},{amt:'¥1,240万',period:'1-30天',pct:25,cls:''},{amt:'¥580万',period:'31-60天',pct:12,cls:''},{amt:'¥260万',period:'60天以上',pct:5,cls:'overdue'}].map(function(b){return'<div class="aging-bucket '+b.cls+'"><div class="amount">'+b.amt+'</div><div class="period">'+b.period+'</div><div style="font-size:9px;color:var(--muted);">占比 '+b.pct+'%</div></div>';}).join('');
+  var f=document.getElementById('a6flow');if(f){var v=[3800,4200,3950,4500,4100,4280];bar(f,v,['1月','2月','3月','4月','5月','6月'],140,4800,'var(--steel)','#94a3b8');}
+  var t2=document.getElementById('a6top');if(t2){t2.innerHTML=[{n:'恒达电子',amt:860,pct:20,c:'var(--steel)'},{n:'天工机械',amt:720,pct:17,c:'var(--steel)'},{n:'明辉精密',amt:650,pct:15,c:'var(--emerald)'},{n:'华正材料',amt:480,pct:11,c:'var(--warn)'},{n:'东升零部件',amt:260,pct:6,c:'var(--danger)'}].map(function(s){return'<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px;"><span style="font-weight:500;width:72px;">'+s.n+'</span><div style="flex:1;height:5px;background:#e2e6eb;border-radius:3px;overflow:hidden;"><div style="height:100%;width:'+(s.pct*3)+'%;background:'+s.c+';border-radius:3px;"></div></div><span style="font-weight:600;">¥'+s.amt+'万</span></div>';}).join('');}
+  var t3=document.getElementById('a6tbl');if(t3){t3.innerHTML=[{inv:'INV-20260620-001',s:'恒达电子',amt:'386',terms:'Net 60',due:'2026-07-20',over:'—',st:'未到期'},{inv:'INV-20260615-003',s:'天工机械',amt:'568',terms:'Net 45',due:'2026-07-15',over:'—',st:'未到期'},{inv:'INV-20260510-008',s:'东升零部件',amt:'86',terms:'Net 30',due:'2026-06-10',over:'21天',st:'已逾期'},{inv:'INV-20260520-005',s:'华正材料',amt:'128',terms:'Net 30',due:'2026-06-20',over:'11天',st:'已逾期'},{inv:'INV-20260601-012',s:'明辉精密',amt:'152',terms:'Net 45',due:'2026-07-01',over:'—',st:'未到期'}].map(function(p){var sc={未到期:'var(--success)',已逾期:'var(--danger)'};return'<tr><td style="font-size:10px;color:var(--steel);">'+p.inv+'</td><td style="font-weight:500;">'+p.s+'</td><td style="font-weight:600;">¥'+p.amt+'万</td><td>'+p.terms+'</td><td>'+p.due+'</td><td style="color:'+(p.over==='—'?'var(--muted)':'var(--danger)')+';font-weight:600;">'+p.over+'</td><td><span class="pil" style="background:'+(p.st==='未到期'?'#ecfdf5':'#fef2f2')+';color:'+sc[p.st]+';">'+p.st+'</span></td></tr>';}).join('');}
+}
+
+var btns=document.querySelectorAll('.nav-item');
+for(var i=0;i<btns.length;i++){btns[i].addEventListener('click',function(){navTo(this.dataset.pg);});}
+navTo('dash');
+</script>
+</body>
+</html>

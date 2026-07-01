@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>慧医通 — 医疗管理后台</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: { 50:'#eef4ff',100:'#d9e5ff',200:'#bcd0ff',300:'#8eb1ff',400:'#5987ff',500:'#3366ff',600:'#1a40e8',700:'#1430d6',800:'#1629ad',900:'#172888',950:'#131b53' }
+      }
+    }
+  }
+}
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;900&display=swap');
+
+:root {
+  --bg:#f1f5f9; --card:#fff; --border:#e8ecf1; --text:#1e293b; --muted:#94a3b8;
+  --primary:#3366ff; --pdark:#1a40e8; --success:#10b981; --warn:#f59e0b; --danger:#f43f5e; --violet:#8b5cf6; --cyan:#06b6d4;
+  --radius:14px; --shadow:0 1px 3px rgba(0,0,0,.04); --shadow-lg:0 10px 30px rgba(30,64,175,.08),0 3px 8px rgba(0,0,0,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Inter','Noto Sans SC',system-ui,sans-serif;
+  background:var(--bg); color:var(--text); min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px;}
+
+.app{display:flex;min-height:100vh;}
+.sidebar{
+  width:220px;background:var(--card);border-right:1px solid var(--border);
+  flex-shrink:0;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;z-index:10;
+}
+.side-logo{padding:18px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:#0f172a;}
+.side-logo span{width:32px;height:32px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;flex-shrink:0;}
+.nav-sec{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:14px 16px 5px;}
+.nav-item{
+  display:flex;align-items:center;gap:9px;padding:8px 14px;margin:2px 10px;
+  border-radius:8px;font-size:13px;font-weight:500;color:var(--muted);
+  cursor:pointer;transition:all .15s;border:none;background:none;width:calc(100% - 20px);text-align:left;
+}
+.nav-item:hover{background:#f1f5f9;color:#334155;}
+.nav-item.active{background:#eef4ff;color:var(--primary);font-weight:600;}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;}
+
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.topbar{
+  height:52px;background:var(--card);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+  position:sticky;top:0;z-index:5;
+}
+.top-title{font-size:14px;font-weight:600;color:#0f172a;}
+.top-sub{font-size:10px;color:var(--muted);display:block;text-transform:uppercase;letter-spacing:.4px;}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:12px;}
+
+.content{padding:20px 24px;flex:1;overflow-y:auto;}
+
+/* Shared */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);transition:box-shadow .25s,transform .25s;}
+.card:hover{box-shadow:var(--shadow-lg);}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.card-hd h3{font-size:13px;font-weight:600;color:#334155;display:flex;align-items:center;gap:7px;}
+.card-hd h3::before{content:'';width:3px;height:12px;border-radius:2px;flex-shrink:0;}
+.pg{display:none;}
+.pg.active{display:block;}
+
+.btn{font-size:11px;font-weight:500;padding:6px 12px;border-radius:7px;border:none;cursor:pointer;transition:all .15s;}
+.btn-p{background:var(--primary);color:#fff;}
+.btn-p:hover{background:var(--pdark);}
+.btn-g{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-g:hover{background:#f8fafc;}
+.inp{font-size:12px;padding:6px 10px;border-radius:7px;border:1px solid var(--border);outline:none;background:#f8fafc;transition:border-color .15s;}
+.inp:focus{border-color:#93c5fd;background:#fff;}
+
+.pil{display:inline-flex;align-items:center;padding:3px 9px;border-radius:13px;font-size:11px;font-weight:600;gap:3px;}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+@keyframes pulse-a{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.4)}50%{box-shadow:0 0 0 6px rgba(245,158,11,0)}}
+@keyframes pulse-b{0%,100%{box-shadow:0 0 0 0 rgba(51,102,255,.4)}50%{box-shadow:0 0 0 6px rgba(51,102,255,0)}}
+
+@media(max-width:768px){.sidebar{display:none;}.content{padding:12px;}}
+
+/* ========== PAGE 1: 工作台 — 欢迎横幅 + 非对称网格 ========== */
+.dash-banner{
+  background:linear-gradient(135deg, #1e3a5f 0%, #1629ad 40%, #1a40e8 100%);
+  border-radius:16px; padding:28px 32px; color:#fff; margin-bottom:18px;
+  display:flex; align-items:center; justify-content:space-between; overflow:hidden; position:relative;
+}
+.dash-banner::after{
+  content:''; position:absolute; right:-40px; top:-40px;
+  width:200px; height:200px; border-radius:50%;
+  background:rgba(255,255,255,.06); pointer-events:none;
+}
+.dash-banner h2{font-size:22px;font-weight:800;letter-spacing:-.5px;}
+.dash-banner .sub{font-size:12px;opacity:.7;margin-top:4px;}
+.dash-banner .banner-stat{text-align:center;position:relative;z-index:1;}
+.dash-banner .banner-stat .val{font-size:32px;font-weight:900;}
+.dash-banner .banner-stat .lbl{font-size:11px;opacity:.7;}
+.dash-quick{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.dash-quick-item{
+  background:var(--card);border-radius:12px;border:1px solid var(--border);
+  padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .2s;
+}
+.dash-quick-item:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px);}
+.dash-quick-item .qicon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.dash-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;}
+.dash-grid2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px;}
+
+/* ========== PAGE 2: 患者管理 — Bento 不等宽网格 ========== */
+.pat-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+.pat-mcard{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:16px 18px;display:flex;align-items:center;gap:14px;transition:box-shadow .2s;}
+.pat-mcard:hover{box-shadow:var(--shadow-lg);}
+.pat-mcard .icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.pat-mcard .num{font-size:26px;font-weight:800;color:#0f172a;letter-spacing:-1px;line-height:1;}
+.pat-mcard .lab{font-size:11px;color:var(--muted);margin-top:2px;}
+.pat-bento{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;}
+.hgrid{display:grid;grid-template-columns:auto repeat(4,1fr);gap:4px;}
+.hcell{
+  aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:600;min-width:32px;cursor:default;transition:transform .15s;
+}
+.hcell:hover{transform:scale(1.2);z-index:2;box-shadow:0 3px 10px rgba(0,0,0,.15);}
+.hlab{font-size:10px;font-weight:500;color:var(--muted);display:flex;align-items:center;}
+.qrow{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #f8fafc;}
+.qrow:last-child{border-bottom:none;}
+.qtg{font-size:10px;font-weight:600;padding:2px 9px;border-radius:10px;}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{text-align:left;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:7px 10px;border-bottom:2px solid #e2e8f0;}
+.tbl td{padding:10px;font-size:12px;color:#334155;border-bottom:1px solid #f8fafc;}
+.tbl tbody tr:hover td{background:#f8fafc;}
+
+/* ========== PAGE 3: 门诊排班 — 左右分栏 + 时间轴 ========== */
+.sched-layout{display:grid;grid-template-columns:1fr 320px;gap:16px;}
+.sched-week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.sched-day{
+  background:var(--card);border-radius:10px;border:1px solid var(--border);
+  padding:10px 8px;text-align:center;min-height:120px;transition:box-shadow .2s;
+}
+.sched-day:hover{box-shadow:var(--shadow-lg);}
+.sched-day .day-num{font-size:20px;font-weight:800;color:#0f172a;}
+.sched-day .day-wk{font-size:10px;color:var(--muted);margin-bottom:6px;}
+.sched-day.today{border:2px solid var(--primary);box-shadow:0 0 0 3px rgba(51,102,255,.1);}
+.sched-day .apt-dot{display:block;font-size:10px;padding:2px 5px;border-radius:3px;margin-top:2px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sched-timeline{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:16px;}
+.sched-timeline h3{font-size:13px;font-weight:600;color:#334155;margin-bottom:12px;}
+.tl-item{display:flex;gap:10px;padding:10px 0;border-left:2px solid #e2e8f0;padding-left:14px;position:relative;font-size:12px;}
+.tl-item::before{content:'';position:absolute;left:-5px;top:14px;width:8px;height:8px;border-radius:50%;background:var(--primary);}
+.tl-item .tl-time{color:var(--primary);font-weight:600;font-size:11px;white-space:nowrap;}
+.tl-item .tl-info{color:var(--muted);font-size:11px;}
+
+/* ========== PAGE 4: 电子病历 — 顶部筛选 + 全宽表 ========== */
+.emr-filters{
+  background:var(--card);border-radius:12px;border:1px solid var(--border);
+  padding:14px 18px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+}
+.emr-table-wrap{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;}
+
+/* ========== PAGE 5: 运营报表 — KPI 大数字 + 三列图表 ========== */
+.rpt-hero{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
+.rpt-hero-card{
+  border-radius:14px;padding:22px 20px;color:#fff;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;justify-content:space-between;min-height:120px;
+}
+.rpt-hero-card::after{content:'';position:absolute;right:-20px;bottom:-20px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.08);}
+.rpt-hero-card .num{font-size:32px;font-weight:900;position:relative;z-index:1;}
+.rpt-hero-card .lab{font-size:12px;opacity:.8;position:relative;z-index:1;}
+.rpt-charts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+.rpt-table-wrap{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;}
+
+/* ========== PAGE 6: 趋势分析 — 大图 + 两侧数据卡片 ========== */
+.trend-layout{display:grid;grid-template-columns:240px 1fr 240px;gap:14px;}
+.trend-big{grid-column:2;}
+.trend-side-card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:16px;}
+.trend-side-card h4{font-size:12px;font-weight:600;color:#334155;margin-bottom:10px;}
+.trend-mid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.trend-bottom{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+
+/* ========== PAGE 7: 系统设置 — 两列表单 + 卡片列表 ========== */
+.settings-layout{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.settings-section{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:20px;}
+.settings-section h3{font-size:14px;font-weight:600;color:#0f172a;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f8fafc;}
+.setting-row:last-child{border-bottom:none;}
+.toggle{
+  width:38px;height:20px;border-radius:10px;position:relative;cursor:pointer;transition:background .2s;
+}
+.toggle.on{background:var(--primary);}
+.toggle.off{background:#cbd5e1;}
+.toggle::after{content:'';position:absolute;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s;}
+.toggle.on::after{left:20px;}
+.toggle.off::after{left:2px;}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar">
+    <div class="side-logo"><span>惠</span>慧医通</div>
+    <div class="nav-sec">主导航</div>
+    <button class="nav-item active" data-pg="dash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>工作台</button>
+    <button class="nav-item" data-pg="pat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>患者管理</button>
+    <button class="nav-item" data-pg="sched"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>门诊排班</button>
+    <button class="nav-item" data-pg="emr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>电子病历</button>
+    <div class="nav-sec">数据统计</div>
+    <button class="nav-item" data-pg="rpt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>运营报表</button>
+    <button class="nav-item" data-pg="trend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>趋势分析</button>
+    <div class="nav-sec">系统</div>
+    <button class="nav-item" data-pg="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>系统设置</button>
+  </aside>
+
+  <!-- ===== MAIN ===== -->
+  <div class="main">
+    <header class="topbar">
+      <div><span class="top-sub" id="bc">工作台 / 概览</span><span class="top-title" id="pt">工作台</span></div>
+      <div class="avatar">李</div>
+    </header>
+    <div class="content" id="ct"></div>
+  </div>
+</div>
+
+<script>
+const P = {dash:'工作台',pat:'患者管理',sched:'门诊排班',emr:'电子病历',rpt:'运营报表',trend:'趋势分析',set:'系统设置'};
+
+// ===================== PAGE 1: 工作台 =====================
+function pageDash(){
+  return `
+  <div class="dash-banner">
+    <div>
+      <h2>早上好，李主任 👋</h2>
+      <div class="sub">今日门诊 · 心内科 · 2026年7月1日 周三</div>
+    </div>
+    <div style="display:flex;gap:30px;position:relative;z-index:1;">
+      <div class="banner-stat"><div class="val">18</div><div class="lbl">今日待接诊</div></div>
+      <div class="banner-stat"><div class="val">12</div><div class="lbl">已完成</div></div>
+      <div class="banner-stat"><div class="val">6</div><div class="lbl">候诊中</div></div>
+    </div>
+  </div>
+
+  <div class="dash-quick">
+    <div class="dash-quick-item"><div class="qicon" style="background:#eef4ff;color:var(--primary);">📋</div><div><div style="font-weight:600;font-size:13px;">快速挂号</div><div style="font-size:11px;color:var(--muted);">新建患者档案</div></div></div>
+    <div class="dash-quick-item"><div class="qicon" style="background:#ecfdf5;color:var(--success);">💊</div><div><div style="font-weight:600;font-size:13px;">开具处方</div><div style="font-size:11px;color:var(--muted);">电子处方系统</div></div></div>
+    <div class="dash-quick-item"><div class="qicon" style="background:#fffbeb;color:var(--warn);">📅</div><div><div style="font-weight:600;font-size:13px;">预约管理</div><div style="font-size:11px;color:var(--muted);">查看排班日程</div></div></div>
+    <div class="dash-quick-item"><div class="qicon" style="background:#fdf2f8;color:#ec4899;">📊</div><div><div style="font-weight:600;font-size:13px;">数据报表</div><div style="font-size:11px;color:var(--muted);">运营数据概览</div></div></div>
+  </div>
+
+  <div class="dash-grid">
+    <div class="card" style="padding:18px 20px;">
+      <div class="card-hd"><h3 style="--c:var(--primary);">近7日门诊量</h3></div>
+      <div id="d1bars" style="display:flex;align-items:flex-end;gap:10px;height:180px;padding-top:8px;"></div>
+    </div>
+    <div class="card" style="padding:16px 18px;">
+      <div class="card-hd"><h3 style="--c:var(--warn);">紧急提醒</h3></div>
+      <div id="d1alerts"></div>
+    </div>
+    <div class="card" style="padding:16px 18px;">
+      <div class="card-hd"><h3 style="--c:var(--success);">今日动态</h3></div>
+      <div id="d1act"></div>
+    </div>
+  </div>
+
+  <div class="dash-grid2">
+    <div class="card" style="padding:16px 18px;">
+      <div class="card-hd"><h3 style="--c:var(--primary);">科室门诊量 Top5</h3></div>
+      <div id="d1dept"></div>
+    </div>
+    <div class="card" style="padding:16px 18px;">
+      <div class="card-hd"><h3 style="--c:var(--violet);">下午预约</h3></div>
+      <div id="d1appts"></div>
+    </div>
+    <div class="card" style="padding:16px 18px;">
+      <div class="card-hd"><h3 style="--c:var(--cyan);">本周小结</h3></div>
+      <div id="d1summary"></div>
+    </div>
+  </div>`;
+}
+
+// ===================== PAGE 2: 患者管理 (Bento) =====================
+function pagePat(){
+  return `
+  <div class="pat-metrics">
+    <div class="pat-mcard"><div class="icon" style="background:#eef4ff;color:var(--primary);">👥</div><div><div class="num">2,486</div><div class="lab">总患者数</div><span class="pil" style="background:#ecfdf5;color:#059669;margin-top:4px;display:inline-flex;">↑ 3.2%</span></div></div>
+    <div class="pat-mcard"><div class="icon" style="background:#ecfdf5;color:var(--success);">➕</div><div><div class="num">38</div><div class="lab">今日新增</div><span class="pil" style="background:#ecfdf5;color:#059669;margin-top:4px;display:inline-flex;">↑ 12.5%</span></div></div>
+    <div class="pat-mcard"><div class="icon" style="background:#fffbeb;color:var(--warn);">📋</div><div><div class="num" style="color:#d97706;">28</div><div class="lab">待随访数</div><span class="pil" style="background:#fffbeb;color:#d97706;margin-top:4px;display:inline-flex;">⚠ 12人本周到期</span></div></div>
+  </div>
+  <div class="pat-bento">
+    <div class="card" style="grid-column:span 5;padding:18px 20px;" id="p2heat"></div>
+    <div class="card" style="grid-column:span 7;padding:18px 20px;" id="p2queue"></div>
+    <div class="card" style="grid-column:span 7;padding:18px 20px;" id="p2tbl"></div>
+    <div class="card" style="grid-column:span 5;padding:18px 20px;" id="p2rings"></div>
+  </div>`;
+}
+
+// ===================== PAGE 3: 门诊排班 (左右分栏 + 时间轴) =====================
+function pageSched(){
+  const dates=[];
+  const now=new Date(); const today=now.getDay()||7;
+  const mon=new Date(now); mon.setDate(now.getDate()-(today-1));
+  const wk=['一','二','三','四','五','六','日'];
+  for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);dates.push({num:d.getDate(),wk:wk[i],today:i+1===today});}
+
+  const aptMap={0:[{n:'张伟民',t:'09:00'}],1:[{n:'陈丽华',t:'10:30'},{n:'李芳',t:'14:00'}],2:[{n:'刘建国',t:'09:30'}],3:[{n:'赵秀英',t:'11:00'},{n:'王磊',t:'15:00'}],4:[{n:'孙明辉',t:'10:00'},{n:'周小燕',t:'14:30'}]};
+  let days='';
+  dates.forEach((d,i)=>{
+    const a=aptMap[i]||[];
+    days+=`<div class="sched-day${d.today?' today':''}"><div class="day-wk">周${d.wk}</div><div class="day-num">${d.num}</div>${a.map(x=>`<span class="apt-dot" style="background:#eef4ff;color:var(--primary);">${x.t} ${x.n}</span>`).join('')}</div>`;
+  });
+
+  return `
+  <div class="pat-metrics">
+    <div class="pat-mcard"><div class="icon" style="background:#eef4ff;color:var(--primary);">📅</div><div><div class="num">156</div><div class="lab">今日总预约</div></div></div>
+    <div class="pat-mcard"><div class="icon" style="background:#ecfdf5;color:var(--success);">👨‍⚕️</div><div><div class="num">8</div><div class="lab">在岗医生</div></div></div>
+    <div class="pat-mcard"><div class="icon" style="background:#fffbeb;color:var(--warn);">⏳</div><div><div class="num" style="color:#d97706;">18</div><div class="lab">候诊患者</div></div></div>
+  </div>
+  <div class="sched-layout">
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:600;color:#0f172a;">2026年7月 · 本周排班</div>
+        <div style="display:flex;gap:6px;"><button class="btn btn-g">‹ 上周</button><button class="btn btn-p">本周</button><button class="btn btn-g">下周 ›</button></div>
+      </div>
+      <div class="sched-week">${days}</div>
+    </div>
+    <div class="sched-timeline">
+      <h3>📋 今日时间线</h3>
+      ${[
+        {t:'08:30',info:'晨会 · 心内科交班'},{t:'09:00',info:'张伟民 · 高血压复查'},{t:'09:30',info:'刘建国 · 冠脉术后随访'},{t:'10:30',info:'陈丽华 · 糖尿病复诊'},{t:'11:00',info:'赵秀英 · 哮喘评估'},{t:'12:00',info:'午休'},{t:'14:00',info:'李芳 · 初诊咨询'},{t:'14:30',info:'周小燕 · 脑电图复查'},{t:'15:00',info:'王磊 · 骨折复查'}
+      ].map(x=>`<div class="tl-item"><span class="tl-time">${x.t}</span><span class="tl-info">${x.info}</span></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ===================== PAGE 4: 电子病历 (筛选+全宽表) =====================
+function pageEMR(){
+  const recs=[
+    {id:'EMR-20260630-001',p:'张伟民',g:'男',age:58,date:'2026-06-30',dept:'心内科',doc:'李主任',dx:'原发性高血压Ⅱ级',type:'门诊'},
+    {id:'EMR-20260628-003',p:'陈丽华',g:'女',age:42,date:'2026-06-28',dept:'内分泌科',doc:'王医生',dx:'2型糖尿病',type:'门诊'},
+    {id:'EMR-20260625-007',p:'刘建国',g:'男',age:65,date:'2026-06-25',dept:'心内科',doc:'李主任',dx:'冠状动脉粥样硬化',type:'住院'},
+    {id:'EMR-20260620-012',p:'赵秀英',g:'女',age:34,date:'2026-06-20',dept:'呼吸科',doc:'赵医生',dx:'支气管哮喘',type:'门诊'},
+    {id:'EMR-20260615-005',p:'孙明辉',g:'男',age:71,date:'2026-06-15',dept:'骨科',doc:'周主任',dx:'腰椎间盘突出',type:'住院'},
+  ];
+  return `
+  <div class="emr-filters">
+    <input class="inp" placeholder="🔍 搜索病历编号/患者姓名..." style="width:240px;">
+    <select class="inp"><option>全部科室</option><option>心内科</option><option>内分泌科</option><option>呼吸科</option><option>骨科</option></select>
+    <select class="inp"><option>全部类型</option><option>门诊</option><option>住院</option></select>
+    <input class="inp" type="date" value="2026-06-01">
+    <span style="font-size:12px;color:var(--muted);">至</span>
+    <input class="inp" type="date" value="2026-07-01">
+    <button class="btn btn-p">查询</button>
+    <button class="btn btn-g" style="margin-left:auto;">📥 导出</button>
+  </div>
+  <div class="emr-table-wrap">
+    <table class="tbl" style="margin:0;">
+      <thead><tr><th>病历编号</th><th>患者</th><th>性别</th><th>年龄</th><th>就诊日期</th><th>科室</th><th>主治医师</th><th>诊断</th><th>类型</th><th>操作</th></tr></thead>
+      <tbody>${recs.map(r=>`<tr>
+        <td style="font-family:monospace;font-size:11px;color:var(--primary);cursor:pointer;">${r.id}</td>
+        <td style="font-weight:500;">${r.p}</td><td>${r.g}</td><td>${r.age}岁</td><td style="font-size:11px;">${r.date}</td><td>${r.dept}</td><td>${r.doc}</td>
+        <td>${r.dx}</td>
+        <td><span class="pil" style="${r.type==='门诊'?'background:#eff6ff;color:#2563eb;':'background:#fdf2f8;color:#be185d;'}">${r.type}</span></td>
+        <td><button class="btn btn-g" style="font-size:10px;padding:3px 8px;">查看</button></td>
+      </tr>`).join('')}</tbody>
+    </table>
+    <div style="display:flex;justify-content:space-between;padding:10px 16px;font-size:11px;color:var(--muted);border-top:1px solid #f1f5f9;">
+      <span>共 <b style="color:#0f172a;">1,892</b> 份病历</span>
+      <div style="display:flex;gap:3px;">${['‹','1','2','3','…','63','›'].map(p=>`<button style="padding:2px 7px;border-radius:5px;border:1px solid var(--border);background:${p==='1'?'var(--primary)':'#fff'};color:${p==='1'?'#fff':'#64748b'};font-size:10px;font-weight:600;cursor:pointer;">${p}</button>`).join('')}</div>
+    </div>
+  </div>`;
+}
+
+// ===================== PAGE 5: 运营报表 (KPI Hero + 三列图) =====================
+function pageRpt(){
+  return `
+  <div class="rpt-hero">
+    <div class="rpt-hero-card" style="background:linear-gradient(135deg,#1e40af,#3b82f6);"><div class="num">¥48.7<span style="font-size:16px;">万</span></div><div class="lab">本月营收</div><div style="font-size:10px;opacity:.7;position:relative;z-index:1;">↑ 8.3% 较上月</div></div>
+    <div class="rpt-hero-card" style="background:linear-gradient(135deg,#059669,#10b981);"><div class="num">3,842</div><div class="lab">本月门诊量</div><div style="font-size:10px;opacity:.7;position:relative;z-index:1;">↑ 5.1% 较上月</div></div>
+    <div class="rpt-hero-card" style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);"><div class="num">94.2<span style="font-size:16px;">%</span></div><div class="lab">床位使用率</div><div style="font-size:10px;opacity:.7;position:relative;z-index:1;">↑ 2.1pp</div></div>
+    <div class="rpt-hero-card" style="background:linear-gradient(135deg,#0f172a,#334155);"><div class="num">128</div><div class="lab">本月手术</div><div style="font-size:10px;opacity:.7;position:relative;z-index:1;">↑ 11.3% 较上月</div></div>
+  </div>
+  <div class="rpt-charts">
+    <div class="card" style="padding:18px 20px;"><div class="card-hd"><h3 style="--c:var(--primary);">月度营收(万元)</h3></div><div id="r5rev" style="display:flex;align-items:flex-end;gap:10px;height:150px;"></div></div>
+    <div class="card" style="padding:18px 20px;"><div class="card-hd"><h3 style="--c:var(--success);">科室收入占比</h3></div><div id="r5dept"></div></div>
+    <div class="card" style="padding:18px 20px;"><div class="card-hd"><h3 style="--c:var(--violet);">收入构成</h3></div><div id="r5comp"></div></div>
+  </div>
+  <div class="rpt-table-wrap">
+    <table class="tbl" style="margin:0;">
+      <thead><tr><th>指标</th><th>本月</th><th>上月</th><th>环比</th><th>去年同期</th><th>同比</th><th>状态</th></tr></thead>
+      <tbody>
+        <tr><td>门诊人次</td><td>3,842</td><td>3,656</td><td style="color:#059669;">↑ 5.1%</td><td>3,210</td><td style="color:#059669;">↑ 19.7%</td><td><span class="pil" style="background:#ecfdf5;color:#059669;">达标</span></td></tr>
+        <tr><td>住院人次</td><td>486</td><td>512</td><td style="color:#dc2626;">↓ 5.1%</td><td>420</td><td style="color:#059669;">↑ 15.7%</td><td><span class="pil" style="background:#ecfdf5;color:#059669;">达标</span></td></tr>
+        <tr><td>手术台数</td><td>128</td><td>115</td><td style="color:#059669;">↑ 11.3%</td><td>98</td><td style="color:#059669;">↑ 30.6%</td><td><span class="pil" style="background:#ecfdf5;color:#059669;">达标</span></td></tr>
+        <tr><td>药占比</td><td>32.5%</td><td>34.1%</td><td style="color:#059669;">↓ 1.6pp</td><td>36.2%</td><td style="color:#059669;">↓ 3.7pp</td><td><span class="pil" style="background:#ecfdf5;color:#059669;">达标</span></td></tr>
+        <tr><td>平均住院日</td><td>7.2天</td><td>7.8天</td><td style="color:#059669;">↓ 0.6天</td><td>8.1天</td><td style="color:#059669;">↓ 0.9天</td><td><span class="pil" style="background:#fffbeb;color:#d97706;">关注</span></td></tr>
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ===================== PAGE 6: 趋势分析 (三栏布局) =====================
+function pageTrend(){
+  return `
+  <div class="trend-layout">
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="trend-side-card"><h4>📊 关键指标</h4><div id="t6kpi"></div></div>
+      <div class="trend-side-card"><h4>👥 患者画像</h4><div id="t6profile"></div></div>
+    </div>
+    <div>
+      <div class="trend-mid">
+        <div class="card" style="padding:18px 20px;"><div class="card-hd"><h3 style="--c:var(--primary);">门诊量趋势 (近6月)</h3></div><div id="t6bars" style="display:flex;align-items:flex-end;gap:12px;height:200px;"></div></div>
+        <div class="card" style="padding:18px 20px;"><div class="card-hd"><h3 style="--c:var(--success);">复诊率趋势</h3></div><div id="t6revisit"></div></div>
+      </div>
+      <div class="trend-bottom">
+        <div class="card" style="padding:16px 18px;"><div class="card-hd"><h3 style="--c:var(--warn);">就诊高峰时段</h3></div><div id="t6peak"></div></div>
+        <div class="card" style="padding:16px 18px;"><div class="card-hd"><h3 style="--c:var(--violet);">处方分类</h3></div><div id="t6rx"></div></div>
+        <div class="card" style="padding:16px 18px;"><div class="card-hd"><h3 style="--c:var(--cyan);">满意度趋势</h3></div><div id="t6sat"></div></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="trend-side-card"><h4>🏥 科室对比</h4><div id="t6dept"></div></div>
+      <div class="trend-side-card"><h4>📋 诊断排行</h4><div id="t6dx"></div></div>
+    </div>
+  </div>`;
+}
+
+// ===================== PAGE 7: 系统设置 (两列表单) =====================
+function pageSet(){
+  return `
+  <div class="settings-layout">
+    <div class="settings-section">
+      <h3>👤 个人信息</h3>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+        <div class="avatar" style="width:52px;height:52px;font-size:18px;">李</div>
+        <div><div style="font-weight:600;">李主任</div><div style="font-size:11px;color:var(--muted);">心内科 · 主任医师</div></div>
+        <button class="btn btn-g" style="margin-left:auto;">更换头像</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        ${['姓名:李主任','工号:DOC-20210042','科室:心内科','职称:主任医师','手机:138****6789','邮箱:lizhuren@huiyitong.com'].map(f=>{
+          const[l,v]=f.split(':');
+          return `<div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">${l}</label><input class="inp" value="${v}" style="width:100%;"></div>`;
+        }).join('')}
+      </div>
+      <button class="btn btn-p" style="margin-top:12px;">保存修改</button>
+    </div>
+
+    <div class="settings-section">
+      <h3>🔐 账号安全</h3>
+      ${[
+        {l:'修改密码',d:'上次修改: 2026-03-15',btn:'修改',c:'g'},
+        {l:'二次验证',d:'提高账号安全性',btn:'立即开启',c:'p'},
+        {l:'登录设备',d:'3台设备在线',btn:'管理',c:'g'},
+        {l:'操作日志',d:'查看近30天记录',btn:'查看',c:'g'},
+      ].map(x=>`<div class="setting-row"><div><div style="font-weight:500;font-size:13px;">${x.l}</div><div style="font-size:11px;color:var(--muted);">${x.d}</div></div><button class="btn btn-${x.c}">${x.btn}</button></div>`).join('')}
+    </div>
+
+    <div class="settings-section">
+      <h3>⚙ 系统偏好</h3>
+      ${[
+        {l:'消息通知',d:'就诊提醒、系统通知',on:true},
+        {l:'自动保存病历',d:'编辑时自动保存草稿',on:true},
+        {l:'声音提示',d:'新患者挂号提示音',on:false},
+        {l:'暗色模式',d:'切换深色主题',on:false},
+      ].map(x=>`<div class="setting-row"><div><div style="font-weight:500;font-size:13px;">${x.l}</div><div style="font-size:11px;color:var(--muted);">${x.d}</div></div><div class="toggle ${x.on?'on':'off'}" onclick="this.classList.toggle('on');this.classList.toggle('off');"></div></div>`).join('')}
+      <div class="setting-row">
+        <div><div style="font-weight:500;font-size:13px;">数据刷新频率</div></div>
+        <select class="inp"><option>30秒</option><option>1分钟</option><option selected>5分钟</option><option>手动</option></select>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>ℹ 关于系统</h3>
+      <div style="font-size:12px;line-height:2.2;">
+        <div><span style="color:var(--muted);">系统版本：</span>慧医通 v3.2.1</div>
+        <div><span style="color:var(--muted);">前端框架：</span>React 19 + Tailwind CSS 4</div>
+        <div><span style="color:var(--muted);">后端服务：</span>FastAPI 0.115 + PostgreSQL 16</div>
+        <div><span style="color:var(--muted);">部署时间：</span>2026-07-01 08:30 CST</div>
+        <div><span style="color:var(--muted);">运行状态：</span><span style="color:var(--success);font-weight:600;">● 正常运行</span> <span style="font-size:10px;color:var(--muted);">已运行 47天</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ============================================================
+//  ROUTER & INIT
+// ============================================================
+const renderers={dash:pageDash,pat:pagePat,sched:pageSched,emr:pageEMR,rpt:pageRpt,trend:pageTrend,set:pageSet};
+
+function navTo(pg){
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`[data-pg="${pg}"]`).classList.add('active');
+  document.getElementById('bc').textContent=P[pg]+' / 概览';
+  document.getElementById('pt').textContent=P[pg];
+  document.getElementById('ct').innerHTML=renderers[pg]();
+  initPage(pg);
+}
+
+function cardHdStyle(){document.querySelectorAll('.card-hd h3').forEach(h=>{const c=h.style.getPropertyValue('--c')||'var(--primary)';h.style.setProperty('--c',c);h.querySelector('::before');h.style.setProperty('--hd-color',c);});}
+// override the ::before color with inline style
+document.head.insertAdjacentHTML('beforeend','<style>.card-hd h3::before{background:var(--hd-color,var(--primary));}</style>');
+
+function initPage(pg){
+  cardHdStyle();
+  setTimeout(()=>{
+    if(pg==='dash') initDash();
+    if(pg==='pat') initPat();
+    if(pg==='rpt') initRpt();
+    if(pg==='trend') initTrend();
+  },0);
+}
+
+function barChart(id,vals,labels,h,maxH){
+  const el=document.getElementById(id);if(!el)return;
+  el.innerHTML=vals.map((v,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><span style="font-size:10px;color:var(--muted);">${v}</span><div style="width:100%;height:${v/maxH*h}px;background:${i===vals.length-1?'var(--primary)':'#93c5fd'};border-radius:5px 5px 0 0;transition:height .4s;"></div><span style="font-size:10px;color:var(--muted);">${labels[i]}</span></div>`).join('');
+}
+
+function initDash(){
+  const days=['一','二','三','四','五','六','日'];
+  const el=document.getElementById('d1bars');
+  if(el){
+    const vals=[142,168,155,189,203,98,72];
+    const lbs=['周一','周二','周三','周四','周五','周六','周日'];
+    el.innerHTML=vals.map((v,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><span style="font-size:11px;font-weight:600;color:${v>=180?'var(--primary)':'var(--muted)'};">${v}</span><div style="width:100%;height:${v/210*155}px;background:${i>=5?'#bfdbfe':'var(--primary)'};border-radius:6px 6px 0 0;transition:height .4s;"></div><span style="font-size:10px;color:var(--muted);">${lbs[i]}</span></div>`).join('');
+  }
+
+  const ae=document.getElementById('d1alerts');if(ae)ae.innerHTML=[
+    {c:'var(--danger)',t:'刘建国 随访逾期3天，需立即联系'},
+    {c:'var(--warn)',t:'氨氯地平库存不足7天用量'},
+    {c:'var(--primary)',t:'明日3位医生请假需调整排班'},
+  ].map(a=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f8fafc;font-size:12px;"><span class="dot" style="background:${a.c};animation:${a.c==='var(--danger)'?'pulse-a 2s infinite':''};"></span>${a.t}</div>`).join('');
+
+  const act=document.getElementById('d1act');if(act)act.innerHTML=[
+    {c:'var(--primary)',t:'完成 张伟民 的诊疗',time:'10分钟前'},
+    {c:'var(--success)',t:'新患者 陈丽华 完成挂号',time:'25分钟前'},
+    {c:'var(--warn)',t:'刘建国 随访逾期3天',time:'1小时前'},
+    {c:'var(--primary)',t:'新增3条医嘱',time:'2小时前'},
+  ].map(a=>`<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f8fafc;font-size:12px;"><span class="dot" style="background:${a.c};margin-top:5px;"></span><span style="flex:1;">${a.t}</span><span style="font-size:10px;color:var(--muted);white-space:nowrap;">${a.time}</span></div>`).join('');
+
+  const de=document.getElementById('d1dept');if(de)de.innerHTML=[
+    {n:'心内科',v:342,p:82},{n:'内分泌科',v:287,p:69},{n:'呼吸科',v:198,p:47},{n:'骨科',v:165,p:39},{n:'神经内科',v:142,p:34}
+  ].map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f8fafc;font-size:12px;"><span style="font-weight:500;">${d.n}</span><span style="color:var(--muted);">${d.v}人次</span><div style="width:70px;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;"><div style="height:100%;width:${d.p}%;background:var(--primary);border-radius:3px;"></div></div></div>`).join('');
+
+  const ap=document.getElementById('d1appts');if(ap)ap.innerHTML=[
+    {n:'孙明辉',dept:'骨科',t:'14:30',doc:'周主任'},{n:'周小燕',dept:'神经内科',t:'15:00',doc:'陈医生'},{n:'吴建国',dept:'心内科',t:'15:30',doc:'李主任'},{n:'郑丽丽',dept:'内分泌科',t:'16:00',doc:'王医生'}
+  ].map(a=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f8fafc;"><span style="font-weight:500;font-size:12px;">${a.n}</span><span style="font-size:11px;color:var(--muted);">${a.doc}</span><span style="font-weight:700;font-size:13px;color:var(--primary);">${a.t}</span></div>`).join('');
+
+  const su=document.getElementById('d1summary');if(su)su.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center;padding:8px 0;">
+      <div><div style="font-size:26px;font-weight:800;color:var(--primary);">852</div><div style="font-size:10px;color:var(--muted);">本周接诊</div></div>
+      <div><div style="font-size:26px;font-weight:800;color:var(--success);">96.8<span style="font-size:14px;">%</span></div><div style="font-size:10px;color:var(--muted);">准时率</div></div>
+      <div><div style="font-size:26px;font-weight:800;color:var(--warn);">3.2<span style="font-size:14px;">%</span></div><div style="font-size:10px;color:var(--muted);">失约率</div></div>
+      <div><div style="font-size:26px;font-weight:800;color:var(--violet);">4.8</div><div style="font-size:10px;color:var(--muted);">平均候诊(分)</div></div>
+    </div>`;
+}
+
+function initPat(){
+  // Heatmap
+  const days2=['周一','周二','周三','周四','周五','周六','周日'];
+  const slots=['上午','午间','下午','晚间'];
+  const data=[[.08,.12,.05,.10],[.06,.09,.04,.07],[.14,.18,.11,.13],[.05,.08,.06,.04],[.10,.15,.09,.12],[.02,.03,.01,.02],[.01,.02,.01,.01]];
+  function hc(v){if(v<=.04)return{bg:'#dbeafe',fg:'#1e40af'};if(v<=.08)return{bg:'#93c5fd',fg:'#1e3a5f'};if(v<=.12)return{bg:'#fde68a',fg:'#92400e'};if(v<=.16)return{bg:'#fbbf24',fg:'#78350f'};return{bg:'#f87171',fg:'#7f1d1d'};}
+  let h='<div class="card-hd"><h3 style="--hd-color:var(--primary);">一周失约率热力图</h3><span style="font-size:10px;color:var(--muted);">时段 × 星期</span></div><div class="hgrid"><div></div>'+slots.map(s=>'<div style="font-size:10px;font-weight:500;color:#64748b;text-align:center;">'+s+'</div>').join('');
+  data.forEach((r,i)=>{h+='<div class="hlab">'+days2[i]+'</div>'+r.map(v=>{const c=hc(v);return'<div class="hcell" style="background:'+c.bg+';color:'+c.fg+'">'+(v*100).toFixed(0)+'%</div>';}).join('');});
+  h+='</div><div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:9px;color:var(--muted);"><span>低</span><span style="width:12px;height:7px;border-radius:2px;background:#dbeafe;"></span><span style="width:12px;height:7px;border-radius:2px;background:#93c5fd;"></span><span style="width:12px;height:7px;border-radius:2px;background:#fde68a;"></span><span style="width:12px;height:7px;border-radius:2px;background:#fbbf24;"></span><span style="width:12px;height:7px;border-radius:2px;background:#f87171;"></span><span>高</span></div>';
+  document.getElementById('p2heat').innerHTML=h;
+
+  // Queue
+  const queue=[{n:'张伟民',dept:'心内科',doc:'李主任',s:'waiting',w:'12分钟'},{n:'陈丽华',dept:'内分泌科',doc:'王医生',s:'waiting',w:'8分钟'},{n:'刘建国',dept:'心内科',doc:'李主任',s:'waiting',w:'5分钟'},{n:'赵秀英',dept:'呼吸科',doc:'赵医生',s:'in-progress',w:'—'},{n:'孙明辉',dept:'骨科',doc:'周主任',s:'in-progress',w:'—'},{n:'周小燕',dept:'神经内科',doc:'陈医生',s:'in-progress',w:'—'}];
+  const qc={waiting:{l:'等候中',c:'#f59e0b',bg:'#fffbeb',a:'pulse-a'},'in-progress':{l:'就诊中',c:'#3366ff',bg:'#eef4ff',a:'pulse-b'}};
+  let q='<div class="card-hd"><h3 style="--hd-color:var(--primary);">实时就诊队列</h3><div style="display:flex;gap:12px;font-size:11px;"><span style="display:flex;align-items:center;gap:3px;"><span class="dot" style="background:var(--warn);animation:pulse-a 2s infinite;"></span>等候<b>3</b></span><span style="display:flex;align-items:center;gap:3px;"><span class="dot" style="background:var(--primary);animation:pulse-b 2s infinite;"></span>就诊中<b>3</b></span><span style="display:flex;align-items:center;gap:3px;"><span class="dot" style="background:var(--success);"></span>已完成<b>24</b></span></div></div>';
+  queue.forEach(x=>{const c=qc[x.s];q+='<div class="qrow"><div style="display:flex;align-items:center;"><div class="dot" style="background:'+c.c+';'+(c.a?'animation:'+c.a+' 2s infinite;':'')+'margin-right:8px;"></div><div><div style="font-weight:600;font-size:12px;">'+x.n+'</div><div style="font-size:10px;color:var(--muted);">'+x.dept+' · '+x.doc+'</div></div></div><div style="display:flex;align-items:center;gap:6px;"><span class="qtg" style="background:'+c.bg+';color:'+c.c+';">'+c.l+'</span>'+ (x.w!=='—'?'<span style="font-size:10px;color:var(--muted);font-family:monospace;">'+x.w+'</span>':'')+'</div></div>';});
+  q+='<div style="margin-top:8px;padding-top:8px;border-top:1px solid #f8fafc;display:flex;justify-content:space-between;font-size:11px;color:var(--muted);"><span>今日已接诊<b style="color:#0f172a;">24</b>人</span><span>平均候诊<b style="color:#0f172a;">8.5</b>分钟</span></div>';
+  document.getElementById('p2queue').innerHTML=q;
+
+  // Table
+  const pts=[{id:'P10023',n:'张伟民',g:'男',age:58,doc:'李主任',last:'2026-06-20',next:'2026-07-15',s:'active'},{id:'P10047',n:'陈丽华',g:'女',age:42,doc:'王医生',last:'2026-06-28',next:'2026-07-08',s:'active'},{id:'P10082',n:'刘建国',g:'男',age:65,doc:'李主任',last:'2026-05-15',next:'2026-07-05',s:'overdue'},{id:'P10103',n:'赵秀英',g:'女',age:34,doc:'赵医生',last:'2026-06-30',next:'2026-07-20',s:'active'},{id:'P10129',n:'孙明辉',g:'男',age:71,doc:'周主任',last:'2026-06-10',next:'2026-07-12',s:'attention'}];
+  const bd={active:'<span class="pil" style="background:#ecfdf5;color:#059669;">● 正常</span>',overdue:'<span class="pil" style="background:#fef2f2;color:#dc2626;">● 逾期未访</span>',attention:'<span class="pil" style="background:#fffbeb;color:#d97706;">● 需关注</span>'};
+  let t='<div class="card-hd"><h3 style="--hd-color:var(--primary);">患者档案</h3><div style="display:flex;gap:6px;"><input class="inp" placeholder="搜索患者..." style="width:140px;"><button class="btn btn-p">+ 新增</button></div></div><div style="overflow-x:auto;"><table class="tbl"><thead><tr><th>编号</th><th>姓名</th><th>年龄</th><th>主治医师</th><th>末次就诊</th><th>下次预约</th><th>状态</th></tr></thead><tbody>';
+  pts.forEach(p=>{t+='<tr><td style="font-family:monospace;font-size:10px;color:var(--muted);">'+p.id+'</td><td style="font-weight:500;">'+p.n+'<span style="font-size:10px;color:var(--muted);margin-left:4px;">'+p.g+'</span></td><td>'+p.age+'岁</td><td>'+p.doc+'</td><td style="font-size:11px;">'+p.last+'</td><td style="font-size:11px;">'+p.next+'</td><td>'+bd[p.s]+'</td></tr>';});
+  t+='</tbody></table></div><div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--muted);"><span>共<b style="color:#0f172a;">1,247</b>条</span><div style="display:flex;gap:2px;">'+['‹','1','2','3','…','42','›'].map(p=>'<button style="padding:2px 7px;border-radius:5px;border:1px solid var(--border);background:'+(p==='1'?'var(--primary)':'#fff')+';color:'+(p==='1'?'#fff':'#64748b')+';font-size:10px;font-weight:600;cursor:pointer;">'+p+'</button>').join('')+'</div></div>';
+  document.getElementById('p2tbl').innerHTML=t;
+
+  // Rings
+  const meds=[{n:'阿司匹林',r:78,d:'100mg qd'},{n:'二甲双胍',r:92,d:'500mg bid'},{n:'氨氯地平',r:65,d:'5mg qd'},{n:'阿托伐他汀',r:88,d:'20mg qn'}];
+  const sz=85,sw=7,rad=(sz-sw*2)/2,cir=2*Math.PI*rad;
+  let ri='<div class="card-hd"><h3 style="--hd-color:var(--primary);">用药依从性</h3><span style="font-size:10px;color:var(--muted);">近30天</span></div><div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;">';
+  meds.forEach(m=>{const off=cir-(m.r/100)*cir;ri+='<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:70px;"><svg width="'+sz+'" height="'+sz+'" viewBox="0 0 '+sz+' '+sz+'"><circle cx="'+sz/2+'" cy="'+sz/2+'" r="'+rad+'" fill="none" stroke="#e2e8f0" stroke-width="'+sw+'"/><circle cx="'+sz/2+'" cy="'+sz/2+'" r="'+rad+'" fill="none" stroke="'+(m.r>=80?'#10b981':m.r>=60?'#f59e0b':'#f43f5e')+'" stroke-width="'+sw+'" stroke-linecap="round" stroke-dasharray="'+cir+'" stroke-dashoffset="'+off+'" transform="rotate(-90 '+sz/2+' '+sz/2+')"/><text x="'+sz/2+'" y="'+sz/2+'" text-anchor="middle" dy="0.35em" font-size="17" font-weight="700" fill="#0f172a">'+m.r+'%</text></svg><span style="font-size:10px;color:var(--muted);font-weight:500;">'+m.n+'</span><span style="font-size:9px;color:#cbd5e1;">'+m.d+'</span></div>';});
+  const avg=Math.round(meds.reduce((s,m)=>s+m.r,0)/meds.length);
+  ri+='</div><div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:10px;margin-top:12px;background:#f0f9ff;border:1px solid #bfdbfe;"><div><div style="font-size:11px;font-weight:600;color:#1e40af;">整体依从率</div><div style="font-size:9px;color:var(--muted);">较上月 ↑ 5.2%</div></div><div style="font-size:24px;font-weight:800;color:#1e40af;">'+avg+'%</div></div>';
+  document.getElementById('p2rings').innerHTML=ri;
+}
+
+function initRpt(){
+  const el=document.getElementById('r5rev');if(el){const m=['1月','2月','3月','4月','5月','6月'];const v=[38.2,35.6,42.1,40.8,45.3,48.7];el.innerHTML=v.map((x,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><span style="font-size:10px;color:var(--muted);">${x}</span><div style="width:100%;height:${x/50*130}px;background:${i===5?'var(--primary)':'#93c5fd'};border-radius:5px 5px 0 0;"></div><span style="font-size:10px;color:var(--muted);">${m[i]}</span></div>`).join('');}
+  const de=document.getElementById('r5dept');if(de)de.innerHTML=[{n:'心内科',p:28,c:'var(--primary)'},{n:'内分泌科',p:22,c:'var(--success)'},{n:'呼吸科',p:18,c:'#0ea5e9'},{n:'骨科',p:15,c:'var(--violet)'},{n:'神内',p:12,c:'var(--warn)'},{n:'其他',p:5,c:'#cbd5e1'}].map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f8fafc;font-size:12px;"><span style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:2px;background:${d.c};"></span>${d.n}</span><div style="display:flex;align-items:center;gap:8px;"><div style="width:80px;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;"><div style="height:100%;width:${d.p}%;background:${d.c};border-radius:3px;"></div></div><span style="color:var(--muted);">${d.p}%</span></div></div>`).join('');
+  const co=document.getElementById('r5comp');if(co)co.innerHTML=[{n:'药品收入',p:42,v:'¥204,662'},{n:'检查收入',p:28,v:'¥136,441'},{n:'治疗收入',p:18,v:'¥87,712'},{n:'其他',p:12,v:'¥58,475'}].map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f8fafc;font-size:12px;"><span style="font-weight:500;">${d.n}</span><span style="color:var(--muted);">${d.v}</span><div style="width:60px;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;"><div style="height:100%;width:${d.p}%;background:var(--violet);border-radius:3px;"></div></div></div>`).join('');
+}
+
+function initTrend(){
+  const el=document.getElementById('t6bars');if(el){const m=['1月','2月','3月','4月','5月','6月'];const v=[3100,2850,3420,3656,3580,3842];el.innerHTML=v.map((x,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><span style="font-size:11px;font-weight:600;color:${i===5?'var(--primary)':'var(--muted)'};">${x}</span><div style="width:100%;height:${x/4000*175}px;background:${i===5?'var(--primary)':'#93c5fd'};border-radius:6px 6px 0 0;position:relative;"></div><span style="font-size:10px;color:var(--muted);">${m[i]}</span></div>`).join('');}
+  document.getElementById('t6revisit').innerHTML=`<div style="text-align:center;padding:20px 0;"><div style="font-size:44px;font-weight:900;color:var(--primary);">62.4<span style="font-size:20px;">%</span></div><div style="font-size:11px;color:var(--muted);">30天复诊率</div><div style="font-size:10px;color:#059669;">↑ 3.8pp 较上季度</div></div><div style="display:flex;justify-content:space-around;text-align:center;font-size:11px;padding-top:8px;border-top:1px solid #f8fafc;"><div><div style="font-weight:700;">78.2%</div><div style="color:var(--muted);">慢性病</div></div><div><div style="font-weight:700;">45.6%</div><div style="color:var(--muted);">急性病</div></div><div><div style="font-weight:700;">52.1%</div><div style="color:var(--muted);">术后</div></div></div>`;
+  document.getElementById('t6peak').innerHTML=[{t:'08-09',v:85},{t:'09-10',v:142},{t:'10-11',v:128},{t:'11-12',v:95},{t:'14-15',v:110},{t:'15-16',v:132},{t:'16-17',v:98}].map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f8fafc;font-size:11px;"><span style="font-weight:500;">${d.t}</span><div style="display:flex;align-items:center;gap:6px;"><div style="width:70px;height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;"><div style="height:100%;width:${d.v/150*100}%;background:${d.v>120?'var(--primary)':'#93c5fd'};border-radius:2px;"></div></div><span style="color:var(--muted);">${d.v}人</span></div></div>`).join('');
+  document.getElementById('t6rx').innerHTML=[{n:'抗生素',p:22},{n:'心血管',p:30},{n:'降糖',p:18},{n:'镇痛',p:12},{n:'其他',p:18}].map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f8fafc;font-size:11px;"><span style="font-weight:500;">${d.n}</span><div style="display:flex;align-items:center;gap:6px;"><div style="width:60px;height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;"><div style="height:100%;width:${d.p}%;background:var(--violet);border-radius:2px;"></div></div><span style="color:var(--muted);">${d.p}%</span></div></div>`).join('');
+  document.getElementById('t6sat').innerHTML=`<div style="text-align:center;padding:16px 0;"><div style="font-size:40px;font-weight:900;color:var(--success);">86.4<span style="font-size:18px;">%</span></div><div style="font-size:10px;color:var(--muted);">患者满意度</div><div style="font-size:10px;color:#059669;">↑ 2.3pp</div></div><div style="display:flex;justify-content:space-around;font-size:10px;text-align:center;border-top:1px solid #f8fafc;padding-top:8px;"><div><div style="font-weight:700;color:#059669;">92%</div><div style="color:var(--muted);">医生态度</div></div><div><div style="font-weight:700;color:#059669;">88%</div><div style="color:var(--muted);">等候时间</div></div><div><div style="font-weight:700;color:#d97706;">79%</div><div style="color:var(--muted);">环境设施</div></div></div>`;
+  // Side panels
+  document.getElementById('t6kpi').innerHTML=[{l:'门诊量同比',v:'+19.7%',c:'#059669'},{l:'药占比同比',v:'-3.7pp',c:'#059669'},{l:'住院量同比',v:'+15.7%',c:'#059669'},{l:'满意度',v:'86.4%',c:'#d97706'}].map(k=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f8fafc;font-size:11px;"><span>${k.l}</span><span style="font-weight:700;color:${k.c};">${k.v}</span></div>`).join('');
+  document.getElementById('t6profile').innerHTML=[{r:'0-18岁',p:8},{r:'19-35岁',p:18},{r:'36-50岁',p:28},{r:'51-65岁',p:30},{r:'66+',p:16}].map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f8fafc;font-size:11px;"><span>${d.r}</span><div style="display:flex;align-items:center;gap:5px;"><div style="width:50px;height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;"><div style="height:100%;width:${d.p}%;background:var(--primary);border-radius:2px;"></div></div><span style="color:var(--muted);">${d.p}%</span></div></div>`).join('');
+  document.getElementById('t6dept').innerHTML=[{n:'心内科',v:342},{n:'内分泌科',v:287},{n:'呼吸科',v:198},{n:'骨科',v:165},{n:'神内',v:142}].map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f8fafc;font-size:11px;"><span>${d.n}</span><span style="font-weight:600;">${d.v}<span style="font-size:10px;color:var(--muted);">人次</span></span></div>`).join('');
+  document.getElementById('t6dx').innerHTML=[{n:'高血压',v:286},{n:'糖尿病',v:198},{n:'冠心病',v:154},{n:'哮喘',v:98},{n:'腰椎病',v:76}].map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f8fafc;font-size:11px;"><span>${d.n}</span><span style="font-weight:600;">${d.v}<span style="font-size:10px;color:var(--muted);">例</span></span></div>`).join('');
+}
+
+// Init
+document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>navTo(b.dataset.pg)));
+navTo('dash');
+</script>
+</body>
+</html>

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TeamPulse — 团队成员管理系统</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;900&display=swap');
+
+:root {
+  --bg:#f8f9fb; --card:#fff; --border:#e4e7ed; --text:#1e293b; --muted:#94a3b8;
+  --indigo:#4f46e5; --indigo-dark:#4338ca; --indigo-light:#eef2ff;
+  --amber:#f59e0b; --amber-light:#fffbeb;
+  --success:#10b981; --warn:#f59e0b; --danger:#ef4444; --slate:#64748b;
+  --radius:14px; --shadow:0 1px 3px rgba(0,0,0,.03); --shadow-lg:0 8px 24px rgba(79,70,229,.06),0 2px 6px rgba(0,0,0,.03);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter','Noto Sans SC',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px;}
+
+.app{display:flex;min-height:100vh;}
+.sidebar{width:210px;background:var(--card);border-right:1px solid var(--border);flex-shrink:0;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;z-index:10;}
+.side-logo{padding:18px 16px;display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:#1e293b;border-bottom:1px solid #f1f5f9;}
+.side-logo span{width:30px;height:30px;background:var(--indigo);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;flex-shrink:0;font-weight:800;}
+.nav-sec{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:14px 16px 5px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 12px;margin:2px 10px;border-radius:7px;font-size:13px;font-weight:500;color:var(--slate);cursor:pointer;transition:all .15s;border:none;background:none;width:calc(100% - 20px);text-align:left;}
+.nav-item:hover{background:#f1f5f9;color:#334155;}
+.nav-item.active{background:var(--indigo-light);color:var(--indigo);font-weight:600;}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;}
+
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.topbar{height:52px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:5;}
+.top-title{font-size:14px;font-weight:600;color:#1e293b;}
+.top-sub{font-size:10px;color:var(--muted);display:block;text-transform:uppercase;letter-spacing:.4px;}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--indigo);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:12px;}
+.content{padding:20px 24px;flex:1;overflow-y:auto;}
+
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);transition:box-shadow .25s;}
+.card:hover{box-shadow:var(--shadow-lg);}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.card-hd h3{font-size:13px;font-weight:600;color:#334155;}
+
+.btn{font-size:11px;font-weight:500;padding:6px 12px;border-radius:7px;border:none;cursor:pointer;transition:all .15s;}
+.btn-p{background:var(--indigo);color:#fff;}
+.btn-p:hover{background:var(--indigo-dark);}
+.btn-a{background:var(--amber);color:#fff;}
+.btn-a:hover{background:#d97706;}
+.btn-g{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-g:hover{background:#f8fafc;}
+.inp{font-size:12px;padding:6px 10px;border-radius:7px;border:1px solid var(--border);outline:none;background:#f8fafc;transition:border-color .15s;}
+.inp:focus{border-color:#a5b4fc;background:#fff;}
+
+.pil{display:inline-flex;align-items:center;padding:2px 8px;border-radius:11px;font-size:10px;font-weight:600;gap:3px;}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+@media(max-width:768px){.sidebar{display:none;}.content{padding:10px;}}
+
+/* ===== UNIQUE LAYOUT STYLES ===== */
+
+/* Layout 1: 工作台 - Canvas: floating stat bubbles + large center chart + bottom scroll strip */
+.canvas-grid{display:grid;grid-template-columns:200px 1fr 200px;gap:16px;margin-bottom:16px;}
+.stat-bubble{
+  width:90px;height:90px;border-radius:50%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;margin:0 auto 12px;
+  box-shadow:0 4px 16px rgba(0,0,0,.06);transition:transform .2s;
+}
+.stat-bubble:hover{transform:scale(1.08);}
+.stat-bubble .val{font-size:22px;font-weight:900;line-height:1;}
+.stat-bubble .lbl{font-size:9px;opacity:.7;margin-top:2px;}
+.sprint-card{background:var(--card);border-radius:16px;border:1px solid var(--border);padding:20px 24px;text-align:center;}
+.sprint-card .days-left{font-size:56px;font-weight:900;color:var(--indigo);line-height:1;}
+.sprint-card .sprint-name{font-size:13px;font-weight:600;color:#334155;margin-top:4px;}
+.horz-scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;}
+.horz-scroll::-webkit-scrollbar{height:3px;}
+.project-strip-card{
+  min-width:260px;background:var(--card);border-radius:12px;border:1px solid var(--border);
+  padding:16px;flex-shrink:0;transition:box-shadow .2s;cursor:pointer;
+}
+.project-strip-card:hover{box-shadow:var(--shadow-lg);}
+
+/* Layout 2: 团队成员 - Directory: left filter + masonry cards */
+.dir-layout{display:grid;grid-template-columns:180px 1fr;gap:16px;}
+.filter-panel{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:14px;height:fit-content;}
+.filter-panel h4{font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+.filter-tag{display:block;padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;color:var(--slate);margin-bottom:3px;transition:all .12s;}
+.filter-tag:hover,.filter-tag.on{background:var(--indigo-light);color:var(--indigo);font-weight:600;}
+.masonry{columns:3;column-gap:14px;}
+.member-card{
+  break-inside:avoid;background:var(--card);border-radius:12px;border:1px solid var(--border);
+  padding:16px;margin-bottom:14px;transition:box-shadow .2s;
+}
+.member-card:hover{box-shadow:var(--shadow-lg);}
+.skill-tag{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:500;margin:2px 3px 2px 0;}
+
+/* Layout 3: 项目管理 - Swimlane 时间轴 */
+.swimlane{margin-bottom:8px;}
+.swimlane-hd{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:12px;font-weight:600;color:#334155;}
+.swimlane-bar-wrap{position:relative;height:32px;background:#f1f5f9;border-radius:6px;margin-bottom:4px;overflow:visible;}
+.swimlane-phase{position:absolute;top:0;height:100%;border-radius:6px;display:flex;align-items:center;padding:0 8px;font-size:10px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.swimlane-milestone{position:absolute;top:-6px;width:12px;height:12px;border-radius:50%;border:2px solid #fff;transform:translateX(-50%);}
+.swimlane-months{display:flex;font-size:9px;color:var(--muted);padding-left:0;}
+.swimlane-months span{flex:1;text-align:center;}
+
+/* Layout 4: 任务看板 - Kanban columns */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:start;}
+.kanban-col{background:#f1f5f9;border-radius:12px;padding:12px;min-height:300px;}
+.kanban-col-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #e2e8f0;}
+.kanban-col-hd .title{font-size:12px;font-weight:700;color:#334155;}
+.kanban-col-hd .count{font-size:11px;color:var(--muted);background:#fff;padding:1px 8px;border-radius:9px;}
+.kanban-card{background:var(--card);border-radius:10px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,.03);border:1px solid var(--border);cursor:pointer;transition:box-shadow .15s;}
+.kanban-card:hover{box-shadow:0 3px 12px rgba(0,0,0,.06);}
+.kanban-card .k-id{font-size:10px;color:var(--indigo);font-family:monospace;}
+.kanban-card .k-title{font-size:13px;font-weight:600;color:#1e293b;margin:4px 0;}
+.kanban-card .k-meta{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:6px;}
+
+/* Layout 5: 工时统计 - Heatmap calendar + weekly grid */
+.heat-calendar{display:flex;gap:3px;}
+.heat-month{display:flex;flex-direction:column;gap:3px;}
+.heat-month .mlabel{font-size:9px;color:var(--muted);margin-bottom:2px;}
+.heat-day{width:12px;height:12px;border-radius:2px;background:#f1f5f9;}
+.timesheet-grid{display:grid;grid-template-columns:auto repeat(7,1fr);gap:1px;background:#e4e7ed;border:1px solid #e4e7ed;border-radius:8px;overflow:hidden;}
+.ts-hd{background:var(--card);padding:6px;text-align:center;font-size:10px;font-weight:600;color:var(--slate);}
+.ts-cell{background:var(--card);padding:6px;text-align:center;font-size:11px;min-height:36px;display:flex;align-items:center;justify-content:center;}
+.ts-cell.has-hours{background:var(--indigo-light);font-weight:600;color:var(--indigo);}
+.ts-name{background:var(--card);padding:6px 10px;font-size:11px;font-weight:500;display:flex;align-items:center;}
+
+/* Layout 6: 绩效评估 - Radar + comparison bars */
+.radar-section{display:flex;align-items:center;gap:30px;}
+.radar-placeholder{position:relative;width:200px;height:200px;flex-shrink:0;}
+.radar-ring{position:absolute;border-radius:50%;border:1px solid #e2e8f0;inset:0;}
+.radar-ring:nth-child(2){inset:15%;}.radar-ring:nth-child(3){inset:30%;}.radar-ring:nth-child(4){inset:45%;}.radar-ring:nth-child(5){inset:60%;}
+.radar-point{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--indigo);transform:translate(-50%,-50%);}
+.radar-label{position:absolute;font-size:9px;color:var(--slate);white-space:nowrap;}
+.okr-progress{margin-top:10px;}
+.okr-bar{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px;}
+.okr-bar .okr-name{width:100px;text-align:right;font-weight:500;font-size:11px;flex-shrink:0;}
+.okr-bar .okr-track{flex:1;height:18px;background:#f1f5f9;border-radius:9px;overflow:hidden;position:relative;}
+.okr-bar .okr-fill{height:100%;border-radius:9px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:9px;font-weight:700;color:#fff;}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="side-logo"><span>TP</span>TeamPulse</div>
+    <div class="nav-sec">团队管理</div>
+    <button class="nav-item active" data-pg="dash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>工作台</button>
+    <button class="nav-item" data-pg="members"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>团队成员</button>
+    <button class="nav-item" data-pg="projects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>项目管理</button>
+    <button class="nav-item" data-pg="kanban"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/></svg>任务看板</button>
+    <div class="nav-sec">数据分析</div>
+    <button class="nav-item" data-pg="timesheet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>工时统计</button>
+    <button class="nav-item" data-pg="perf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>绩效评估</button>
+    <div class="nav-sec">系统</div>
+    <button class="nav-item" data-pg="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>系统设置</button>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div><span class="top-sub" id="bc">工作台 / 概览</span><span class="top-title" id="pt">工作台</span></div>
+      <div style="display:flex;align-items:center;gap:12px;"><span style="font-size:11px;color:var(--muted);" id="clock">2026-07-01</span><div class="avatar">张</div></div>
+    </header>
+    <div class="content" id="ct"></div>
+  </div>
+</div>
+
+<script>
+const P = {dash:'工作台',members:'团队成员',projects:'项目管理',kanban:'任务看板',timesheet:'工时统计',perf:'绩效评估',set:'系统设置'};
+
+// ===== PAGE 1: 工作台 — Canvas: floating bubbles + center sprint + scroll strip =====
+function pgDash(){return`
+<div class="canvas-grid">
+  <!-- Left: floating stat bubbles -->
+  <div style="display:flex;flex-direction:column;align-items:center;padding-top:20px;">
+    <div class="stat-bubble" style="background:#eef2ff;color:var(--indigo);"><div class="val">12</div><div class="lbl">团队成员</div></div>
+    <div class="stat-bubble" style="background:#fef3c7;color:#b45309;"><div class="val">4</div><div class="lbl">进行中项目</div></div>
+    <div class="stat-bubble" style="background:#ecfdf5;color:var(--success);"><div class="val">86<span style="font-size:11px;">%</span></div><div class="lbl">Sprint完成度</div></div>
+  </div>
+  <!-- Center: sprint burndown card -->
+  <div class="sprint-card">
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">当前冲刺 Sprint #14</div>
+    <div class="days-left">8</div>
+    <div style="font-size:12px;color:var(--slate);">剩余天数 · 2026.06.24 - 07.08</div>
+    <div id="d1burndown" style="margin-top:16px;height:140px;position:relative;"></div>
+    <div style="display:flex;justify-content:space-around;margin-top:10px;font-size:10px;color:var(--muted);">
+      <span>📋 任务: <b style="color:#1e293b;">24</b>/32</span>
+      <span>📊 故事点: <b style="color:#1e293b;">68</b>/80</span>
+      <span>🐛 缺陷: <b style="color:var(--danger);">3</b> 待修复</span>
+    </div>
+  </div>
+  <!-- Right: floating stat bubbles -->
+  <div style="display:flex;flex-direction:column;align-items:center;padding-top:20px;">
+    <div class="stat-bubble" style="background:#fdf2f8;color:#be185d;"><div class="val">142</div><div class="lbl">总任务数</div></div>
+    <div class="stat-bubble" style="background:#eef2ff;color:var(--indigo);"><div class="val">94<span style="font-size:11px;">%</span></div><div class="lbl">准时交付率</div></div>
+    <div class="stat-bubble" style="background:#f1f5f9;color:var(--slate);"><div class="val">4.8<span style="font-size:11px;">/5</span></div><div class="lbl">团队满意度</div></div>
+  </div>
+</div>
+<!-- Bottom: horizontal project strip -->
+<div style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;"><h3 style="font-size:13px;font-weight:600;color:#334155;">📁 进行中的项目</h3><button class="btn btn-g">查看全部 →</button></div>
+<div class="horz-scroll" id="d1projects"></div>`;
+}
+
+// ===== PAGE 2: 团队成员 — Directory: filter sidebar + masonry cards =====
+function pgMembers(){
+  const members=[{n:'张伟',role:'技术负责人',skills:['React','Node.js','架构设计','团队管理'],project:'电商平台重构',avail:'full',mood:'😤'},{n:'李芳',role:'前端开发',skills:['Vue','TypeScript','Tailwind','UI设计'],project:'电商平台重构',avail:'busy',mood:'😊'},{n:'王明',role:'后端开发',skills:['Python','FastAPI','PostgreSQL','Docker'],project:'数据中台建设',avail:'full',mood:'🤔'},{n:'赵丽',role:'全栈开发',skills:['React','Go','K8s','微服务'],project:'数据中台建设',avail:'full',mood:'💪'},{n:'孙强',role:'测试工程师',skills:['自动化测试','Cypress','性能测试','安全测试'],project:'移动端App',avail:'partial',mood:'😎'},{n:'周晓',role:'UI设计师',skills:['Figma','设计系统','用户研究','动效'],project:'移动端App',avail:'full',mood:'🎨'},{n:'陈静',role:'产品经理',skills:['需求分析','敏捷管理','数据分析','用户增长'],project:'电商平台重构',avail:'busy',mood:'📊'},{n:'刘洋',role:'DevOps',skills:['CI/CD','AWS','Terraform','监控'],project:'基础设施升级',avail:'partial',mood:'🔧'}];
+  const av={full:{l:'可接新任务',c:'var(--success)',bg:'#ecfdf5'},busy:{l:'已满负荷',c:'var(--amber)',bg:'#fef3c7'},partial:{l:'部分空闲',c:'var(--indigo)',bg:'#eef2ff'}};
+  return`
+<div class="dir-layout">
+  <div class="filter-panel">
+    <h4>筛选</h4>
+    <div class="filter-tag on">全部成员</div>
+    <div class="filter-tag">技术团队</div>
+    <div class="filter-tag">产品设计</div>
+    <div class="filter-tag">测试运维</div>
+    <h4 style="margin-top:14px;">技能标签</h4>
+    <div class="filter-tag">React</div><div class="filter-tag">Python</div><div class="filter-tag">TypeScript</div><div class="filter-tag">Docker</div><div class="filter-tag">Figma</div>
+    <h4 style="margin-top:14px;">忙闲状态</h4>
+    <div class="filter-tag on">全部</div><div class="filter-tag">可接任务</div><div class="filter-tag">已满负荷</div><div class="filter-tag">部分空闲</div>
+  </div>
+  <div class="masonry" id="m2grid"></div>
+</div>`;
+}
+
+// ===== PAGE 3: 项目管理 — Swimlane 时间轴 =====
+function pgProjects(){
+  const projects=[{name:'电商平台重构',progress:62,color:'var(--indigo)',phases:[{n:'需求评审',w:15,c:'#a5b4fc'},{n:'核心开发',w:50,c:'#6366f1'},{n:'联调测试',w:25,c:'#4f46e5'},{n:'上线',w:10,c:'#4338ca'}]},{name:'数据中台建设',progress:38,color:'var(--amber)',phases:[{n:'调研',w:20,c:'#fde68a'},{n:'架构设计',w:25,c:'#fbbf24'},{n:'实施',w:45,c:'#f59e0b'},{n:'验收',w:10,c:'#d97706'}]},{name:'移动端App V3',progress:85,color:'var(--success)',phases:[{n:'设计',w:10,c:'#6ee7b7'},{n:'开发',w:40,c:'#34d399'},{n:'测试',w:20,c:'#10b981'},{n:'发版',w:30,c:'#059669'}]},{name:'基础设施升级',progress:50,color:'var(--slate)',phases:[{n:'评估',w:15,c:'#cbd5e1'},{n:'迁移',w:55,c:'#94a3b8'},{n:'验证',w:20,c:'#64748b'},{n:'收尾',w:10,c:'#475569'}]}];
+  const months=['1月','2月','3月','4月','5月','6月'];
+  let swimlanes='';
+  projects.forEach(p=>{
+    let phases='';let pos=0;
+    p.phases.forEach(ph=>{
+      phases+=`<div class="swimlane-phase" style="left:${pos}%;width:${ph.w}%;background:${ph.c};">${ph.n}</div>`;
+      pos+=ph.w;
+    });
+    phases+=`<div class="swimlane-milestone" style="left:${p.progress}%;background:${p.color};" title="进度 ${p.progress}%"></div>`;
+    swimlanes+=`<div class="swimlane"><div class="swimlane-hd"><span style="width:8px;height:8px;border-radius:2px;background:${p.color};"></span>${p.name}<span style="color:var(--muted);font-weight:400;">${p.progress}%</span></div><div class="swimlane-bar-wrap">${phases}</div></div>`;
+  });
+  return`<div style="display:grid;grid-template-columns:200px 1fr;gap:16px;">
+  <div class="card" style="padding:16px;height:fit-content;">
+    <h4 style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;margin-bottom:10px;">项目总览</h4>
+    ${[{n:'全部项目',v:8},{n:'进行中',v:4,c:'var(--indigo)'},{n:'已完成',v:3,c:'var(--success)'},{n:'已延期',v:1,c:'var(--danger)'}].map(x=>`<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px;border-bottom:1px solid #f5f5f4;"><span style="display:flex;align-items:center;gap:6px;">${x.c?`<span class="dot" style="background:${x.c};"></span>`:''}${x.n}</span><b>${x.v}</b></div>`).join('')}
+  </div>
+  <div class="card" style="padding:20px;">
+    <div class="card-hd"><h3>项目时间轴 (2026)</h3><div style="display:flex;gap:6px;"><button class="btn btn-g">Q1</button><button class="btn btn-p">Q2</button><button class="btn btn-g">Q3</button><button class="btn btn-g">Q4</button></div></div>
+    <div class="swimlane-months">${months.map(m=>`<span>${m}</span>`).join('')}</div>
+    ${swimlanes}
+  </div>
+</div>`;
+}
+
+// ===== PAGE 4: 任务看板 — Kanban =====
+function pgKanban(){
+  const cols=[{title:'待规划',count:8,color:'#94a3b8',items:[{id:'TP-142',t:'用户权限模块重构',p:'P2',d:'07-10',who:'张伟'},{id:'TP-143',t:'导出功能性能优化',p:'P3',d:'07-15',who:'李芳'}]},{title:'进行中',count:5,color:'var(--indigo)',items:[{id:'TP-135',t:'订单支付流程改造',p:'P0',d:'07-05',who:'王明'},{id:'TP-138',t:'数据看板实时刷新',p:'P1',d:'07-06',who:'赵丽'},{id:'TP-140',t:'API网关限流策略',p:'P1',d:'07-08',who:'刘洋'}]},{title:'待评审',count:3,color:'var(--amber)',items:[{id:'TP-128',t:'搜索功能重构',p:'P1',d:'07-05',who:'李芳'},{id:'TP-132',t:'消息推送服务化',p:'P2',d:'07-07',who:'王明'}]},{title:'已完成',count:16,color:'var(--success)',items:[{id:'TP-120',t:'登录页改版',p:'P2',d:'07-01',who:'周晓'},{id:'TP-122',t:'数据库迁移方案',p:'P1',d:'07-01',who:'王明'}]}];
+  const pc={P0:{c:'#ef4444',l:'紧急'},P1:{c:'#f59e0b',l:'高'},P2:{c:'#6366f1',l:'中'},P3:{c:'#94a3b8',l:'低'}};
+  return`<div class="kanban">${cols.map(col=>`<div class="kanban-col"><div class="kanban-col-hd"><span class="title" style="display:flex;align-items:center;gap:6px;"><span style="width:6px;height:6px;border-radius:2px;background:${col.color};"></span>${col.title}</span><span class="count">${col.count}</span></div>${col.items.map(it=>`<div class="kanban-card"><div class="k-id">${it.id}</div><div class="k-title">${it.t}</div><div class="k-meta"><span style="background:${pc[it.p].c}15;color:${pc[it.p].c};padding:1px 6px;border-radius:4px;font-weight:600;">${it.p}</span><span>📅 ${it.d}</span><span style="margin-left:auto;">👤 ${it.who}</span></div></div>`).join('')}</div>`).join('')}</div>`;
+}
+
+// ===== PAGE 5: 工时统计 — Heatmap calendar + weekly grid =====
+function pgTimesheet(){
+  const names=['张伟','李芳','王明','赵丽','孙强','周晓','陈静','刘洋'];
+  const days=['一','二','三','四','五','六','日'];
+  // Generate heatmap data
+  let heatHtml='<div class="heat-calendar">';
+  for(let m=1;m<=6;m++){
+    heatHtml+=`<div class="heat-month"><div class="mlabel">${m}月</div>`;
+    for(let d=0;d<30;d++){
+      const h=Math.random()>0.3?Math.floor(Math.random()*4):0;
+      const colors=['#f1f5f9','#c7d2fe','#a5b4fc','#6366f1','#4f46e5'];
+      heatHtml+=`<div class="heat-day" style="background:${colors[h]};" title="${m}/${d+1}: ${h*2}h"></div>`;
+    }
+    heatHtml+='</div>';
+  }
+  heatHtml+='</div>';
+  // Timesheet grid
+  let ts='<div class="timesheet-grid"><div class="ts-hd"></div>'+days.map(d=>`<div class="ts-hd">${d}</div>`).join('');
+  names.forEach(n=>{
+    ts+=`<div class="ts-name">${n}</div>`;
+    for(let d=0;d<7;d++){
+      const h=Math.random()>0.15?Math.floor(Math.random()*8+2):0;
+      ts+=`<div class="ts-cell${h>0?' has-hours':''}">${h>0?h+'h':''}</div>`;
+    }
+  });
+  ts+='</div>';
+  return`<div style="display:grid;grid-template-columns:1fr 240px;gap:16px;">
+  <div>
+    <div class="card" style="padding:18px 20px;margin-bottom:14px;"><div class="card-hd"><h3>年度工时热力图 (2026)</h3></div>${heatHtml}<div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:9px;color:var(--muted);"><span>少</span><span style="width:12px;height:12px;border-radius:2px;background:#f1f5f9;"></span><span style="width:12px;height:12px;border-radius:2px;background:#c7d2fe;"></span><span style="width:12px;height:12px;border-radius:2px;background:#a5b4fc;"></span><span style="width:12px;height:12px;border-radius:2px;background:#6366f1;"></span><span style="width:12px;height:12px;border-radius:2px;background:#4f46e5;"></span><span>多</span></div></div>
+    <div class="card" style="padding:18px 20px;"><div class="card-hd"><h3>本周工时明细 (6.30 - 7.06)</h3><span style="font-size:11px;color:var(--muted);">单位: 小时</span></div>${ts}</div>
+  </div>
+  <div class="card" style="padding:18px;height:fit-content;">
+    <div class="card-hd"><h3>利用率统计</h3></div>
+    ${[{n:'张伟',p:92,c:'var(--indigo)'},{n:'李芳',p:88,c:'var(--indigo)'},{n:'王明',p:95,c:'var(--indigo)'},{n:'赵丽',p:85,c:'var(--amber)'},{n:'孙强',p:72,c:'var(--amber)'},{n:'周晓',p:90,c:'var(--indigo)'},{n:'陈静',p:98,c:'var(--danger)'},{n:'刘洋',p:78,c:'var(--amber)'}].map(u=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:12px;"><span style="font-weight:500;width:36px;">${u.n}</span><div style="flex:1;height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden;"><div style="height:100%;width:${u.p}%;background:${u.c};border-radius:3px;"></div></div><span style="font-weight:600;font-size:10px;color:${u.c};">${u.p}%</span></div>`).join('')}
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid #e4e7ed;font-size:11px;color:var(--muted);text-align:center;">团队平均利用率 <b style="color:var(--indigo);font-size:14px;">87.3%</b></div>
+  </div>
+</div>`;
+}
+
+// ===== PAGE 6: 绩效评估 — Radar + OKR comparison =====
+function pgPerf(){
+  // Radar chart SVG
+  const radarSVG = `<svg width="220" height="220" viewBox="0 0 220 220">
+    <defs><clipPath id="clip"><circle cx="110" cy="110" r="100"/></clipPath></defs>
+    ${[40,60,80,100].map(r=>`<circle cx="110" cy="110" r="${r}" fill="none" stroke="#e2e8f0" stroke-width="1"/>`).join('')}
+    ${[0,60,120,180,240,300].map(a=>{const rad=a*Math.PI/180;return`<line x1="110" y1="110" x2="${110+100*Math.cos(rad)}" y2="${110+100*Math.sin(rad)}" stroke="#e2e8f0" stroke-width="1"/>`;}).join('')}
+    <polygon points="110,30 175,65 170,160 50,160 45,65" fill="var(--indigo)" opacity="0.15" stroke="var(--indigo)" stroke-width="2"/>
+    <polygon points="110,50 160,78 155,140 65,140 60,78" fill="var(--indigo)" opacity="0.2" stroke="var(--indigo)" stroke-width="2" stroke-dasharray="4 2"/>
+    ${[{n:'代码质量',x:110,y:22},{n:'协作能力',x:185,y:55},{n:'交付速度',x:180,y:172},{n:'技术深度',x:40,y:172},{n:'创新能力',x:35,y:55}].map(l=>`<text x="${l.x}" y="${l.y}" text-anchor="middle" font-size="10" fill="#64748b" font-weight="500">${l.n}</text>`).join('')}
+  </svg>`;
+  return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;">
+  <div class="card" style="padding:20px;">
+    <div class="card-hd"><h3>团队成员能力雷达</h3><select class="inp" style="width:80px;"><option>张伟</option><option>李芳</option><option>王明</option></select></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:30px;">
+      ${radarSVG}
+      <div style="font-size:11px;">${[{n:'代码质量',v:'S',c:'var(--indigo)'},{n:'协作能力',v:'A',c:'var(--success)'},{n:'交付速度',v:'A+',c:'var(--indigo)'},{n:'技术深度',v:'S',c:'var(--indigo)'},{n:'创新能力',v:'B+',c:'var(--amber)'}].map(d=>`<div style="display:flex;align-items:center;gap:6px;padding:3px 0;"><span class="dot" style="background:${d.c};"></span>${d.n}: <b>${d.v}</b></div>`).join('')}</div>
+    </div>
+  </div>
+  <div class="card" style="padding:20px;">
+    <div class="card-hd"><h3>本季度 OKR 进度</h3><span style="font-size:10px;color:var(--muted);">Q2 2026</span></div>
+    <div class="okr-progress" id="p6okr"></div>
+  </div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+  <div class="card" style="padding:18px;"><div class="card-hd"><h3>代码提交活跃度</h3></div><div id="p6commits" style="display:flex;align-items:flex-end;gap:8px;height:120px;"></div></div>
+  <div class="card" style="padding:18px;"><div class="card-hd"><h3>Bug修复效率</h3></div><div id="p6bugs"></div></div>
+  <div class="card" style="padding:18px;"><div class="card-hd"><h3>团队互评得分</h3></div><div id="p6peer"></div></div>
+</div>`;
+}
+
+// ===== PAGE 7: 系统设置 =====
+function pgSet(){return`
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+  <div class="card" style="padding:20px;"><h3 style="font-size:14px;font-weight:600;color:#1e293b;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;">👤 个人信息</h3><div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;"><div class="avatar" style="width:48px;height:48px;font-size:16px;">张</div><div><div style="font-weight:600;">张经理</div><div style="font-size:11px;color:var(--muted);">技术负责人 · PMO</div></div><button class="btn btn-g" style="margin-left:auto;">更换头像</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">${['姓名:张经理','工号:PM-20210001','部门:技术研发部','职级:技术负责人','手机:139****1234','邮箱:zhang@teampulse.com'].map(f=>{const[l,v]=f.split(':');return`<div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:2px;">${l}</label><input class="inp" value="${v}" style="width:100%;"></div>`;}).join('')}</div><button class="btn btn-p" style="margin-top:12px;">保存修改</button></div>
+  <div class="card" style="padding:20px;"><h3 style="font-size:14px;font-weight:600;color:#1e293b;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;">🔐 安全 & 偏好</h3>${[{l:'修改密码',d:'上次修改: 2026-02-01',b:'修改',c:'g'},{l:'团队权限',d:'当前: 管理员',b:'查看',c:'g'},{l:'通知设置',d:'Sprint/评审提醒',b:'配置',c:'p'},{l:'集成管理',d:'GitHub/Jira/Slack',b:'管理',c:'g'}].map(x=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f5f5f4;"><div><div style="font-weight:500;font-size:13px;">${x.l}</div><div style="font-size:11px;color:var(--muted);">${x.d}</div></div><button class="btn btn-${x.c}">${x.b}</button></div>`).join('')}</div>
+  <div class="card" style="padding:20px;grid-column:span 2;"><h3 style="font-size:14px;font-weight:600;color:#1e293b;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;">ℹ 系统信息</h3><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px;"><div><span style="color:var(--muted);">系统版本：</span>TeamPulse v1.3.0</div><div><span style="color:var(--muted);">运行状态：</span><span style="color:var(--success);font-weight:600;">● 正常</span></div><div><span style="color:var(--muted);">当前冲刺：</span>Sprint #14</div><div><span style="color:var(--muted);">许可证：</span>TeamPulse Technologies</div></div></div>
+</div>`;}
+
+// ============================================================
+// ROUTER & INIT
+// ============================================================
+const renders = {dash:pgDash,members:pgMembers,projects:pgProjects,kanban:pgKanban,timesheet:pgTimesheet,perf:pgPerf,set:pgSet};
+
+function navTo(pg){
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`[data-pg="${pg}"]`).classList.add('active');
+  document.getElementById('bc').textContent=P[pg]+' / 概览';
+  document.getElementById('pt').textContent=P[pg];
+  document.getElementById('ct').innerHTML=renders[pg]();
+  initPg(pg);
+}
+setInterval(()=>{const n=new Date();const w=['日','一','二','三','四','五','六'];document.getElementById('clock').textContent=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')+' 周'+w[n.getDay()]+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');},30000);
+
+function initPg(pg){
+  setTimeout(()=>{
+    if(pg==='dash') initDash();
+    if(pg==='members') initMembers();
+    if(pg==='perf') initPerf();
+  },0);
+}
+
+function initDash(){
+  // Burndown chart SVG
+  const el=document.getElementById('d1burndown');if(el){const ideal=[80,72,64,56,48,40,32,24,16,8,0];const actual=[80,75,68,62,55,48];const w=el.clientWidth-20;const h=130;const pts=actual.map((v,i)=>`${(i/(actual.length-1))*w+10},${h-(v/80)*h}`).join(' ');el.innerHTML=`<svg width="100%" height="${h+10}" viewBox="0 0 ${w+20} ${h+10}"><polyline points="${pts}" fill="none" stroke="var(--indigo)" stroke-width="2.5" stroke-linecap="round"/><polyline points="10,${h-80/80*h} ${w+10},${h}" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="5 3"/><circle cx="${(5/(actual.length-1))*w+10}" cy="${h-(48/80)*h}" r="5" fill="var(--indigo)" stroke="#fff" stroke-width="2"/></svg>`;}
+  // Project strip
+  document.getElementById('d1projects').innerHTML=[{n:'电商平台重构',p:62,d:'07-31',lead:'张伟',c:'var(--indigo)',bg:'#eef2ff',mem:5},{n:'数据中台建设',p:38,d:'09-15',lead:'王明',c:'var(--amber)',bg:'#fef3c7',mem:3},{n:'移动端App V3',p:85,d:'07-10',lead:'周晓',c:'var(--success)',bg:'#ecfdf5',mem:4},{n:'基础设施升级',p:50,d:'08-20',lead:'刘洋',c:'var(--slate)',bg:'#f8fafc',mem:2},{n:'内部工具链',p:20,d:'10-01',lead:'赵丽',c:'#ec4899',bg:'#fdf2f8',mem:2}].map(p=>`<div class="project-strip-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="font-weight:700;font-size:13px;">${p.n}</div><span class="pil" style="background:${p.bg};color:${p.c};">${p.p}%</span></div><div style="font-size:10px;color:var(--muted);margin:6px 0;">👤 ${p.lead} · 👥 ${p.mem}人 · 📅 ${p.d}</div><div style="height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;margin-top:6px;"><div style="height:100%;width:${p.p}%;background:${p.c};border-radius:3px;"></div></div></div>`).join('');
+}
+
+function initMembers(){
+  const members=[{n:'张伟',role:'技术负责人',skills:['React','Node.js','架构设计','团队管理'],project:'电商平台重构',avail:'full',mood:'😤'},{n:'李芳',role:'前端开发',skills:['Vue','TypeScript','Tailwind','UI设计'],project:'电商平台重构',avail:'busy',mood:'😊'},{n:'王明',role:'后端开发',skills:['Python','FastAPI','PostgreSQL','Docker'],project:'数据中台建设',avail:'full',mood:'🤔'},{n:'赵丽',role:'全栈开发',skills:['React','Go','K8s','微服务'],project:'数据中台建设',avail:'full',mood:'💪'},{n:'孙强',role:'测试工程师',skills:['自动化测试','Cypress','性能测试'],project:'移动端App',avail:'partial',mood:'😎'},{n:'周晓',role:'UI设计师',skills:['Figma','设计系统','用户研究','动效'],project:'移动端App',avail:'full',mood:'🎨'},{n:'陈静',role:'产品经理',skills:['需求分析','敏捷管理','数据分析','用户增长'],project:'电商平台重构',avail:'busy',mood:'📊'},{n:'刘洋',role:'DevOps',skills:['CI/CD','AWS','Terraform','监控告警'],project:'基础设施升级',avail:'partial',mood:'🔧'}];
+  const av={full:{l:'可接新任务',c:'var(--success)',bg:'#ecfdf5'},busy:{l:'已满负荷',c:'var(--amber)',bg:'#fef3c7'},partial:{l:'部分空闲',c:'var(--indigo)',bg:'#eef2ff'}};
+  const sc={React:'#eef2ff',Vue:'#ecfdf5',Python:'#fef3c7',Go:'#eef2ff',Nodejs:'#ecfdf5',TypeScript:'#eef2ff',Figma:'#fdf2f8'};
+  document.getElementById('m2grid').innerHTML=members.map(m=>{
+    const a=av[m.avail];
+    return`<div class="member-card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><div style="width:40px;height:40px;border-radius:50%;background:var(--indigo-light);display:flex;align-items:center;justify-content:center;font-size:18px;">${m.mood}</div><div><div style="font-weight:600;font-size:13px;">${m.n}</div><div style="font-size:11px;color:var(--muted);">${m.role}</div></div></div><div style="margin-bottom:8px;">${m.skills.map(s=>`<span class="skill-tag" style="background:${sc[s]||'#f1f5f9'};color:var(--slate);">${s}</span>`).join('')}</div><div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted);"><span>📁 ${m.project}</span><span class="pil" style="background:${a.bg};color:${a.c};">${a.l}</span></div></div>`;
+  }).join('');
+}
+
+function initPerf(){
+  document.getElementById('p6okr').innerHTML=[{n:'电商平台重构上线',p:62,v:'62%',c:'var(--indigo)'},{n:'团队代码覆盖率 >80%',p:85,v:'85%',c:'var(--success)'},{n:'技术债务削减30%',p:45,v:'45%',c:'var(--amber)'},{n:'完成2个POC项目',p:100,v:'100%',c:'var(--success)'}].map(o=>`<div class="okr-bar"><span class="okr-name">${o.n}</span><div class="okr-track"><div class="okr-fill" style="width:${o.p}%;background:${o.c};">${o.v}</div></div></div>`).join('');
+  const el=document.getElementById('p6commits');if(el){const v=[48,62,55,78,65,52];const l=['1月','2月','3月','4月','5月','6月'];el.innerHTML=v.map((x,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><span style="font-size:9px;color:var(--muted);">${x}</span><div style="width:100%;height:${x/90*100}px;background:${i===3?'var(--indigo)':'#a5b4fc'};border-radius:4px 4px 0 0;"></div><span style="font-size:8px;color:var(--muted);">${l[i]}</span></div>`).join('');}
+  document.getElementById('p6bugs').innerHTML=[{n:'王明',v:98,p:95,c:'var(--indigo)'},{n:'张伟',v:92,p:88,c:'var(--indigo)'},{n:'李芳',v:85,p:80,c:'var(--amber)'},{n:'赵丽',v:76,p:72,c:'var(--amber)'}].map(b=>`<div style="display:flex;align-items:center;gap:6px;padding:5px 0;font-size:11px;"><span style="font-weight:500;width:32px;">${b.n}</span><div style="flex:1;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;"><div style="height:100%;width:${b.p}%;background:${b.c};border-radius:3px;"></div></div><span style="font-weight:600;font-size:10px;">${b.v}%</span></div>`).join('');
+  document.getElementById('p6peer').innerHTML=[{n:'张伟',v:4.8},{n:'王明',v:4.6},{n:'李芳',v:4.5},{n:'赵丽',v:4.3},{n:'周晓',v:4.7},{n:'陈静',v:4.4}].map((p,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px;"><span style="font-weight:500;width:32px;">${p.n}</span><div style="flex:1;height:18px;background:#f1f5f9;border-radius:5px;overflow:hidden;display:flex;"><div style="height:100%;width:${p.v/5*100}%;background:var(--indigo);border-radius:5px;"></div></div><span style="font-weight:600;">${p.v}</span></div>`).join('');
+}
+
+document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>navTo(b.dataset.pg)));
+navTo('dash');
+</script>
+</body>
+</html>

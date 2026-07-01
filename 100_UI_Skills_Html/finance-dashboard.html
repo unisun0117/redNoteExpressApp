@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>瑞富通 — 客户资产管理系统</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        navy: { 50:'#eef2f8',100:'#d5ddec',200:'#aebfd9',300:'#7d9ac2',400:'#5575a8',500:'#3b5998',600:'#1a365d',700:'#122847',800:'#0f1d3a',900:'#0a1428' },
+        gold: { 400:'#e8b830',500:'#c5942c',600:'#a67c24' }
+      }
+    }
+  }
+}
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;900&display=swap');
+
+:root {
+  --bg:#f1f5f9; --card:#fff; --border:#e2e8f0; --text:#1e293b; --muted:#94a3b8;
+  --primary:#0f1d3a; --p2:#1a365d; --p3:#3b5998;
+  --gold:#c5942c; --gold-light:#fdf6e8;
+  --success:#10b981; --warn:#f59e0b; --danger:#ef4444;
+  --radius:14px; --shadow:0 1px 3px rgba(0,0,0,.04); --shadow-lg:0 10px 30px rgba(15,29,58,.08),0 3px 8px rgba(0,0,0,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Inter','Noto Sans SC',system-ui,sans-serif;
+  background:var(--bg); color:var(--text); min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px;}
+
+.app{display:flex;min-height:100vh;}
+.sidebar{
+  width:220px;background:var(--primary);border-right:1px solid rgba(255,255,255,.06);
+  flex-shrink:0;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;z-index:10;
+}
+.side-logo{padding:18px;display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;color:#fff;border-bottom:1px solid rgba(255,255,255,.08);}
+.side-logo span{width:32px;height:32px;background:var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:14px;flex-shrink:0;font-weight:800;}
+.nav-sec{font-size:9px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1px;padding:14px 18px 5px;}
+.nav-item{
+  display:flex;align-items:center;gap:9px;padding:8px 14px;margin:2px 10px;
+  border-radius:8px;font-size:13px;font-weight:500;color:rgba(255,255,255,.55);
+  cursor:pointer;transition:all .15s;border:none;background:none;width:calc(100% - 20px);text-align:left;
+}
+.nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.8);}
+.nav-item.active{background:rgba(255,255,255,.1);color:#fff;font-weight:600;}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;}
+
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.topbar{
+  height:52px;background:var(--card);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+  position:sticky;top:0;z-index:5;
+}
+.top-title{font-size:14px;font-weight:600;color:var(--primary);}
+.top-sub{font-size:10px;color:var(--muted);display:block;text-transform:uppercase;letter-spacing:.4px;}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;}
+
+.content{padding:20px 24px;flex:1;overflow-y:auto;}
+
+/* Shared */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);transition:box-shadow .25s,transform .25s;}
+.card:hover{box-shadow:var(--shadow-lg);}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.card-hd h3{font-size:13px;font-weight:600;color:#334155;display:flex;align-items:center;gap:7px;}
+.card-hd h3::before{content:'';width:3px;height:12px;border-radius:2px;background:var(--gold);flex-shrink:0;}
+
+.btn{font-size:11px;font-weight:500;padding:6px 12px;border-radius:7px;border:none;cursor:pointer;transition:all .15s;}
+.btn-p{background:var(--primary);color:#fff;}
+.btn-p:hover{background:var(--p2);}
+.btn-gold{background:var(--gold);color:#fff;}
+.btn-gold:hover{background:#a67c24;}
+.btn-g{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-g:hover{background:#f8fafc;}
+.inp{font-size:12px;padding:6px 10px;border-radius:7px;border:1px solid var(--border);outline:none;background:#f8fafc;transition:border-color .15s;}
+.inp:focus{border-color:#aebfd9;background:#fff;}
+
+.pil{display:inline-flex;align-items:center;padding:3px 9px;border-radius:13px;font-size:11px;font-weight:600;gap:3px;}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{text-align:left;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:2px solid #e2e8f0;}
+.tbl td{padding:10px;font-size:12px;color:#334155;border-bottom:1px solid #f8fafc;}
+.tbl tbody tr:hover td{background:#f8fafc;}
+
+@keyframes pulse-gold{0%,100%{box-shadow:0 0 0 0 rgba(197,148,44,.4)}50%{box-shadow:0 0 0 6px rgba(197,148,44,0)}}
+
+@media(max-width:768px){.sidebar{display:none;}.content{padding:12px;}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar">
+    <div class="side-logo"><span>瑞</span>瑞富通</div>
+    <div class="nav-sec">业务管理</div>
+    <button class="nav-item active" data-pg="dash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>工作台</button>
+    <button class="nav-item" data-pg="client"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>客户管理</button>
+    <button class="nav-item" data-pg="portfolio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>资产分析</button>
+    <button class="nav-item" data-pg="trade"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>交易记录</button>
+    <div class="nav-sec">产品 & 风控</div>
+    <button class="nav-item" data-pg="products"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>产品库</button>
+    <button class="nav-item" data-pg="risk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>风险监控</button>
+    <div class="nav-sec">系统</div>
+    <button class="nav-item" data-pg="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>系统设置</button>
+  </aside>
+
+  <!-- ===== MAIN ===== -->
+  <div class="main">
+    <header class="topbar">
+      <div><span class="top-sub" id="bc">工作台 / 概览</span><span class="top-title" id="pt">工作台</span></div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-size:11px;color:var(--muted);" id="clock">2026-07-01 周三 14:30</span>
+        <div class="avatar">陈</div>
+      </div>
+    </header>
+    <div class="content" id="ct"></div>
+  </div>
+</div>
+
+<script>
+const PAGES = {dash:'工作台',client:'客户管理',portfolio:'资产分析',trade:'交易记录',products:'产品库',risk:'风险监控',set:'系统设置'};
+
+// ==================== PAGE 1: 工作台 — Hero Banner + 非对称网格 ====================
+function pageDash(){
+  return `<div style="background:linear-gradient(135deg, #0f1d3a 0%, #1a365d 40%, #3b5998 100%);border-radius:16px;padding:28px 32px;color:#fff;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;position:relative;overflow:hidden;">
+    <div style="position:absolute;right:-30px;top:-30px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.04);pointer-events:none;"></div>
+    <div style="position:relative;z-index:1;"><h2 style="font-size:21px;font-weight:800;">早上好，陈经理 👋</h2><div style="font-size:11px;opacity:.65;margin-top:3px;">瑞富通财富管理 · 今日市场：沪深300 ↑0.82% · 创业板指 ↑1.35%</div></div>
+    <div style="display:flex;gap:28px;position:relative;z-index:1;">
+      <div style="text-align:center;"><div style="font-size:30px;font-weight:900;">¥8.56<span style="font-size:16px;">亿</span></div><div style="font-size:10px;opacity:.65;">在管资产规模 (AUM)</div></div>
+      <div style="text-align:center;"><div style="font-size:30px;font-weight:900;color:#10b981;">+12.8<span style="font-size:16px;">%</span></div><div style="font-size:10px;opacity:.65;">本年化收益率</div></div>
+      <div style="text-align:center;"><div style="font-size:30px;font-weight:900;">1,248</div><div style="font-size:10px;opacity:.65;">活跃客户数</div></div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">
+    ${[{icon:'📋',c:'#eef2f8',tc:'var(--p2)',t:'新建客户',d:'录入客户档案'},{icon:'💰',c:'var(--gold-light)',tc:'var(--gold)',t:'资产配置',d:'调整投资组合'},{icon:'📊',c:'#ecfdf5',tc:'var(--success)',t:'生成报告',d:'客户持仓报告'},{icon:'📅',c:'#eef2f8',tc:'var(--p3)',t:'预约提醒',d:'今日3个预约'}].map(q=>`<div style="background:var(--card);border-radius:11px;border:1px solid var(--border);padding:13px 15px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .2s;" onmouseover="this.style.boxShadow='var(--shadow-lg)';this.style.transform='translateY(-2px)';" onmouseout="this.style.boxShadow='';this.style.transform='';"><div style="width:36px;height:36px;border-radius:9px;background:${q.c};display:flex;align-items:center;justify-content:center;font-size:16px;">${q.icon}</div><div><div style="font-weight:600;font-size:12px;color:${q.tc};">${q.t}</div><div style="font-size:10px;color:var(--muted);">${q.d}</div></div></div>`).join('')}
+  </div>
+  <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;">
+    <div class="card" style="padding:18px 20px;"><div class="card-hd"><h3>本月AUM趋势 (亿元)</h3></div><div id="d1aum" style="display:flex;align-items:flex-end;gap:10px;height:180px;"></div></div>
+    <div class="card" style="padding:16px 18px;"><div class="card-hd"><h3>待办提醒</h3></div><div id="d1todo"></div></div>
+    <div class="card" style="padding:16px 18px;"><div class="card-hd"><h3>最新动态</h3></div><div id="d1feed"></div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px;">
+    <div class="card" style="padding:16px 18px;"><div class="card-hd"><h3>产品类型分布</h3></div><div id="d1prod"></div></div>
+    <div class="card" style="padding:16px 18px;"><div class="card-hd"><h3>今日预约</h3></div><div id="d1appt"></div></div>
+    <div class="card" style="padding:16px 18px;"><div class="card-hd"><h3>业绩概览</h3></div><div id="d1kpi"></div></div>
+  </div>`;
+}
+
+// ==================== PAGE 2: 客户管理 — Bento Grid ====================
+function pageClient(){
+  return `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;">
+    ${[{icon:'👥',c:'#eef2f8',tc:'var(--p2)',n:'1,248',l:'客户总数',b:'↑ 5.2%',bc:'#ecfdf5 #059669'},{icon:'🆕',c:'var(--gold-light)',tc:'var(--gold)',n:'28',l:'本月新增',b:'↑ 12.0%',bc:'#ecfdf5 #059669'},{icon:'⭐',c:'#eef2f8',tc:'var(--p3)',n:'186',l:'VIP客户',b:'AUM>500万',bc:'var(--gold-light) var(--gold)'},{icon:'⚠',c:'#fef2f2',tc:'var(--danger)',n:'3',l:'需关注',b:'资产异动',bc:'#fef2f2 #dc2626'}].map(m=>`<div style="background:var(--card);border-radius:12px;border:1px solid var(--border);padding:16px 18px;display:flex;align-items:center;gap:12px;transition:box-shadow .2s;" onmouseover="this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.boxShadow=''"><div style="width:40px;height:40px;border-radius:10px;background:${m.c};display:flex;align-items:center;justify-content:center;font-size:17px;">${m.icon}</div><div><div style="font-size:24px;font-weight:800;color:var(--primary);">${m.n}</div><div style="font-size:11px;color:var(--muted);">${m.l}</div><span class="pil" style="background:${m.bc.split(' ')[0]};color:${m.bc.split(' ')[1]};margin-top:3px;display:inline-flex;">${m.b}</span></div></div>`).join('')}
+  </div>
+  <div style="display:grid;grid-template-columns:5fr 7fr;gap:14px;">
+    <div class="card" style="padding:18px 20px;">
+      <div class="card-hd"><h3>客户风险偏好分布</h3></div>
+      <div id="c2risk"></div>
+    </div>
+    <div class="card" style="padding:18px 20px;">
+      <div class="card-hd"><h3>AUM Top10 客户</h3></div>
+      <div id="c2aumtop"></div>
+    </div>
+  </div>
+  <div style="background:var(--card);border-radius:12px;border:1px solid var(--border);margin-top:14px;overflow:hidden;">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;">
+      <input class="inp" placeholder="🔍 搜索客户姓名/手机号..." style="width:200px;"><select class="inp"><option>全部风险等级</option><option>保守型</option><option>稳健型</option><option>进取型</option></select><select class="inp"><option>AUM范围</option><option>100万以下</option><option>100-500万</option><option>500万以上</option></select><button class="btn btn-p">查询</button><button class="btn btn-g" style="margin-left:auto;">📥 导出</button>
+    </div>
+    <table class="tbl" style="margin:0;"><thead><tr><th>客户编号</th><th>姓名</th><th>风险等级</th><th>AUM(万元)</th><th>持仓产品数</th><th>本年收益率</th><th>客户经理</th><th>KYC状态</th><th>操作</th></tr></thead><tbody id="c2tbl"></tbody></table>
+    <div style="display:flex;justify-content:space-between;padding:10px 16px;font-size:11px;color:var(--muted);border-top:1px solid #f1f5f9;"><span>共 <b style="color:var(--primary);">1,248</b> 条</span><div style="display:flex;gap:2px;">${['‹','1','2','3','…','42','›'].map(p=>`<button style="padding:2px 7px;border-radius:5px;border:1px solid var(--border);background:${p==='1'?'var(--primary)':'#fff'};color:${p==='1'?'#fff':'#64748b'};font-size:10px;font-weight:600;cursor:pointer;">${p}</button>`).join('')}</div></div>
+  </div>`;
+}
+
+// ==================== PAGE 3: 资产分析 — KPI Hero + 图表矩阵 ====================
+function pagePortfolio(){
+  return `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;">
+    ${[{bg:'linear-gradient(135deg,#0f1d3a,#1a365d)',n:'¥85,620',l:'总资产(万元)',sub:'↑ 8.3% 较上季'},{bg:'linear-gradient(135deg,#c5942c,#e8b830)',n:'¥12,480',l:'本月净流入',sub:'↑ 15.2%'},{bg:'linear-gradient(135deg,#059669,#10b981)',n:'+12.8%',l:'年化收益率',sub:'跑赢基准 +3.2pp'},{bg:'linear-gradient(135deg,#7c3aed,#8b5cf6)',n:'82.6',l:'夏普比率',sub:'优秀'}].map(k=>`<div style="background:${k.bg};border-radius:14px;padding:22px 20px;color:#fff;position:relative;overflow:hidden;min-height:110px;"><div style="position:absolute;right:-20px;bottom:-20px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.06);"></div><div style="position:relative;z-index:1;"><div style="font-size:30px;font-weight:900;">${k.n}</div><div style="font-size:11px;opacity:.75;">${k.l}</div><div style="font-size:10px;opacity:.6;margin-top:2px;">${k.sub}</div></div></div>`).join('')}
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
+    <div class="card" style="padding:18px 20px;"><div class="card-hd"><h3>资产大类配置</h3></div><div id="p3alloc"></div></div>
+    <div class="card" style="padding:18px 20px;"><div class="card-hd"><h3>月度收益走势 (%)</h3></div><div id="p3yield" style="display:flex;align-items:flex-end;gap:10px;height:160px;"></div></div>
+    <div class="card" style="padding:18px 20px;"><div class="card-hd"><h3>产品类型占比</h3></div><div id="p3type"></div></div>
+  </div>
+  <div class="card" style="padding:18px 20px;">
+    <div class="card-hd"><h3>持仓明细</h3><button class="btn btn-g">导出报表</button></div>
+    <div style="overflow-x:auto;"><table class="tbl"><thead><tr><th>产品代码</th><th>产品名称</th><th>类型</th><th>持仓市值(万)</th><th>占比</th><th>成本(万)</th><th>浮动盈亏</th><th>收益率</th><th>风险等级</th></tr></thead><tbody id="p3hold"></tbody></table></div>
+  </div>`;
+}
+
+// ==================== PAGE 4: 交易记录 — 全宽筛选+表 ====================
+function pageTrade(){
+  return `<div style="background:var(--card);border-radius:12px;border:1px solid var(--border);padding:14px 18px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <input class="inp" placeholder="🔍 交易编号/客户姓名..." style="width:200px;"><select class="inp"><option>全部类型</option><option>申购</option><option>赎回</option><option>分红</option><option>转换</option></select><select class="inp"><option>全部产品</option><option>股票型基金</option><option>债券型基金</option><option>混合型基金</option><option>私募产品</option></select><input class="inp" type="date" value="2026-06-01"><span style="font-size:11px;color:var(--muted);">至</span><input class="inp" type="date" value="2026-07-01"><button class="btn btn-p">查询</button><button class="btn btn-gold">导出</button>
+  </div>
+  <div style="background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;">
+    <table class="tbl" style="margin:0;"><thead><tr><th>交易编号</th><th>客户</th><th>产品名称</th><th>类型</th><th>金额(万元)</th><th>份额</th><th>净值</th><th>手续费</th><th>交易时间</th><th>状态</th></tr></thead><tbody id="t4body"></tbody></table>
+    <div style="display:flex;justify-content:space-between;padding:10px 16px;font-size:11px;color:var(--muted);border-top:1px solid #f1f5f9;"><span>共 <b style="color:var(--primary);">3,842</b> 笔</span><div style="display:flex;gap:2px;">${['‹','1','2','3','…','128','›'].map(p=>`<button style="padding:2px 7px;border-radius:5px;border:1px solid var(--border);background:${p==='1'?'var(--primary)':'#fff'};color:${p==='1'?'#fff':'#64748b'};font-size:10px;font-weight:600;cursor:pointer;">${p}</button>`).join('')}</div></div>
+  </div>`;
+}
+
+// ==================== PAGE 5: 产品库 — 卡片网格 ====================
+function pageProducts(){
+  const prods=[{n:'瑞盈稳健1号',type:'债券型',risk:'R2-低风险',yield:'4.85%',term:'6个月',min:'10万',aum:'32.6亿',star:5,tag:'推荐'},{n:'瑞富平衡策略',type:'混合型',risk:'R3-中风险',yield:'8.20%',term:'12个月',min:'50万',aum:'18.2亿',star:5,tag:'热销'},{n:'瑞鑫成长精选',type:'股票型',risk:'R4-中高风险',yield:'15.6%',term:'24个月',min:'100万',aum:'8.5亿',star:4,tag:''},{n:'瑞享现金管理',type:'货币型',risk:'R1-低风险',yield:'2.35%',term:'T+1',min:'1万',aum:'56.3亿',star:4,tag:''},{n:'瑞盈全球配置',type:'QDII',risk:'R4-中高风险',yield:'11.8%',term:'36个月',min:'100万',aum:'5.1亿',star:4,tag:'稀缺'},{n:'瑞泰对冲策略',type:'另类投资',risk:'R5-高风险',yield:'22.4%',term:'36个月',min:'300万',aum:'2.8亿',star:3,tag:''}];
+  const rc={R1:'#10b981',R2:'#3b5998',R3:'#f59e0b',R4:'#f97316',R5:'#ef4444'};
+  return `<div style="display:flex;gap:12px;margin-bottom:14px;align-items:center;"><input class="inp" placeholder="🔍 搜索产品名称..." style="width:200px;"><select class="inp"><option>全部类型</option><option>债券型</option><option>混合型</option><option>股票型</option><option>货币型</option><option>QDII</option></select><select class="inp"><option>全部风险等级</option><option>R1</option><option>R2</option><option>R3</option><option>R4</option><option>R5</option></select><button class="btn btn-p">筛选</button><span style="margin-left:auto;font-size:12px;color:var(--muted);">共 <b style="color:var(--primary);">36</b> 款产品</span></div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+    ${prods.map(p=>`<div class="card" style="padding:20px;border-top:3px solid ${rc[p.risk.split('-')[0]]};">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+        <div><div style="font-weight:700;font-size:14px;color:var(--primary);">${p.n}</div><div style="font-size:11px;color:var(--muted);">${p.type}</div></div>
+        ${p.tag?`<span class="pil" style="background:var(--gold-light);color:var(--gold);">${p.tag}</span>`:''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+        <div><span style="color:var(--muted);">年化收益</span><br><span style="font-weight:700;color:${p.yield.startsWith('-')?'var(--danger)':'#059669'};">${p.yield}</span></div>
+        <div><span style="color:var(--muted);">风险等级</span><br><span style="font-weight:600;color:${rc[p.risk.split('-')[0]]};">${p.risk}</span></div>
+        <div><span style="color:var(--muted);">期限</span><br><span style="font-weight:600;">${p.term}</span></div>
+        <div><span style="color:var(--muted);">起投金额</span><br><span style="font-weight:600;">${p.min}</span></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid #f1f5f9;">
+        <div style="font-size:10px;color:var(--muted);">规模 ${p.aum} · ${'⭐'.repeat(p.star)}</div>
+        <button class="btn btn-gold">查看详情</button>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ==================== PAGE 6: 风险监控 — 三栏布局 ====================
+function pageRisk(){
+  return `<div style="display:grid;grid-template-columns:280px 1fr 280px;gap:14px;">
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card" style="padding:18px;"><div class="card-hd"><h3>风险指标总览</h3></div><div id="r6kpi"></div></div>
+      <div class="card" style="padding:18px;"><div class="card-hd"><h3>集中度风险</h3></div><div id="r6conc"></div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card" style="padding:18px 20px;"><div class="card-hd"><h3>VaR风险值趋势 (95%置信)</h3></div><div id="r6var" style="display:flex;align-items:flex-end;gap:12px;height:160px;"></div></div>
+      <div class="card" style="padding:18px 20px;"><div class="card-hd"><h3>回撤分析 (近12月)</h3></div><div id="r6dd" style="display:flex;align-items:flex-end;gap:12px;height:160px;"></div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card" style="padding:18px;"><div class="card-hd"><h3>预警信号</h3></div><div id="r6alerts"></div></div>
+      <div class="card" style="padding:18px;"><div class="card-hd"><h3>压力测试</h3></div><div id="r6stress"></div></div>
+    </div>
+  </div>`;
+}
+
+// ==================== PAGE 7: 系统设置 ====================
+function pageSet(){
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+    <div class="card" style="padding:20px;">
+      <h3 style="font-size:14px;font-weight:600;color:var(--primary);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;">👤 个人信息</h3>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;"><div class="avatar" style="width:48px;height:48px;font-size:16px;">陈</div><div><div style="font-weight:600;">陈经理</div><div style="font-size:11px;color:var(--muted);">高级理财顾问 · 工号 RM-20210015</div></div><button class="btn btn-g" style="margin-left:auto;">更换头像</button></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">${['姓名:陈经理','工号:RM-20210015','部门:私人银行部','职级:高级理财顾问','手机:139****8888','邮箱:chen@rftwealth.com'].map(f=>{const[l,v]=f.split(':');return`<div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:2px;">${l}</label><input class="inp" value="${v}" style="width:100%;"></div>`;}).join('')}</div>
+      <button class="btn btn-p" style="margin-top:12px;">保存修改</button>
+    </div>
+    <div class="card" style="padding:20px;">
+      <h3 style="font-size:14px;font-weight:600;color:var(--primary);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;">🔐 安全 & 偏好</h3>
+      ${[{l:'修改密码',d:'上次修改: 2026-02-10',b:'修改',c:'g'},{l:'操作员权限',d:'当前: 高级顾问',b:'查看',c:'g'},{l:'交易审批',d:'单笔>500万需审批',b:'配置',c:'p'},{l:'登录设备',d:'2台设备在线',b:'管理',c:'g'}].map(x=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f8fafc;"><div><div style="font-weight:500;font-size:13px;">${x.l}</div><div style="font-size:11px;color:var(--muted);">${x.d}</div></div><button class="btn btn-${x.c}">${x.b}</button></div>`).join('')}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f8fafc;"><div><div style="font-weight:500;font-size:13px;">消息通知</div><div style="font-size:11px;color:var(--muted);">交易提醒、风控预警</div></div><div class="toggle on" onclick="this.classList.toggle('on');this.classList.toggle('off');"></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;"><div><div style="font-weight:500;font-size:13px;">数据刷新</div></div><select class="inp"><option>30秒</option><option selected>5分钟</option><option>手动</option></select></div>
+    </div>
+    <div class="card" style="padding:20px;grid-column:span 2;">
+      <h3 style="font-size:14px;font-weight:600;color:var(--primary);margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;">ℹ 系统信息</h3>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;font-size:12px;">
+        <div><span style="color:var(--muted);">系统版本：</span>瑞富通 v2.8.1</div><div><span style="color:var(--muted);">前端框架：</span>React 19 + Tailwind</div><div><span style="color:var(--muted);">后端服务：</span>FastAPI + PostgreSQL</div>
+        <div><span style="color:var(--muted);">部署时间：</span>2026-07-01 08:00</div><div><span style="color:var(--muted);">合规备案：</span>中国证监会 2024-0321</div><div><span style="color:var(--muted);">运行状态：</span><span style="color:var(--success);font-weight:600;">● 正常</span> 已运行 63天</div>
+        <div><span style="color:var(--muted);">数据更新：</span>2026-07-01 14:30</div><div><span style="color:var(--muted);">许可证：</span>瑞富通财富管理有限公司</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ============================================================
+//  ROUTER & DATA INIT
+// ============================================================
+const renderers = {dash:pageDash,client:pageClient,portfolio:pagePortfolio,trade:pageTrade,products:pageProducts,risk:pageRisk,set:pageSet};
+
+function navTo(pg){
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`[data-pg="${pg}"]`).classList.add('active');
+  document.getElementById('bc').textContent=PAGES[pg]+' / 概览';
+  document.getElementById('pt').textContent=PAGES[pg];
+  document.getElementById('ct').innerHTML=renderers[pg]();
+  initPage(pg);
+}
+
+// Clock
+setInterval(()=>{const n=new Date();const w=['日','一','二','三','四','五','六'];document.getElementById('clock').textContent=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')+' 周'+w[n.getDay()]+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');},30000);
+
+function bar(el,vals,lbs,h,mx){el.innerHTML=vals.map((v,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><span style="font-size:10px;font-weight:600;color:${i===vals.length-1?'var(--gold)':'var(--muted)'};">${v}</span><div style="width:100%;height:${v/mx*h}px;background:${i===vals.length-1?'var(--gold)':'#aebfd9'};border-radius:5px 5px 0 0;transition:height .4s;"></div><span style="font-size:9px;color:var(--muted);">${lbs[i]}</span></div>`).join('');}
+
+function initPage(pg){
+  setTimeout(()=>{
+    if(pg==='dash') initDash();
+    if(pg==='client') initClient();
+    if(pg==='portfolio') initPortfolio();
+    if(pg==='trade') initTrade();
+    if(pg==='risk') initRisk();
+  },0);
+}
+
+function initDash(){
+  const el=document.getElementById('d1aum');if(el){const v=[7.82,7.95,8.12,8.05,8.34,8.56];const l=['1月','2月','3月','4月','5月','6月'];bar(el,v,l,150,9);}
+  document.getElementById('d1todo').innerHTML=[{c:'var(--danger)',t:'大客户 王建国 AUM骤降15%，需立即联系'},{c:'var(--warn)',t:'产品 瑞盈稳健1号 即将到期，3位客户需续约'},{c:'var(--gold)',t:'今日14:00 投资决策委员会季度会议'}].map(a=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f8fafc;font-size:12px;"><span class="dot" style="background:${a.c};${a.c==='var(--danger)'?'animation:pulse-gold 2s infinite;':''}"></span>${a.t}</div>`).join('');
+  document.getElementById('d1feed').innerHTML=[{t:'陈丽华 新增申购 瑞富平衡策略 200万',time:'15分钟前'},{t:'李伟 完成KYC更新',time:'1小时前'},{t:'张明辉 赎回确认 320万到账',time:'2小时前'},{t:'系统：本月AUM突破85亿',time:'3小时前'}].map(a=>`<div style="display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid #f8fafc;font-size:12px;"><span>${a.t}</span><span style="font-size:10px;color:var(--muted);white-space:nowrap;margin-left:auto;">${a.time}</span></div>`).join('');
+  document.getElementById('d1prod').innerHTML=[{n:'债券型',p:42,c:'var(--p2)'},{n:'混合型',p:28,c:'var(--gold)'},{n:'股票型',p:18,c:'var(--danger)'},{n:'货币型',p:12,c:'var(--success)'}].map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;font-size:12px;"><span style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:2px;background:${d.c};"></span>${d.n}</span><div style="display:flex;align-items:center;gap:8px;"><div style="width:80px;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;"><div style="height:100%;width:${d.p}%;background:${d.c};border-radius:3px;"></div></div><span style="color:var(--muted);">${d.p}%</span></div></div>`).join('');
+  document.getElementById('d1appt').innerHTML=[{n:'王建国',t:'10:00',d:'投资组合回顾'},{n:'赵丽',t:'14:00',d:'新产品推荐'},{n:'周明',t:'16:00',d:'风险评估更新'}].map(a=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f8fafc;font-size:12px;"><span style="font-weight:500;">${a.n}</span><span style="font-size:11px;color:var(--muted);">${a.d}</span><span style="font-weight:700;color:var(--gold);">${a.t}</span></div>`).join('');
+  document.getElementById('d1kpi').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center;padding:8px 0;"><div><div style="font-size:24px;font-weight:800;color:var(--gold);">¥1,240<span style="font-size:12px;">万</span></div><div style="font-size:10px;color:var(--muted);">本月新增AUM</div></div><div><div style="font-size:24px;font-weight:800;color:var(--success);">98.2<span style="font-size:12px;">%</span></div><div style="font-size:10px;color:var(--muted);">客户留存率</div></div><div><div style="font-size:24px;font-weight:800;color:var(--p3);">12.8<span style="font-size:12px;">%</span></div><div style="font-size:10px;color:var(--muted);">平均收益率</div></div><div><div style="font-size:24px;font-weight:800;color:var(--danger);">2.1<span style="font-size:12px;">%</span></div><div style="font-size:10px;color:var(--muted);">最大回撤</div></div></div>`;
+}
+
+function initClient(){
+  document.getElementById('c2risk').innerHTML=[{n:'保守型',p:22,c:'#3b5998',v:275},{n:'稳健型',p:38,c:'var(--gold)',v:474},{n:'进取型',p:28,c:'var(--danger)',v:349},{n:'激进型',p:12,c:'#7c3aed',v:150}].map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f8fafc;font-size:12px;"><span style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:2px;background:${d.c};"></span>${d.n}</span><span style="color:var(--muted);">${d.v}人</span><div style="width:70px;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;"><div style="height:100%;width:${d.p}%;background:${d.c};border-radius:3px;"></div></div><span style="color:var(--muted);font-size:10px;">${d.p}%</span></div>`).join('');
+  document.getElementById('c2aumtop').innerHTML=[{n:'王建国',aum:'8,520',mgr:'陈经理',up:true},{n:'李芳',aum:'6,240',mgr:'陈经理',up:true},{n:'张明辉',aum:'5,180',mgr:'刘顾问',up:false},{n:'赵丽',aum:'4,920',mgr:'陈经理',up:true},{n:'周伟',aum:'4,560',mgr:'王顾问',up:true}].map(c=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f8fafc;font-size:12px;"><span style="font-weight:500;">${c.n}</span><span style="font-size:11px;color:var(--muted);">${c.mgr}</span><span style="font-weight:600;color:var(--primary);">¥${c.aum}<span style="font-size:10px;">万</span></span><span style="color:${c.up?'var(--success)':'var(--danger)'};">${c.up?'↑':'↓'}</span></div>`).join('');
+  document.getElementById('c2tbl').innerHTML=[{id:'C10023',n:'王建国',risk:'进取型',aum:'8,520',cnt:6,yield:'+15.2',mgr:'陈经理',kyc:'已认证'},{id:'C10047',n:'李芳',risk:'稳健型',aum:'6,240',cnt:4,yield:'+9.8',mgr:'陈经理',kyc:'已认证'},{id:'C10082',n:'张明辉',risk:'保守型',aum:'5,180',cnt:3,yield:'+4.2',mgr:'刘顾问',kyc:'已认证'},{id:'C10103',n:'赵丽',risk:'进取型',aum:'4,920',cnt:8,yield:'+18.6',mgr:'陈经理',kyc:'已认证'},{id:'C10129',n:'周伟',risk:'稳健型',aum:'4,560',cnt:5,yield:'-2.1',mgr:'王顾问',kyc:'待更新'}].map(c=>`<tr><td style="font-family:monospace;font-size:10px;color:var(--p3);">${c.id}</td><td style="font-weight:500;">${c.n}</td><td><span class="pil" style="background:${c.risk==='进取型'?'#fef2f2':c.risk==='保守型'?'#eef2f8':'var(--gold-light)'};color:${c.risk==='进取型'?'var(--danger)':c.risk==='保守型'?'var(--p2)':'var(--gold)'};">${c.risk}</span></td><td style="font-weight:600;">¥${c.aum}万</td><td>${c.cnt}</td><td style="font-weight:600;color:${c.yield.startsWith('+')?'var(--success)':'var(--danger)'};">${c.yield}%</td><td>${c.mgr}</td><td><span class="pil" style="background:${c.kyc==='已认证'?'#ecfdf5':'#fffbeb'};color:${c.kyc==='已认证'?'var(--success)':'var(--warn)'};">${c.kyc}</span></td><td><button class="btn btn-g" style="font-size:10px;padding:3px 8px;">详情</button></td></tr>`).join('');
+}
+
+function initPortfolio(){
+  document.getElementById('p3alloc').innerHTML=[{n:'固定收益',p:42,c:'var(--p3)',v:'35,960'},{n:'权益类',p:28,c:'var(--gold)',v:'23,974'},{n:'另类投资',p:15,c:'#7c3aed',v:'12,843'},{n:'现金管理',p:12,c:'var(--success)',v:'10,274'},{n:'其他',p:3,c:'#cbd5e1',v:'2,569'}].map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f8fafc;font-size:12px;"><span style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:2px;background:${d.c};"></span>${d.n}</span><span style="color:var(--muted);">¥${d.v}万</span><div style="width:60px;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;"><div style="height:100%;width:${d.p}%;background:${d.c};border-radius:3px;"></div></div><span style="color:var(--muted);font-size:10px;">${d.p}%</span></div>`).join('');
+  const el=document.getElementById('p3yield');if(el){const v=[0.8,1.2,-0.5,2.1,1.8,3.2];const l=['1月','2月','3月','4月','5月','6月'];el.innerHTML=v.map((x,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><span style="font-size:10px;font-weight:600;color:${x>=0?'var(--success)':'var(--danger)'};">${x>=0?'+':''}${x}%</span><div style="width:100%;height:${Math.abs(x)/3.5*130}px;background:${x>=0?'var(--success)':'var(--danger)'};border-radius:5px 5px 0 0;${x<0?'border-radius:0 0 5px 5px;margin-top:auto;':''}"></div><span style="font-size:9px;color:var(--muted);">${l[i]}</span></div>`).join('');}
+  document.getElementById('p3type').innerHTML=[{n:'公募基金',p:45,v:38460},{n:'私募产品',p:25,v:21400},{n:'信托计划',p:18,v:15412},{n:'专户理财',p:12,v:10348}].map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f8fafc;font-size:12px;"><span style="font-weight:500;">${d.n}</span><span style="color:var(--muted);">¥${d.v}万</span><div style="width:70px;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;"><div style="height:100%;width:${d.p}%;background:var(--gold);border-radius:3px;"></div></div></div>`).join('');
+  document.getElementById('p3hold').innerHTML=[{c:'RF001',n:'瑞盈稳健1号',t:'债券型',mv:'18,200',pct:'21.3',cost:'16,800',pl:'+1,400',yld:'+8.33',risk:'R2'},{c:'RF015',n:'瑞富平衡策略',t:'混合型',mv:'12,800',pct:'14.9',cost:'11,200',pl:'+1,600',yld:'+14.3',risk:'R3'},{c:'RF028',n:'瑞鑫成长精选',t:'股票型',mv:'8,500',pct:'9.9',cost:'7,800',pl:'+700',yld:'+8.97',risk:'R4'},{c:'RF003',n:'瑞享现金管理',t:'货币型',mv:'10,200',pct:'11.9',cost:'10,000',pl:'+200',yld:'+2.00',risk:'R1'},{c:'RF042',n:'瑞盈全球配置',t:'QDII',mv:'5,100',pct:'6.0',cost:'4,600',pl:'+500',yld:'+10.9',risk:'R4'}].map(h=>`<tr><td style="font-family:monospace;font-size:10px;color:var(--p3);">${h.c}</td><td style="font-weight:500;">${h.n}</td><td>${h.t}</td><td style="font-weight:600;">¥${h.mv}万</td><td>${h.pct}%</td><td>¥${h.cost}万</td><td style="color:${h.pl.startsWith('+')?'var(--success)':'var(--danger)'};font-weight:600;">${h.pl}万</td><td style="color:${h.yld.startsWith('+')?'var(--success)':'var(--danger)'};font-weight:600;">${h.yld}%</td><td><span class="pil" style="background:${h.risk==='R4'?'#fef2f2':h.risk==='R1'?'#ecfdf5':'var(--gold-light)'};color:${h.risk==='R4'?'var(--danger)':h.risk==='R1'?'var(--success)':'var(--gold)'};">${h.risk}</span></td></tr>`).join('');
+}
+
+function initTrade(){
+  document.getElementById('t4body').innerHTML=[{id:'TX20260701001',c:'王建国',p:'瑞鑫成长精选',t:'申购',amt:'200',share:'128,205.13',nav:'1.56',fee:'0.30',time:'2026-07-01 14:22',s:'已完成'},{id:'TX20260701002',c:'李芳',p:'瑞盈稳健1号',t:'申购',amt:'150',share:'144,230.77',nav:'1.04',fee:'0.15',time:'2026-07-01 13:15',s:'已完成'},{id:'TX20260701003',c:'张明辉',p:'瑞富平衡策略',t:'赎回',amt:'320',share:'-285,714.29',nav:'1.12',fee:'0.48',time:'2026-07-01 11:08',s:'已完成'},{id:'TX20260630004',c:'赵丽',p:'瑞盈全球配置',t:'分红',amt:'18',share:'—',nav:'—',fee:'0',time:'2026-06-30 16:30',s:'已完成'},{id:'TX20260630005',c:'周伟',p:'瑞享现金管理',t:'赎回',amt:'50',share:'-49,019.61',nav:'1.02',fee:'0.05',time:'2026-06-30 10:45',s:'已完成'}].map(t=>`<tr><td style="font-family:monospace;font-size:10px;color:var(--p3);">${t.id}</td><td style="font-weight:500;">${t.c}</td><td>${t.p}</td><td><span class="pil" style="background:${t.t==='申购'?'#ecfdf5':t.t==='赎回'?'#fef2f2':'var(--gold-light)'};color:${t.t==='申购'?'var(--success)':t.t==='赎回'?'var(--danger)':'var(--gold)'};">${t.t}</span></td><td style="font-weight:600;">¥${t.amt}万</td><td>${t.share}</td><td>${t.nav}</td><td>¥${t.fee}万</td><td style="font-size:10px;">${t.time}</td><td><span class="pil" style="background:#ecfdf5;color:var(--success);">${t.s}</span></td></tr>`).join('');
+}
+
+function initRisk(){
+  document.getElementById('r6kpi').innerHTML=[{l:'组合VaR(95%)',v:'-2.85%',c:'var(--warn)'},{l:'组合波动率',v:'12.4%',c:'var(--p3)'},{l:'最大回撤',v:'-8.32%',c:'var(--danger)'},{l:'夏普比率',v:'1.82',c:'var(--success)'},{l:'信息比率',v:'0.95',c:'var(--p3)'},{l:'Beta系数',v:'0.78',c:'var(--gold)'}].map(k=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f8fafc;font-size:11px;"><span>${k.l}</span><span style="font-weight:700;color:${k.c};">${k.v}</span></div>`).join('');
+  document.getElementById('r6conc').innerHTML=[{n:'最大单一客户',v:'9.95%',w:'王建国'},{n:'最大单一产品',v:'21.3%',w:'瑞盈稳健1号'},{n:'前5大客户',v:'34.2%',w:'—'},{n:'行业集中度',v:'金融38%',w:'—'}].map(d=>`<div style="padding:7px 0;border-bottom:1px solid #f8fafc;font-size:11px;"><div style="display:flex;justify-content:space-between;"><span>${d.n}</span><span style="font-weight:700;color:${parseFloat(d.v)>20?'var(--warn)':'var(--muted)'};">${d.v}</span></div><div style="font-size:9px;color:var(--muted);">${d.w}</div></div>`).join('');
+  const ve=document.getElementById('r6var');if(ve){const v=[-1.8,-2.1,-1.5,-2.4,-2.0,-2.85];const l=['1月','2月','3月','4月','5月','6月'];ve.innerHTML=v.map((x,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><span style="font-size:10px;font-weight:600;color:var(--warn);">${x}%</span><div style="width:100%;height:${Math.abs(x)/3.2*130}px;background:var(--warn);border-radius:0 0 5px 5px;margin-top:auto;opacity:.7;"></div><span style="font-size:9px;color:var(--muted);">${l[i]}</span></div>`).join('');}
+  const de=document.getElementById('r6dd');if(de){const v=[-3.2,-5.1,-2.8,-8.3,-4.5,-6.2];const l=['1月','2月','3月','4月','5月','6月'];de.innerHTML=v.map((x,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><span style="font-size:10px;font-weight:600;color:var(--danger);">${x}%</span><div style="width:100%;height:${Math.abs(x)/9*130}px;background:var(--danger);border-radius:0 0 5px 5px;margin-top:auto;opacity:.7;"></div><span style="font-size:9px;color:var(--muted);">${l[i]}</span></div>`).join('');}
+  document.getElementById('r6alerts').innerHTML=[{l:'⚠ 高风险',d:'王建国 AUM单日下降15%',c:'var(--danger)'},{l:'⚠ 中风险',d:'集中度超过20%阈值',c:'var(--warn)'},{l:'ℹ 提示',d:'3只产品本月到期需续约',c:'var(--p3)'}].map(a=>`<div style="padding:8px 0;border-bottom:1px solid #f8fafc;font-size:11px;"><div style="font-weight:600;color:${a.c};">${a.l}</div><div>${a.d}</div></div>`).join('');
+  document.getElementById('r6stress').innerHTML=[{s:'极端下跌(-20%)',l:'-¥17,124万',p:'-20.0%'},{s:'利率上行(+200bp)',l:'-¥4,281万',p:'-5.0%'},{s:'信用利差扩大',l:'-¥2,569万',p:'-3.0%'}].map(s=>`<div style="padding:8px 0;border-bottom:1px solid #f8fafc;font-size:11px;"><div style="font-weight:500;">${s.s}</div><div style="display:flex;justify-content:space-between;margin-top:2px;"><span style="color:var(--danger);font-weight:600;">${s.l}</span><span style="color:var(--muted);">${s.p}</span></div></div>`).join('');
+}
+
+// Toggle style
+document.head.insertAdjacentHTML('beforeend',`<style>.toggle{width:38px;height:20px;border-radius:10px;position:relative;cursor:pointer;transition:background .2s;}.toggle.on{background:var(--gold);}.toggle.off{background:#cbd5e1;}.toggle::after{content:'';position:absolute;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s;}.toggle.on::after{left:20px;}.toggle.off::after{left:2px;}</style>`);
+
+// Init
+document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>navTo(b.dataset.pg)));
+navTo('dash');
+</script>
+</body>
+</html>
