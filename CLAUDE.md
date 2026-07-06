@@ -171,3 +171,7 @@ npx vite build       # 生产构建（Vercel 用的就是这个命令）
 # skills
 
 以后有新增 skills，都需要补充到汇总的 html
+
+### 注意
+
+不可以自动 push  需要我先 review 代码 确认 OK 了 再 push
