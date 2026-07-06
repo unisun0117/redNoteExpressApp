@@ -136,10 +136,14 @@
   @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
   .category-header {
     display:flex; align-items:baseline; gap:8px; margin-bottom:14px;
-    position:sticky; top:60px; padding:6px 0; z-index:10;
+    position:sticky; top:56px; padding:10px 16px; z-index:10;
+    background:var(--topbar-bg); backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--g3); border-radius:var(--r-sm) var(--r-sm) 0 0;
+    margin-left:-4px; margin-right:-4px;
   }
-  .category-header h2 { font-size:1.1rem; font-weight:680; letter-spacing:-0.01em; }
-  .category-count { font-size:0.78rem; color:var(--g5); font-weight:450; }
+  .category-header h2 { font-size:1.15rem; font-weight:700; letter-spacing:-0.01em; }
+  .category-count { font-size:0.82rem; color:var(--g6); font-weight:500; }
   .category-toggle {
     margin-left:auto; font-size:0.76rem; color:var(--g5); cursor:pointer;
     border:none; background:none; padding:4px 10px; border-radius:6px;
@@ -233,6 +237,7 @@
   .card.c-self::before { background:var(--amber); }
   .card.c-dev::before { background:var(--green); }
   .card.c-design::before { background:var(--rose); }
+  .card.c-tools::before { background:var(--purple); }
   .card.c-empty::before { background:var(--g4); }
 
   /* Dimmed empty cards */
@@ -296,7 +301,9 @@
     </div>
     <div class="topbar-actions">
       <span class="fav-count" id="favCount"></span>
-      <button class="tbtn" id="btnGrid" onclick="setView('grid')" title="网格视图">⊞</button>
+      <button class="tbtn" onclick="collapseAll()" title="全部收起" style="width:auto;padding:0 10px;font-size:0.75rem;font-weight:600;gap:4px"><span style="font-size:0.85rem">⊟</span> 收起</button>
+      <button class="tbtn" onclick="expandAll()" title="全部展开" style="width:auto;padding:0 10px;font-size:0.75rem;font-weight:600;gap:4px"><span style="font-size:0.85rem">⊞</span> 展开</button>
+      <button class="tbtn" id="btnGrid" onclick="setView('grid')" title="网格视图">⊡</button>
       <button class="tbtn" id="btnList" onclick="setView('list')" title="列表视图">☰</button>
       <button class="tbtn" id="btnTheme" onclick="toggleTheme()" title="切换暗色模式">🌙</button>
     </div>
@@ -316,6 +323,7 @@
     <button class="pill" data-cat="content" onclick="filterCategory('content', this)"><span class="pill-dot" style="background:var(--blue)"></span>内容创作</button>
     <button class="pill" data-cat="self" onclick="filterCategory('self', this)"><span class="pill-dot" style="background:var(--amber)"></span>自媒体</button>
     <button class="pill" data-cat="dev" onclick="filterCategory('dev', this)"><span class="pill-dot" style="background:var(--green)"></span>开发方法</button>
+    <button class="pill" data-cat="tools" onclick="filterCategory('tools', this)"><span class="pill-dot" style="background:var(--purple)"></span>效率工具</button>
     <button class="pill" data-cat="design" onclick="filterCategory('design', this)"><span class="pill-dot" style="background:var(--rose)"></span>设计/媒体</button>
     <button class="pill" data-cat="empty" onclick="filterCategory('empty', this)"><span class="pill-dot" style="background:var(--g4)"></span>空壳</button>
     <button class="pill pill-fav" data-cat="fav" onclick="filterCategory('fav', this)">⭐ 收藏</button>
@@ -336,9 +344,10 @@
 // ===== DATA =====
 const CAT_META = {
   content: { title:'📝 内容创作系 · 阿珊品牌', catClass:'c-content' },
-  self:    { title:'📱 自媒体战略工具', catClass:'c-self' },
+  self:    { title:'📱 自媒体 & 商业战略', catClass:'c-self' },
   dev:     { title:'💻 开发方法论 · Superpowers 系列', catClass:'c-dev' },
-  design:  { title:'🎨 设计 / 媒体工具 · 宝玉系列', catClass:'c-design' },
+  design:  { title:'🎨 设计 / 媒体工具', catClass:'c-design' },
+  tools:   { title:'🔧 效率工具', catClass:'c-tools' },
   empty:   { title:'📦 空壳目录', catClass:'c-empty' },
 };
 
@@ -355,6 +364,8 @@ const skills = [
 
   { n:"频道战略师", i:"🎯", d:"回答3个核心问题：该在哪个赛道？该学谁避谁？内容飞轮怎么转？含Ikigai四圈、七项检验、五重过滤等6套方法论。", t:'"诊断我的账号" · "帮我找方向" · "找对标" · "30天怎么排"', f:"channel-strategist", c:"self", s:"active" },
   { n:"博主蒸馏器", i:"🔬", d:"输入博主账号，自动采集笔记全量数据（需TikHub API），蒸馏爆款打法 → 生成创作指南Skill + HTML报告。", t:'"拆解/蒸馏博主 <b>XX</b>"（最好附链接🔗）', f:"blogger-distiller", c:"self", s:"active" },
+  { n:"AIHOT 资讯日报", i:"🔥", d:"每天08:00自动生成AI日报，分模型/产品/行业/论文/技巧五版块。几百个信源抓取筛选去重。", t:'"今天AI圈有什么新闻" · "最近OpenAI发了什么" · "AI日报"', f:"aihot", c:"self", s:"active" },
+  { n:"dbskill 商业诊断", i:"🏥", d:"从12307条推文提炼的21个商业诊断子工具：商业模式诊断、对标分析、内容诊断、概念拆解、决策系统。", t:'"诊断我的商业模式" · "帮我做对标分析" · "拆解这个概念"', f:"dbskill", c:"self", s:"active" },
 
   { n:"头脑风暴", i:"💡", d:"做新功能前必用 — 先探索用户意图、需求、设计再写代码。杜绝“太简单不需要设计”。", t:"做新功能前自动触发，引导把需求想清楚再动手", f:"brainstorming", c:"dev", s:"active" },
   { n:"写实施计划", i:"📝", d:"有多步骤任务时，先出完整计划再写代码。假设工程师零上下文，分任务、定文件、给检查点。", t:"复杂任务先出计划，确认后再执行", f:"writing-plans", c:"dev", s:"active" },
@@ -371,7 +382,11 @@ const skills = [
   { n:"Superpowers 指南", i:"⚡", d:"建立如何查找和使用Skills的基础规则。会话启动时自动加载。", t:"会话启动时自动加载，无需手动触发", f:"using-superpowers", c:"dev", s:"active" },
   { n:"编写 Skills", i:"✍️", d:"创建、编辑、验证Skill的完整方法论。TDD映射 + CSO描述优化 + 流程图 + 反模式。", t:"需要创建或修改Skill时", f:"writing-skills", c:"dev", s:"active" },
 
+  { n:"Agent Reach", i:"🌐", d:"一句话搜遍17个平台：小红书/B站/抖音/Twitter/Reddit/YouTube/GitHub/微博/微信…零API费用。", t:'"帮我搜小红书上的XX" · "看看Twitter上XX怎么说" · "agent-reach doctor"', f:"Agent-Reach", c:"tools", s:"active" },
+  { n:"OpenCLI 浏览器", i:"🖥️", d:"让AI通过你已登录的Chrome操作任意网站：导航/点击/填表/提取数据。零LLM成本，凭证不离开浏览器。", t:'"帮我检查小红书通知" · "用浏览器命令抓取XX页面" · "opencli browser open"', f:"OpenCLI", c:"tools", s:"active" },
+
   { n:"UI UX Pro Max", i:"🎯", d:"AI设计智能工具箱：161条推理规则 + 67种UI风格 + 字体配对 + 色彩方案 + UX最佳实践 + GSAP动画。", t:"设计系统生成 · UI风格推荐 · 配色方案 · 字体配对", f:"ui-ux-pro-max-skill", c:"design", s:"active" },
+  { n:"归藏社交卡片", i:"🪧", d:"一句话出小红书图文+公众号封面。28个版式骨架+10套主题预设，HTML+CSS排版→PNG渲染，规避AI检测。", t:'"帮我做一套小红书图文" · "做一个公众号21:9头图" · "瑞士风测评卡片"', f:"guizang-social-card-skill", c:"design", s:"active" },
   { n:"小红书图片", i:"🖼️", d:"小红书风格图片生成工具。通过软链接安装自 .agents/skills/，有 references 目录。", t:"小红书图片相关", f:"baoyu-xhs-images（软链接）", c:"design", s:"active" },
   { n:"封面图生成", i:"🖼️", d:"目录存在但 SKILL.md 缺失，尚未配置。", t:"待安装内容", f:"baoyu-cover-image", c:"design", s:"empty" },
   { n:"图片生成", i:"🎨", d:"目录存在但 SKILL.md 缺失，尚未配置。", t:"待安装内容", f:"baoyu-image-gen", c:"design", s:"empty" },
@@ -461,7 +476,7 @@ function renderCards() {
 
   // Group by category
   const groups = {};
-  const catOrder = ['content','self','dev','design','empty'];
+  const catOrder = ['content','self','dev','tools','design','empty'];
   filtered.forEach(s => {
     if (!groups[s.c]) groups[s.c] = [];
     groups[s.c].push(s);
@@ -543,6 +558,14 @@ function toggleCategory(btn) {
     btn.textContent = '展开 ▾';
   }
 }
+function collapseAll() {
+  document.querySelectorAll('.category .cards').forEach(c => c.style.display = 'none');
+  document.querySelectorAll('.category-toggle').forEach(b => b.textContent = '展开 ▾');
+}
+function expandAll() {
+  document.querySelectorAll('.category .cards').forEach(c => c.style.display = '');
+  document.querySelectorAll('.category-toggle').forEach(b => b.textContent = '收起 ▴');
+}
 
 // ===== VIEW TOGGLE =====
 function setView(mode) {
@@ -609,7 +632,7 @@ document.addEventListener('keydown', e => {
   }
   // Number keys 1-6 filter categories
   if (!e.target.closest('input') && e.key >= '1' && e.key <= '6') {
-    const cats = ['all','content','self','dev','design','empty'];
+    const cats = ['all','content','self','dev','tools','design','empty'];
     const idx = parseInt(e.key)-1;
     const btn = document.querySelector(`.pill[data-cat="${cats[idx]}"]`);
     if (btn) filterCategory(cats[idx], btn);
