@@ -475,7 +475,7 @@ function renderCards() {
       const starred = favs.has(s.n) ? ' starred' : '';
       return `
       <div class="card ${meta.catClass}${ghost}" data-name="${s.n}" data-cat="${s.c}" data-idx="${idx}" style="animation-delay:${idx*0.015}s">
-        <button class="star-btn${starred}" onclick="event.stopPropagation();toggleFav('${s.n.replace(/'/g,"\\'")}')" title="${starred?'取消收藏':'收藏'}">${starred?'★':'☆'}</button>
+        <button class="star-btn${starred}" data-action="fav" data-skill="${s.n.replace(/"/g,'&quot;')}" title="${starred?'取消收藏':'收藏'}">${starred?'★':'☆'}</button>
         <div class="card-inner">
           <div class="card-top">
             <span class="card-icon">${s.i}</span>
@@ -488,9 +488,9 @@ function renderCards() {
             </div>
           </div>
           <div class="card-desc">${s.d}</div>
-          <div class="card-trigger" onclick="copyTrigger(this, '${s.t.replace(/'/g,"\\'").replace(/<[^>]*>/g,'')}')" title="点击复制触发词">
+          <div class="card-trigger" data-action="copy" data-copy="${s.t.replace(/<[^>]*>/g,'').replace(/"/g,'&quot;')}" title="点击复制触发词">
             ${s.t}
-            <button class="copy-btn" onclick="event.stopPropagation();copyTrigger(this.parentElement, '${s.t.replace(/'/g,"\\'").replace(/<[^>]*>/g,'')}')">📋</button>
+            <button class="copy-btn" data-action="copy" data-copy="${s.t.replace(/<[^>]*>/g,'').replace(/"/g,'&quot;')}">📋</button>
           </div>
         </div>
       </div>`;
@@ -568,16 +568,30 @@ function toggleTheme() {
   localStorage.setItem('skills_dash_theme', next);
 }
 
-// ===== COPY =====
-function copyTrigger(el, text) {
-  const plain = text.replace(/<[^>]*>/g, '').replace(/ · /g, '\n');
-  navigator.clipboard.writeText(plain).then(() => {
-    const btn = el.querySelector('.copy-btn');
-    if (btn) { btn.textContent = '✓'; btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = '📋'; btn.classList.remove('copied'); }, 1200); }
-    showToast('已复制触发词 ✓');
-  }).catch(() => showToast('复制失败，请手动选择'));
-}
+// ===== EVENT DELEGATION (copy + fav) =====
+document.getElementById('cardsContainer').addEventListener('click', function(e) {
+  // Handle copy
+  const copyEl = e.target.closest('[data-action="copy"]');
+  if (copyEl) {
+    const text = copyEl.dataset.copy;
+    if (!text) return;
+    const plain = text.replace(/ · /g, '\n');
+    navigator.clipboard.writeText(plain).then(() => {
+      if (copyEl.classList.contains('copy-btn')) {
+        copyEl.textContent = '✓'; copyEl.classList.add('copied');
+        setTimeout(() => { copyEl.textContent = '📋'; copyEl.classList.remove('copied'); }, 1200);
+      }
+      showToast('已复制触发词 ✓');
+    }).catch(() => showToast('复制失败，请手动选择'));
+    return;
+  }
+  // Handle fav
+  const favEl = e.target.closest('[data-action="fav"]');
+  if (favEl) {
+    const skillName = favEl.dataset.skill;
+    if (skillName) toggleFav(skillName);
+  }
+});
 
 function showToast(msg) {
   const t = document.getElementById('toast');
