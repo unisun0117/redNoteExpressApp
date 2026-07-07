@@ -245,6 +245,31 @@
   .card.is-ghost:hover { opacity:0.85; }
   .card.is-ghost .card-name { color:var(--g6); }
 
+
+  /* ===== BACK-TO-TOP ===== */
+  .btt {
+    position:fixed; right:28px; bottom:48px; z-index:998;
+    width:48px; height:48px; border-radius:50%; border:none;
+    background:linear-gradient(135deg, #c4726a 0%, #e8927c 60%, #f0a090 100%);
+    color:#fff; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.25rem; box-shadow:0 4px 18px rgba(196,114,106,0.45), 0 1px 4px rgba(0,0,0,0.08);
+    opacity:0; transform:translateY(16px) scale(0.85); pointer-events:none;
+    transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .btt.show { opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+  .btt:hover {
+    background:linear-gradient(135deg, #b0625a 0%, #d87a6a 60%, #e89080 100%);
+    box-shadow:0 6px 28px rgba(196,114,106,0.6), 0 2px 8px rgba(0,0,0,0.12);
+    transform:translateY(-4px) scale(1.08);
+  }
+  .btt:active { transform:translateY(0) scale(0.95); }
+  @keyframes bttPulse {
+    0%, 100% { box-shadow:0 4px 18px rgba(196,114,106,0.45), 0 1px 4px rgba(0,0,0,0.08); }
+    50% { box-shadow:0 4px 28px rgba(196,114,106,0.7), 0 2px 8px rgba(196,114,106,0.3); }
+  }
+  .btt.show { animation:bttPulse 2.5s ease-in-out infinite; }
+  .btt.show:hover { animation:none; }
   /* ===== TOAST ===== */
   .toast {
     position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(80px);
@@ -338,6 +363,8 @@
   <div class="page-footer" id="footer"></div>
 </div>
 
+
+<button class="btt" id="btt" onclick="scrollToTop()" title="回到顶部">🚀</button>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -367,6 +394,17 @@ const skills = [
   { n:"AIHOT 资讯日报", i:"🔥", d:"每天08:00自动生成AI日报，分模型/产品/行业/论文/技巧五版块。几百个信源抓取筛选去重。", t:'"今天AI圈有什么新闻" · "最近OpenAI发了什么" · "AI日报"', f:"aihot", c:"self", s:"active" },
   { n:"dbskill 商业诊断", i:"🏥", d:"从12307条推文提炼的21个商业诊断子工具：商业模式诊断、对标分析、内容诊断、概念拆解、决策系统。", t:'"诊断我的商业模式" · "帮我做对标分析" · "拆解这个概念"', f:"dbskill", c:"self", s:"active" },
 
+  { n:"寻找社群", i:"🔎", d:"找到目标社区和用户痛点，深潜理解后再解决问题。先社区后产品，不要闭门造车。Sahil Lavingia《小而美》。", t:'"/find-community" · "帮我找一个创业社群" · "目标用户在哪里"', f:"find-community", c:"self", s:"active" },
+  { n:"验证想法", i:"🧪", d:"七项检验评估商业点子：问题、方案、市场、时机、执行、财务、风险。不凭感觉做决定。", t:'"/validate-idea" · "帮我验证这个创业想法" · "这个点子值不值得做"', f:"validate-idea", c:"self", s:"active" },
+  { n:"最小可行产品", i:"🥚", d:"控制产品范围，只做核心必要功能。先跑通再完善，不写没人用的代码。", t:'"/mvp" · "帮我规划MVP" · "第一版该包含哪些功能"', f:"mvp", c:"self", s:"active" },
+  { n:"流程化", i:"⚙️", d:"先人工手动交付跑通业务流程，验证需求后再写代码自动化。不写没有PMF的代码。", t:'"/processize" · "帮我梳理业务流程" · "先人工跑通再产品化"', f:"processize", c:"self", s:"active" },
+  { n:"首批客户", i:"🎯", d:"三圈法则获取前100位种子用户：亲友→社区→陌生人。99%的早期增长靠手动销售。", t:'"/first-customers" · "怎么找到前100个用户" · "种子用户获取策略"', f:"first-customers", c:"self", s:"active" },
+  { n:"定价", i:"💰", d:"成本模型 vs 价值模型定价策略。高价=承诺，低价=实验。找到愿意付钱的真实客户。", t:'"/pricing" · "产品该怎么定价" · "要不要涨价"', f:"pricing", c:"self", s:"active" },
+  { n:"营销计划", i:"📢", d:"产品市场匹配验证后，搭建内容放大器。先教育后销售，用内容建立信任而非广告轰炸。", t:'"/marketing-plan" · "帮我做营销计划" · "怎么通过内容增长"', f:"marketing-plan", c:"self", s:"active" },
+  { n:"稳健增长", i:"📈", d:"支出/招聘/扩张决策。盈利第一，规模第二。每花一笔钱都问：必须现在花吗？", t:'"/grow-sustainably" · "该不该招人" · "要不要扩张"', f:"grow-sustainably", c:"self", s:"active" },
+  { n:"公司价值观", i:"🏛️", d:"在招聘之前定义公司文化。价值观决定谁来加入、如何做决策。小而美团队更需要对齐。", t:'"/company-values" · "帮我梳理企业文化" · "招聘前先对齐价值观"', f:"company-values", c:"self", s:"active" },
+  { n:"极简复盘", i:"✂️", d:"8条极简原则快速校验任意商业决策。输出：做/不做/简化。帮你砍掉一切不必要的复杂度。", t:'"/minimalist-review" · "帮我检查这个决策" · "是不是想太复杂了"', f:"minimalist-review", c:"self", s:"active" },
+ 
   { n:"头脑风暴", i:"💡", d:"做新功能前必用 — 先探索用户意图、需求、设计再写代码。杜绝“太简单不需要设计”。", t:"做新功能前自动触发，引导把需求想清楚再动手", f:"brainstorming", c:"dev", s:"active" },
   { n:"Planning with Files", i:"📋", d:"三文件持久化规划法：task_plan.md + findings.md + progress.md。防上下文丢失、防目标漂移、支持会话恢复。", t:"自动维护项目计划文件 · 跨会话保持状态 · /clear不丢进度", f:"planning-with-files", c:"dev", s:"active" },
   { n:"写实施计划", i:"📝", d:"有多步骤任务时，先出完整计划再写代码。假设工程师零上下文，分任务、定文件、给检查点。", t:"复杂任务先出计划，确认后再执行", f:"writing-plans", c:"dev", s:"active" },
@@ -629,6 +667,14 @@ document.getElementById('cardsContainer').addEventListener('click', function(e) 
   }
 });
 
+
+// ===== BACK-TO-TOP =====
+function scrollToTop() { window.scrollTo({top:0, behavior:"smooth"}); }
+window.addEventListener("scroll", function(){
+  var b = document.getElementById("btt");
+  if (!b) return;
+  if (window.scrollY > 500) b.classList.add("show"); else b.classList.remove("show");
+});
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
