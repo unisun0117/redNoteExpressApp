@@ -26,6 +26,14 @@
   }
   /* ===== DARK THEME ===== */
   [data-theme="dark"] {
+    --guide-bg: linear-gradient(135deg, #2a2218 0%, #2d2418 50%, #2a2218 100%);
+    --guide-border: #4a3a20;
+    --guide-title: #d4a843;
+    --guide-text: #b8965c;
+    --guide-strong: #d4b060;
+    --guide-step-bg: #1e1a12;
+    --guide-step-border: #5a4a2a;
+    --guide-step-text: #c4a850;
     --g0: #1e1d1a; --g1: #242320; --g2: #2d2b27; --g3: #3a3732;
     --g4: #4a4741; --g5: #6b665e; --g6: #8b867e; --g7: #b8b3aa;
     --g8: #d4d0c9; --g9: #f0eeea;
@@ -103,6 +111,45 @@
 
   /* ===== STATS ===== */
   .stats-row { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:32px; }
+
+  /* ===== USAGE GUIDE ===== */
+  .guide-panel {
+    background:var(--guide-bg, linear-gradient(135deg, #fef9f0 0%, #fdf6ec 50%, #fef8f2 100%));
+    border:1px solid var(--guide-border, #f0d9a8); border-radius:var(--r);
+    padding:18px 22px; margin-bottom:28px;
+    box-shadow:0 2px 12px rgba(200,160,80,0.08);
+    transition:all 0.3s;
+  }
+  .guide-panel.collapsed .guide-body { display:none; }
+  .guide-panel.collapsed { padding:12px 22px; }
+  .guide-header {
+    display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;
+  }
+  .guide-header h3 { font-size:0.95rem; font-weight:700; color:var(--guide-title, #8b6914); margin:0; }
+  .guide-header .guide-toggle { margin-left:auto; font-size:0.75rem; color:var(--guide-title, #b8963c); transition:transform 0.3s; }
+  .guide-panel.collapsed .guide-toggle { transform:rotate(-90deg); }
+  .guide-body { margin-top:14px; }
+  .guide-philosophy { font-size:0.84rem; color:var(--guide-text, #8b7355); margin-bottom:14px; line-height:1.6; }
+  .guide-philosophy strong { color:var(--guide-strong, #6b4c1e); }
+  .guide-flow {
+    display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+  }
+  .guide-step {
+    display:inline-flex; align-items:center; gap:5px;
+    padding:7px 13px; border-radius:20px;
+    background:var(--guide-step-bg, #fff); border:1px solid var(--guide-step-border, #e8d5a3);
+    font-size:0.82rem; font-weight:550; color:var(--guide-strong, #6b4c1e);
+    white-space:nowrap; transition:all 0.2s;
+    text-decoration:none;
+  }
+  .guide-step:hover { background:#fff8e8; border-color:#d4a843; box-shadow:0 2px 8px rgba(200,160,60,0.15); transform:translateY(-1px); }
+  .guide-step .step-num {
+    display:inline-flex; width:20px; height:20px; border-radius:50%;
+    background:linear-gradient(135deg, #d4a843, #c49030);
+    color:#fff; font-size:0.68rem; font-weight:700;
+    align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .guide-arrow { color:#d4b060; font-size:0.75rem; flex-shrink:0; }
   .stat-card {
     background:var(--g0); border:1px solid var(--g3); border-radius:var(--r);
     padding:16px 18px; display:flex; align-items:center; gap:12px;
@@ -343,6 +390,37 @@
 
   <div class="stats-row" id="statsRow"></div>
 
+
+  <div class="guide-panel" id="guidePanel">
+    <div class="guide-header" onclick="document.getElementById('guidePanel').classList.toggle('collapsed')">
+      <h3>🗺️ 极简创业路线图 · 从上到下按顺序使用（Sahil Lavingia《小而美》）</h3>
+      <span class="guide-toggle">▾</span>
+    </div>
+    <div class="guide-body">
+      <p class="guide-philosophy">💡 <strong>核心信条</strong>：先找到一个社区，深入理解痛点，再动手解决。先人工交付验证，再写代码产品化。99%的早期增长靠手动销售。</p>
+      <div class="guide-flow">
+        <a class="guide-step" href="#" onclick="filterCategory('self'); setTimeout(()=>document.querySelector(`[data-name=\'寻找社群\']`)?.scrollIntoView({behavior:'smooth'}),200)"><span class="step-num">1</span>寻找社群</a>
+        <span class="guide-arrow">→</span>
+        <a class="guide-step" href="#" onclick="filterCategory('self'); setTimeout(()=>document.querySelector(`[data-name=\'验证想法\']`)?.scrollIntoView({behavior:'smooth'}),200)"><span class="step-num">2</span>验证想法</a>
+        <span class="guide-arrow">→</span>
+        <a class="guide-step" href="#" onclick="filterCategory('self'); setTimeout(()=>document.querySelector(`[data-name=\'最小可行产品\']`)?.scrollIntoView({behavior:'smooth'}),200)"><span class="step-num">3</span>MVP</a>
+        <span class="guide-arrow">→</span>
+        <a class="guide-step" href="#" onclick="filterCategory('self'); setTimeout(()=>document.querySelector(`[data-name=\'流程化\']`)?.scrollIntoView({behavior:'smooth'}),200)"><span class="step-num">4</span>流程化</a>
+        <span class="guide-arrow">→</span>
+        <a class="guide-step" href="#" onclick="filterCategory('self'); setTimeout(()=>document.querySelector(`[data-name=\'首批客户\']`)?.scrollIntoView({behavior:'smooth'}),200)"><span class="step-num">5</span>首批客户</a>
+        <span class="guide-arrow">→</span>
+        <a class="guide-step" href="#" onclick="filterCategory('self'); setTimeout(()=>document.querySelector(`[data-name=\'定价\']`)?.scrollIntoView({behavior:'smooth'}),200)"><span class="step-num">6</span>定价</a>
+        <span class="guide-arrow">→</span>
+        <a class="guide-step" href="#" onclick="filterCategory('self'); setTimeout(()=>document.querySelector(`[data-name=\'营销计划\']`)?.scrollIntoView({behavior:'smooth'}),200)"><span class="step-num">7</span>营销</a>
+        <span class="guide-arrow">→</span>
+        <a class="guide-step" href="#" onclick="filterCategory('self'); setTimeout(()=>document.querySelector(`[data-name=\'稳健增长\']`)?.scrollIntoView({behavior:'smooth'}),200)"><span class="step-num">8</span>稳健增长</a>
+        <span class="guide-arrow">→</span>
+        <a class="guide-step" href="#" onclick="filterCategory('self'); setTimeout(()=>document.querySelector(`[data-name=\'公司价值观\']`)?.scrollIntoView({behavior:'smooth'}),200)"><span class="step-num">9</span>价值观</a>
+        <span class="guide-arrow">→</span>
+        <a class="guide-step" href="#" onclick="filterCategory('self'); setTimeout(()=>document.querySelector(`[data-name=\'极简复盘\']`)?.scrollIntoView({behavior:'smooth'}),200)"><span class="step-num">10</span>极简复盘</a>
+      </div>
+    </div>
+  </div>
   <div class="filter-row">
     <button class="pill active" data-cat="all" onclick="filterCategory('all', this)"><span class="pill-dot" style="background:var(--g6)"></span>全部</button>
     <button class="pill" data-cat="content" onclick="filterCategory('content', this)"><span class="pill-dot" style="background:var(--blue)"></span>内容创作</button>
@@ -422,6 +500,8 @@ const skills = [
   { n:"编写 Skills", i:"✍️", d:"创建、编辑、验证Skill的完整方法论。TDD映射 + CSO描述优化 + 流程图 + 反模式。", t:"需要创建或修改Skill时", f:"writing-skills", c:"dev", s:"active" },
   { n:"Skill Creator 官方版", i:"🔧", d:"Anthropic官方Skill生成器，四阶段引导从零创建高质量Skill。比社区版多了评估测试环节。", t:"创建新Skill · 封装业务工作流成Skill", f:"skill-creator", c:"dev", s:"active" },
   { n:"Agent Skills 工程库", i:"📦", d:"Addy Osmani的生产级工程技能库(58k Star)：让AI像成熟工程师一样工作，含hooks/commands/scripts。", t:"生产级代码规范 · 工程最佳实践 · AI编码工作流", f:"agent-skills-collection", c:"dev", s:"active" },
+
+	  { n:"Ralph Wiggum 自主循环", i:"🔄", d:"把任务交给AI，让它自己在循环中迭代完善。干净上下文、自我修正、渐进式完成。Geoffrey Huntley发明。", t:'"/ralph-loop 任务描述" · "让AI自己循环开发" · "自主迭代完成"', f:"ralph-wiggum", c:"dev", s:"active" },
   { n:"Taste 品味UI", i:"💎", d:"让AI生成更有品位的前端界面(43k Star)：设计灵敏度训练+美学规则+视觉质量把关。", t:'"生成有品位的XX页面" · "这个UI有没有品位" · "提升设计质量"', f:"taste-skill", c:"dev", s:"active" },
   { n:"PM Skills 市场", i:"📋", d:"100+产品经理Agent Skills(17k Star)：需求分析/竞品研究/PRD生成/用户故事地图/路线图规划。", t:'"帮我写PRD" · "做竞品分析" · "生成用户故事地图"', f:"pm-skills", c:"dev", s:"active" },
   { n:"Headroom 上下文压缩", i:"🧠", d:"AI Agent上下文压缩工具(26k Star)，减少60-95% Token消耗同时保持答案质量，大幅降低API成本。", t:'"压缩上下文" · "优化token用量" · "headroom compress"', f:"headroom", c:"tools", s:"active" },
@@ -432,13 +512,26 @@ const skills = [
   { n:"MCP Builder", i:"🔌", d:"四阶段引导从零搭建MCP Server：协议研究→实现→审查测试→评估。支持TypeScript/Python双语言。", t:'"帮我搭建一个MCP服务" · "封装XX接口为MCP工具"', f:"mcp-builder", c:"tools", s:"active" },
   { n:"Last30Days 信号搜索", i:"📡", d:"输入任意主题，自动搜索并整理过去30天Reddit/HN/Twitter等社区真实信号。41k Star。", t:'"过去30天XX话题有什么讨论" · "搜一下XX的社区趋势"', f:"last30days-skill", c:"tools", s:"active" },
 
+	  { n:"NotebookLM 集成", i:"📓", d:"让Claude Code直接对话Google NotebookLM：文档问答带引用、10种产出类型、MCP服务器模式。", t:'"用NotebookLM分析这份文档" · "生成播客脚本" · "提取研究笔记"', f:"notebooklm", c:"tools", s:"active" },
+	  { n:"Obsidian Markdown", i:"📝", d:"Obsidian CEO Steph Ango亲写：教Claude正确使用Obsidian语法（wikilinks/embeds/callouts/frontmatter）。", t:'"在Obsidian里写笔记" · "创建双向链接" · "Obsidian Callout"', f:"obsidian-markdown", c:"tools", s:"active" },
+	  { n:"Obsidian Bases", i:"🗃️", d:"创建和编辑Obsidian Bases数据库：视图、过滤器、公式、汇总。让笔记变成结构化数据。", t:'"创建Obsidian Base" · "设置表格视图" · "Bases公式"', f:"obsidian-bases", c:"tools", s:"active" },
+	  { n:"Obsidian Canvas", i:"🎨", d:"创建和编辑JSON Canvas文件：思维导图、流程图、概念图。Obsidian无限画布。", t:'"画思维导图" · "创建Canvas" · "JSON Canvas流程图"', f:"json-canvas", c:"tools", s:"active" },
+	  { n:"Obsidian CLI", i:"⌨️", d:"通过Obsidian命令行工具交互：打开/搜索/创建笔记，批量操作vault。", t:'"用CLI打开Obsidian" · "批量创建笔记" · "搜索vault"', f:"obsidian-cli", c:"tools", s:"active" },
+	  { n:"网页提取 Defuddle", i:"📄", d:"从任意网页提取干净Markdown内容，去广告去噪音，保留核心文本。Obsidian生态工具。", t:'"提取这篇文章" · "网页转Markdown" · "保存到Obsidian"', f:"defuddle", c:"tools", s:"active" },
+	  { n:"Claude Scientific", i:"🧬", d:"科学计算技能全家桶(23.4k⭐)：生物信息/化学信息/药物发现/基因组学。约140+细分技能。", t:'"分析蛋白质结构" · "药物虚拟筛选" · "NGS数据分析"', f:"claude-scientific", c:"tools", s:"active" },
+
   { n:"UI UX Pro Max", i:"🎯", d:"AI设计智能工具箱：161条推理规则 + 67种UI风格 + 字体配对 + 色彩方案 + UX最佳实践 + GSAP动画。", t:"设计系统生成 · UI风格推荐 · 配色方案 · 字体配对", f:"ui-ux-pro-max-skill", c:"design", s:"active" },
-  { n:"PPTX 汇报生成", i:"📊", d:"直接输出完整PPT文件：HTML→PPTX转换、模板套用、OOXML编辑。配套docx/xlsx/pdf全家桶。", t:'"生成项目汇报PPT" · "把这份文档转成PPT" · "用模板生成周报PPT"', f:"pptx + claude-office-skills", c:"design", s:"active" },
+  { n:"PPTX 汇报生成", i:"📊", d:"Anthropic官方pptx技能：直接输出完整PPT文件，支持模板、图表、幻灯片生成。", t:'"生成项目汇报PPT" · "把这份文档转成PPT" · "用模板生成周报PPT"', f:"pptx", c:"design", s:"active" },
   { n:"归藏社交卡片", i:"🪧", d:"一句话出小红书图文+公众号封面。28个版式骨架+10套主题预设，HTML+CSS排版→PNG渲染，规避AI检测。", t:'"帮我做一套小红书图文" · "做一个公众号21:9头图" · "瑞士风测评卡片"', f:"guizang-social-card-skill", c:"design", s:"active" },
   { n:"小红书图片", i:"🖼️", d:"小红书风格图片生成工具。通过软链接安装自 .agents/skills/，有 references 目录。", t:"小红书图片相关", f:"baoyu-xhs-images（软链接）", c:"design", s:"active" },
   { n:"封面图生成", i:"🖼️", d:"目录存在但 SKILL.md 缺失，尚未配置。", t:"待安装内容", f:"baoyu-cover-image", c:"design", s:"empty" },
   { n:"图片生成", i:"🎨", d:"目录存在但 SKILL.md 缺失，尚未配置。", t:"待安装内容", f:"baoyu-image-gen", c:"design", s:"empty" },
   { n:"幻灯片生成", i:"📊", d:"目录存在但 SKILL.md 缺失，尚未配置。", t:"待安装内容", f:"baoyu-slide-deck", c:"design", s:"empty" },
+
+	  { n:"Word 文档", i:"📝", d:"Anthropic官方docx技能：创建、编辑Word文档，支持修订、批注、格式设置、模板套用。", t:'"创建Word文档" · "编辑docx报告" · "写一份正式文档"', f:"docx", c:"design", s:"active" },
+	  { n:"PDF 处理", i:"📕", d:"Anthropic官方pdf技能：提取文本/表格、创建新PDF、合并/拆分文档、处理表单填写。", t:'"提取PDF表格" · "合并PDF文件" · "填写PDF表单"', f:"pdf", c:"design", s:"active" },
+	  { n:"Excel 表格", i:"📗", d:"Anthropic官方xlsx技能：创建、编辑Excel，支持公式、格式设置、数据分析、图表生成。", t:'"创建Excel报表" · "分析这份数据" · "做数据透视表"', f:"xlsx", c:"design", s:"active" },
+	  { n:"Frontend Design", i:"🎨", d:"Anthropic官方前端设计(564K+安装)：告别AI味UI。大胆美学、独特字体、CSS动画、不对称布局。", t:'"设计一个XX页面" · "重新设计这个界面" · "换个有品位的风格"', f:"frontend-design", c:"design", s:"active" },
 
   { n:"读书学习", i:"📖", d:"可能用于读书笔记或知识管理的技能。目录存在但无 SKILL.md。", t:"—", f:"book-study", c:"empty", s:"empty" },
   { n:"代码审查专家", i:"🔍", d:"可能用于深度代码审查。目录存在但无 SKILL.md。", t:"—", f:"code-review-expert", c:"empty", s:"empty" },
