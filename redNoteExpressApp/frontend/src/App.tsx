@@ -9,7 +9,18 @@ import { TabBar } from "./components/TabBar";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return <div style={{ padding: 40, textAlign: "center" }}>Loading...</div>;
+  if (loading) return (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      minHeight: "100vh", background: "#faf9f7", color: "#5c5852", fontFamily: "system-ui, sans-serif",
+      gap: 16, padding: 40
+    }}>
+      <div style={{ fontSize: 48, animation: "pulse 1.5s ease-in-out infinite" }}>✍️</div>
+      <div style={{ fontSize: 18, fontWeight: 600, color: "#3d3a35" }}>红薯快写</div>
+      <div style={{ fontSize: 14, color: "#8b867e" }}>正在唤醒服务器，稍等片刻…</div>
+      <style>{`@keyframes pulse { 0%,100%{opacity:0.4;transform:scale(0.95)} 50%{opacity:1;transform:scale(1.05)} }`}</style>
+    </div>
+  );
   if (!user) return <Navigate to="/login" />;
   return <>{children}</>;
 }

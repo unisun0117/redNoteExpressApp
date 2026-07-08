@@ -25,10 +25,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (accessToken) {
+      // 8s timeout — if backend is cold, skip auth and let user in as guest
+      const timer = setTimeout(() => {
+        setLoading(false);
+      }, 8000);
+
       api.getMe().then((data) => {
+        clearTimeout(timer);
         if (data.id) setUser(data);
         setLoading(false);
       }).catch(() => {
+        clearTimeout(timer);
         clearTokens();
         setLoading(false);
       });
