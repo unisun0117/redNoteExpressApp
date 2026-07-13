@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四大平台 · 2025 热门技术方向对比</title>
+<style>
+  :root {
+    --bg: #fdfdfc; --card: #fff; --border: #e8e5df;
+    --t1: #1e1d1a; --t2: #3d3a35; --t3: #5c5852; --t4: #8b867e;
+    --blue: #4a8bc2; --blue-bg: #edf4fa;
+    --green: #5c9a6b; --green-bg: #eaf4ec;
+    --amber: #c4883c; --amber-bg: #faf3e8;
+    --rose: #c4726a; --rose-bg: #faf0ee;
+    --purple: #8b6dbe; --purple-bg: #f3eefa;
+    --red: #d9534f;
+    --fire1: #d4380d; --fire2: #fa8c16; --fire3: #fadb14; --fire4: #a0d911; --fire5: #52c41a;
+    --sh-sm: 0 1px 3px rgba(0,0,0,0.04);
+    --sh-md: 0 4px 16px rgba(0,0,0,0.06);
+    --sh-lg: 0 12px 32px rgba(0,0,0,0.08);
+    --r: 14px; --r-sm: 8px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { font-size:1.05rem;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f5f3ef; color: var(--t2); line-height:1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .hero {
+    background: linear-gradient(165deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #fff; padding: 48px 24px 40px; text-align:center;
+    position:relative; overflow:hidden;
+  }
+  .hero::before {
+    content:""; position:absolute; inset:0;
+    background: radial-gradient(circle at 20% 50%, rgba(74,139,194,0.25) 0%, transparent 50%),
+                radial-gradient(circle at 80% 30%, rgba(196,114,106,0.2) 0%, transparent 50%);
+  }
+  .hero-inner { position:relative; max-width:960px; margin:0 auto; }
+  .hero h1 { font-size:2.2rem; font-weight:800; letter-spacing:-0.03em; margin-bottom:8px; }
+  .hero .sub { color:rgba(255,255,255,0.7); font-size:1.05rem; }
+  .hero .badges { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:18px; }
+  .hero .badge-tag {
+    padding:5px 14px; border-radius:18px; font-size:0.85rem; font-weight:550;
+    background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.18);
+  }
+
+  .container { max-width:1080px; margin:0 auto; padding:28px 20px 48px; }
+
+  /* Section */
+  .section { margin-bottom:36px; }
+  .section-title {
+    font-size:1.35rem; font-weight:700; letter-spacing:-0.01em;
+    display:flex; align-items:center; gap:10px; margin-bottom:16px;
+  }
+  .section-title::after { content:""; flex:1; height:1px; background:var(--border); }
+
+  /* Heatmap Table */
+  .heat-table {
+    width:100%; border-collapse:separate; border-spacing:0;
+    background:var(--card); border-radius:var(--r); overflow:hidden;
+    box-shadow:var(--sh-md); font-size:1.02rem;
+  }
+  .heat-table thead th {
+    background:#f8f7f5; padding:14px 16px; text-align:left; font-weight:650;
+    border-bottom:2px solid var(--border); color:var(--t1); font-size:0.92rem;
+    text-transform:uppercase; letter-spacing:0.03em;
+  }
+  .heat-table thead th:first-child { width:22%; }
+  .heat-table thead th:not(:first-child) { width:15%; text-align:center; }
+  .heat-table thead th:last-child { width:13%; text-align:center; }
+  .heat-table td {
+    padding:12px 16px; border-bottom:1px solid #f0eeea; vertical-align:middle;
+  }
+  .heat-table tbody tr:hover { background:#fdfcfa; }
+  .heat-table tbody tr:last-child td { border-bottom:none; }
+  .heat-table td:not(:first-child) { text-align:center; font-weight:600; }
+  .heat-tag {
+    display:inline-block; padding:3px 10px; border-radius:12px; font-size:0.85rem;
+    font-weight:600;
+  }
+  .heat-5 { background:#fee2e2; color:#991b1b; }
+  .heat-4 { background:#fef3c7; color:#92400e; }
+  .heat-3 { background:#dbeafe; color:#1e40af; }
+  .heat-2 { background:#f3f4f6; color:#6b7280; }
+  .heat-1 { background:#f3f4f6; color:#9ca3af; }
+
+  /* Platform Cards */
+  .platform-grid {
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(500px,1fr));
+    gap:16px;
+  }
+  .plat-card {
+    background:var(--card); border-radius:var(--r); box-shadow:var(--sh-sm);
+    overflow:hidden; border:1px solid var(--border); transition:all 0.2s;
+  }
+  .plat-card:hover { box-shadow:var(--sh-lg); transform:translateY(-1px); }
+  .plat-head {
+    padding:18px 22px; display:flex; align-items:center; gap:12px;
+    border-bottom:1px solid var(--border);
+  }
+  .plat-icon { font-size:2.2rem; line-height:1; }
+  .plat-name { font-weight:750; font-size:1.25rem; }
+  .plat-sub { font-size:0.9rem; color:var(--t4); margin-top:1px; }
+  .plat-body { font-size:1.05rem; padding:16px 22px; }
+  .plat-row { display:flex; gap:16px; margin-bottom:12px; }
+  .plat-row:last-child { margin-bottom:0; }
+  .plat-label {
+    font-size:0.85rem; color:var(--t4); text-transform:uppercase;
+    letter-spacing:0.04em; min-width:72px; flex-shrink:0; padding-top:2px;
+  }
+  .plat-value { font-size:0.98rem; color:var(--t2); flex:1; }
+  .plat-tags { display:flex; flex-wrap:wrap; gap:5px; }
+  .plat-chip {
+    padding:4px 12px; border-radius:14px; font-size:0.9rem; font-weight:500;
+  }
+  .chip-blue { background:var(--blue-bg); color:var(--blue); }
+  .chip-green { background:var(--green-bg); color:var(--green); }
+  .chip-amber { background:var(--amber-bg); color:var(--amber); }
+  .chip-rose { background:var(--rose-bg); color:var(--rose); }
+  .chip-purple { background:var(--purple-bg); color:var(--purple); }
+
+  .opp-box {
+    background:#fefdf8; border:1px solid #f0d9a8; border-radius:var(--r-sm);
+    padding:12px 14px; margin-top:10px;
+  }
+  .opp-box .opp-title { font-size:0.85rem; color:#b8963c; font-weight:650; margin-bottom:4px; }
+  .opp-box .opp-text { font-size:0.93rem; color:var(--t2); }
+
+  .achieve-box {
+    background:#f6fef7; border:1px solid #b7d8b0; border-radius:var(--r-sm);
+    padding:12px 14px; margin-top:12px;
+  }
+  .achieve-title { font-size:0.85rem; color:#4a8c3f; font-weight:650; margin-bottom:8px; }
+  .achieve-grid { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+  .achieve-item {
+    background:#fff; border:1px solid #c8e0c2; border-radius:14px;
+    padding:3px 12px; font-size:1rem; color:var(--t2); font-weight:500;
+  }
+  .achieve-item strong { color:#3d7a32; font-weight:700; }
+  .achieve-list { display:flex; flex-direction:column; gap:3px; }
+  .achieve-list span {
+    font-size:1rem; color:var(--t3); line-height:1.5;
+  }
+
+  /* Trend bars */
+  .trend-section { margin-top:36px; }
+  .trend-table {
+    width:100%; background:var(--card); border-radius:var(--r);
+    box-shadow:var(--sh-md); overflow:hidden;
+  }
+  .trend-table thead th {
+    background:#f8f7f5; padding:14px 18px; text-align:left; font-weight:650;
+    border-bottom:2px solid var(--border); color:var(--t1); font-size:0.92rem;
+    text-transform:uppercase; letter-spacing:0.03em;
+  }
+  .trend-table td { padding:14px 18px; border-bottom:1px solid #f0eeea; vertical-align:middle; }
+  .trend-table tbody tr:hover { background:#fdfcfa; }
+  .trend-table tbody tr:last-child td { border-bottom:none; }
+  .trend-name { font-weight:650; font-size:1.05rem; }
+  .trend-bar-wrap { width:100%; height:8px; background:#f0eeea; border-radius:4px; overflow:hidden; }
+  .trend-bar-fill { height:100%; border-radius:4px; transition:width 0.8s ease; }
+  .trend-note { font-size:0.92rem; color:var(--t4); }
+
+  /* Insight cards */
+  .insight-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(320px,1fr)); gap:14px; }
+  .insight-card {
+    background:linear-gradient(135deg, #fefdfb 0%, #fdfaf5 100%);
+    border:1px solid #f0e4cc; border-radius:var(--r);
+    padding:18px 20px; box-shadow:var(--sh-sm);
+  }
+  .insight-num {
+    display:inline-flex; width:28px; height:28px; border-radius:50%;
+    background:linear-gradient(135deg, #d4a843, #c49030);
+    color:#fff; font-size:0.85rem; font-weight:700;
+    align-items:center; justify-content:center; margin-bottom:8px;
+  }
+  .insight-title { font-weight:700; font-size:1.05rem; margin-bottom:4px; }
+  .insight-desc { font-size:0.93rem; color:var(--t3); line-height:1.6; }
+
+  .footer {
+    text-align:center; padding:32px; color:var(--t4); font-size:1rem;
+    border-top:1px solid var(--border); margin-top:20px;
+  }
+
+  @media(max-width:768px) {
+    .hero h1 { font-size:1.65rem; }
+    .platform-grid { grid-template-columns:1fr; }
+    .heat-table { font-size:0.98rem; }
+    .heat-table td, .heat-table th { padding:8px 6px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <h1>四大平台 · 2025 热门技术方向对比</h1>
+    <p class="sub">牛客网 / CSDN / 慕课网 / 蓝桥云课 —— 内容创作灵感地图</p>
+    <div class="badges">
+      <span class="badge-tag">🐮 牛客 · 面试求职</span>
+      <span class="badge-tag">✍️ CSDN · 博客专栏</span>
+      <span class="badge-tag">🎓 慕课网 · 体系课程</span>
+      <span class="badge-tag">🧪 蓝桥云课 · 实验竞赛</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- 1. HEATMAP TABLE -->
+<div class="section">
+  <h2 class="section-title">📊 方向热力总览</h2>
+  <div style="overflow-x:auto;">
+  <table class="heat-table">
+    <thead>
+      <tr>
+        <th>技术方向</th>
+        <th>牛客网</th>
+        <th>CSDN</th>
+        <th>慕课网</th>
+        <th>蓝桥云课</th>
+        <th>综合热度</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>AI / 大模型 / Agent</strong></td>
+        <td><span class="heat-tag heat-4">🔥 高</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td>⭐⭐⭐⭐⭐</td>
+      </tr>
+      <tr>
+        <td><strong>Java 后端全栈</strong></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td>⭐⭐⭐⭐⭐</td>
+      </tr>
+      <tr>
+        <td><strong>前端 / 大前端</strong></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td>⭐⭐⭐⭐</td>
+      </tr>
+      <tr>
+        <td><strong>Python 数据分析</strong></td>
+        <td><span class="heat-tag heat-3">🔥 中</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td>⭐⭐⭐⭐</td>
+      </tr>
+      <tr>
+        <td><strong>Go 云原生</strong></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td><span class="heat-tag heat-3">🔥 中</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td><span class="heat-tag heat-2">🟢 有</span></td>
+        <td>⭐⭐⭐</td>
+      </tr>
+      <tr>
+        <td><strong>算法 / 数据结构</strong></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td><span class="heat-tag heat-3">🔥 中</span></td>
+        <td><span class="heat-tag heat-3">🔥 中</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td>⭐⭐⭐⭐</td>
+      </tr>
+      <tr>
+        <td><strong>鸿蒙 HarmonyOS</strong></td>
+        <td><span class="heat-tag heat-2">🟢 有</span></td>
+        <td><span class="heat-tag heat-3">🔥 中</span></td>
+        <td><span class="heat-tag heat-3">🔥 中</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td>⭐⭐⭐</td>
+      </tr>
+      <tr>
+        <td><strong>C++ 高性能</strong></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td><span class="heat-tag heat-3">🔥 中</span></td>
+        <td><span class="heat-tag heat-2">🟢 有</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td>⭐⭐⭐</td>
+      </tr>
+      <tr>
+        <td><strong>大数据 / Spark</strong></td>
+        <td><span class="heat-tag heat-3">🔥 中</span></td>
+        <td><span class="heat-tag heat-3">🔥 中</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td>⭐⭐⭐</td>
+      </tr>
+      <tr>
+        <td><strong>网络安全 / 渗透</strong></td>
+        <td><span class="heat-tag heat-2">🟢 有</span></td>
+        <td><span class="heat-tag heat-2">🟢 有</span></td>
+        <td><span class="heat-tag heat-2">🟢 有</span></td>
+        <td><span class="heat-tag heat-5">🔥🔥 最高</span></td>
+        <td>⭐⭐</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- 2. CROSS-PLATFORM TREND -->
+<div class="section trend-section">
+  <h2 class="section-title">🎯 跨平台共同趋势</h2>
+  <table class="trend-table">
+    <thead>
+      <tr><th>技术方向</th><th style="width:50%">热力</th><th>趋势解读</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="trend-name">AI / 大模型 / Agent</td>
+        <td>
+          <div class="trend-bar-wrap"><div class="trend-bar-fill" style="width:98%;background:linear-gradient(90deg,#d4380d,#fa8c16)"></div></div>
+        </td>
+        <td class="trend-note">全平台大火，绝对第一梯队。ChatGPT/LLM/Agent/RAG</td>
+      </tr>
+      <tr>
+        <td class="trend-name">Java 后端</td>
+        <td>
+          <div class="trend-bar-wrap"><div class="trend-bar-fill" style="width:95%;background:linear-gradient(90deg,#fa8c16,#fadb14)"></div></div>
+        </td>
+        <td class="trend-note">稳如泰山，Spring 全家桶 + 微服务 + 大模型集成</td>
+      </tr>
+      <tr>
+        <td class="trend-name">前端 / 大前端</td>
+        <td>
+          <div class="trend-bar-wrap"><div class="trend-bar-fill" style="width:88%;background:linear-gradient(90deg,#fadb14,#a0d911)"></div></div>
+        </td>
+        <td class="trend-note">React/Vue/TypeScript + 工程化 + 跨端</td>
+      </tr>
+      <tr>
+        <td class="trend-name">Python + 数据</td>
+        <td>
+          <div class="trend-bar-wrap"><div class="trend-bar-fill" style="width:85%;background:linear-gradient(90deg,#fadb14,#a0d911)"></div></div>
+        </td>
+        <td class="trend-note">AI & 数据科学驱动，Django/FastAPI 后端崛起</td>
+      </tr>
+      <tr>
+        <td class="trend-name">Go 云原生</td>
+        <td>
+          <div class="trend-bar-wrap"><div class="trend-bar-fill" style="width:72%;background:linear-gradient(90deg,#a0d911,#52c41a)"></div></div>
+        </td>
+        <td class="trend-note">字节/腾讯推动，k8s/微服务/高并发</td>
+      </tr>
+      <tr>
+        <td class="trend-name">算法 / 数据结构</td>
+        <td>
+          <div class="trend-bar-wrap"><div class="trend-bar-fill" style="width:78%;background:linear-gradient(90deg,#a0d911,#52c41a)"></div></div>
+        </td>
+        <td class="trend-note">面试刚需 + 蓝桥杯竞赛驱动，持续高需求</td>
+      </tr>
+      <tr>
+        <td class="trend-name">鸿蒙 HarmonyOS</td>
+        <td>
+          <div class="trend-bar-wrap"><div class="trend-bar-fill" style="width:58%;background:linear-gradient(90deg,#52c41a,#237804)"></div></div>
+        </td>
+        <td class="trend-note">新蓝海赛道，竞品少，国家政策推动</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 3. PLATFORM CARDS -->
+<div class="section" style="margin-top:36px;">
+  <h2 class="section-title">📋 平台逐个深挖</h2>
+  <div class="platform-grid">
+
+    <!-- 牛客 -->
+    <div class="plat-card">
+      <div class="plat-head">
+        <span class="plat-icon">🐮</span>
+        <div>
+          <div class="plat-name">牛客网</div>
+          <div class="plat-sub">面试求职第一站 · 题库 + 名企真题 + 校招内推</div>
+        </div>
+      </div>
+      <div class="plat-body">
+        <div class="plat-row">
+          <div class="plat-label">核心用户</div>
+          <div class="plat-value">校招生、转行求职者</div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-label">最火内容</div>
+          <div class="plat-value">Java 面试宝典、大厂算法真题、前端八股文、Go 面经</div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-label">差异化热门</div>
+          <div class="plat-tags">
+            <span class="plat-chip chip-blue">华为机试专练</span>
+            <span class="plat-chip chip-green">ACM 在线训练</span>
+            <span class="plat-chip chip-amber">JS 能力测评</span>
+            <span class="plat-chip chip-rose">BAT 真题模考</span>
+          </div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-label">内容特点</div>
+          <div class="plat-value">短平快、面试导向，"面试""必考""真题"类标题流量最高</div>
+        </div>
+        <div class="achieve-box">
+          <div class="achieve-title">🏆 阿珊已有成绩</div>
+          <div class="achieve-grid">
+            <div class="achieve-item"><strong>312</strong>篇文章</div>
+            <div class="achieve-item"><strong>225</strong>人订阅</div>
+            <div class="achieve-item"><strong>2,522</strong>人学习</div>
+            <div class="achieve-item">牛客<strong>高级专题作者</strong></div>
+          </div>
+          <div class="achieve-list">
+            <span>📘 《前端面试必备》50篇 · 2522人学习</span>
+            <span>📙 《2024前端面试高频手撕题》80篇 · 680人学习</span>
+            <span>📗 《题解 | 前端刷题》182篇 · 420人学习</span>
+          </div>
+        </div>
+        <div class="opp-box">
+          <div class="opp-title">💡 阿珊的机会点</div>
+          <div class="opp-text">
+            「前端转全栈面试路线」——品牌人设天然匹配牛客用户群；面试题专栏已有基础，可向全栈方向扩展
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CSDN -->
+    <div class="plat-card">
+      <div class="plat-head">
+        <span class="plat-icon">✍️</span>
+        <div>
+          <div class="plat-name">CSDN</div>
+          <div class="plat-sub">技术博客 + 付费专栏 · 搜索流量 + 创作者变现</div>
+        </div>
+      </div>
+      <div class="plat-body">
+        <div class="plat-row">
+          <div class="plat-label">核心用户</div>
+          <div class="plat-value">在职开发者、自学者</div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-label">最火内容</div>
+          <div class="plat-value">Python 入门、Java 全家桶、AI 大模型实战、全栈项目</div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-label">差异化热门</div>
+          <div class="plat-tags">
+            <span class="plat-chip chip-amber">付费专栏连载</span>
+            <span class="plat-chip chip-purple">副业变现攻略</span>
+            <span class="plat-chip chip-blue">技术复盘</span>
+            <span class="plat-chip chip-green">SEO 搜索流量</span>
+          </div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-label">内容特点</div>
+          <div class="plat-value">连载制，10-20 篇成体系；标题带"实战""手把手""从零"流量最高</div>
+        </div>
+        <div class="achieve-box">
+          <div class="achieve-title">🏆 阿珊已有成绩</div>
+          <div class="achieve-grid">
+            <div class="achieve-item">CSDN <strong>博客专家</strong></div>
+            <div class="achieve-item"><strong>2023 年度博客之星</strong></div>
+            <div class="achieve-item">前端领域 <strong>TOP 1</strong></div>
+            <div class="achieve-item">阿里云<strong>专家博主</strong></div>
+          </div>
+          <div class="achieve-list">
+            <span>🟢 Vue.js 系列 · Router / Vuex / 组件通信 深度解析</span>
+            <span>🟢 React 系列 · 从0到0.01入门React 面试题精讲</span>
+            <span>🟢 前端工程化 · Webpack / Vite / Babel 实战文章</span>
+          </div>
+        </div>
+        <div class="opp-box">
+          <div class="opp-title">💡 阿珊的机会点</div>
+          <div class="opp-text">
+            「知识专栏生成器」+「CSDN 专栏写手」<strong>天然适配</strong>；<strong>AI + 全栈</strong>是当下 CSDN 最大流量池；"从前端的视角学 XX" 叙事角度在 CSDN 是<strong>空白区</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 慕课网 -->
+    <div class="plat-card">
+      <div class="plat-head">
+        <span class="plat-icon">🎓</span>
+        <div>
+          <div class="plat-name">慕课网</div>
+          <div class="plat-sub">体系化课程 + 就业班 · 大厂讲师 · 3000+ 自制课</div>
+        </div>
+      </div>
+      <div class="plat-body">
+        <div class="plat-row">
+          <div class="plat-label">核心用户</div>
+          <div class="plat-value">系统学习者、转行进阶 · 超 2500 万用户</div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-label">最火方向</div>
+          <div class="plat-value">Java 全栈就业班、大前端工程化、Python+AI、Go 微服务</div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-label">课程数据</div>
+          <div class="plat-tags">
+            <span class="plat-chip chip-blue">3000+ 自制课</span>
+            <span class="plat-chip chip-green">450+ 实战课</span>
+            <span class="plat-chip chip-amber">30+ 就业班</span>
+            <span class="plat-chip chip-rose">最高 122 万人报名</span>
+          </div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-label">内容特点</div>
+          <div class="plat-value">视频为主，理论+实战+项目答辩；产出物导向，学完能做完整项目</div>
+        </div>
+        <div class="opp-box">
+          <div class="opp-title">💡 阿珊的机会点</div>
+          <div class="opp-text">
+            「项目工厂」产出正是 <strong>慕课网课程级别</strong>的内容；"全栈项目实战：从 Vue3 到 FastAPI" 直接匹配慕课网调性；<strong>122 万人次/课</strong> → 赛道够大
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 蓝桥云课 -->
+    <div class="plat-card">
+      <div class="plat-head">
+        <span class="plat-icon">🧪</span>
+        <div>
+          <div class="plat-name">蓝桥云课</div>
+          <div class="plat-sub">实验驱动 + 竞赛 · 在线环境 + 蓝桥杯 + 高校生态</div>
+        </div>
+      </div>
+      <div class="plat-body">
+        <div class="plat-row">
+          <div class="plat-label">核心用户</div>
+          <div class="plat-value">大学生、竞赛选手、高校教师</div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-label">最火方向</div>
+          <div class="plat-value">Python 2025(125门)、Java后端(45门)、AIGC(19门)、鸿蒙</div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-label">2025 热门课</div>
+          <div class="plat-tags">
+            <span class="plat-chip chip-blue">FastAPI 实时会议</span>
+            <span class="plat-chip chip-green">AI Agent 开发</span>
+            <span class="plat-chip chip-amber">SpringBoot 问卷系统</span>
+            <span class="plat-chip chip-rose">鸿蒙仿微信App</span>
+          </div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-label">内容特点</div>
+          <div class="plat-value">短实验为主（每节约 1-2h），在线环境开箱即用，边学边敲</div>
+        </div>
+        <div class="achieve-box">
+          <div class="achieve-title">🏆 阿珊已有成绩</div>
+          <div class="achieve-grid">
+            <div class="achieve-item">蓝桥云课<strong>签约作者</strong></div>
+            <div class="achieve-item"><strong>2</strong>门已上架课程</div>
+          </div>
+          <div class="achieve-list">
+            <span>🟣 《Vue.js 和 Egg.js 开发企业级健康管理项目》— 前后端全栈实战</span>
+            <span>🟣 《带你从入门到实战全面掌握 uni-app》— 跨平台开发</span>
+          </div>
+        </div>
+        <div class="opp-box">
+          <div class="opp-title">💡 阿珊的机会点</div>
+          <div class="opp-text">
+            已有签约作者身份 + 2门课程基础，Lab 实验手册模式与蓝桥云课<strong>天然匹配</strong>；AIGC、AI Agent 实验课是当前<strong>最缺的内容</strong>；下一步可扩展全栈课程线
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 4. INSIGHTS -->
+<div class="section" style="margin-top:36px;">
+  <h2 class="section-title">⚡ 对你的启发</h2>
+  <p style="color:var(--t3); font-size:1rem; margin-bottom:18px;">
+    你现有的技能体系（专栏生成器、课程大纲、项目工厂、Lab 生成器）可以主打这四个差异化定位：
+  </p>
+  <div class="insight-grid">
+    <div class="insight-card">
+      <div class="insight-num">1</div>
+      <div class="insight-title">🔄 前端转全栈</div>
+      <div class="insight-desc">"用前端类比讲后端"，全平台独一份叙事角度。牛客网 + CSDN 双渠道分发，目标用户画像精准（在职前端想突破）</div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-num">2</div>
+      <div class="insight-title">🤖 AI 全栈项目实战</div>
+      <div class="insight-desc">2025 最火赛道 × 项目工厂模式 = 稀缺供给。从 Prompt 工程到 Agent 开发到 RAG 应用，每个环节都是蓝海</div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-num">3</div>
+      <div class="insight-title">🏆 蓝桥·课程矩阵扩展</div>
+      <div class="insight-desc">已有签约作者身份 + 2门全栈/跨端课程。下一步可扩展 AIGC、AI Agent 实验课，与 Lab 生成器无缝衔接，形成"课程→实验→竞赛"闭环</div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-num">4</div>
+      <div class="insight-title">💼 小而美创业课</div>
+      <div class="insight-desc">极简创业者系列 × Sahil Lavingia 方法论本土化。CSDN 付费专栏 + 慕课网体系课程均可落地，差异化明显</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="footer">
+  数据来源：各平台官网公开信息 & 第三方评测 · 整理于 2025 年 7 月 · 仅供内容创作参考
+</div>
+
+</body>
+</html>

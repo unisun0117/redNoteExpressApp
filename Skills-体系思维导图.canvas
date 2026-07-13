@@ -1,0 +1,1331 @@
+{
+  "nodes": [
+    {
+      "id": "787ab995d25be9cf",
+      "type": "text",
+      "x": 60,
+      "y": 600,
+      "width": 320,
+      "height": 90,
+      "text": "# 🎯 Skills 技能体系\n##### 阿珊的 Claude Code 技能控制台",
+      "color": "4"
+    },
+    {
+      "id": "11035d065cbeab4f",
+      "type": "text",
+      "x": 40,
+      "y": 780,
+      "width": 340,
+      "height": 65,
+      "text": "## 📝 内容创作系\n*9 个技能*",
+      "color": "4"
+    },
+    {
+      "id": "fd985b3be021d108",
+      "type": "text",
+      "x": 40,
+      "y": 940,
+      "width": 340,
+      "height": 55,
+      "text": "📚 知识专栏生成器\n*从0到1学技术，10篇专栏"
+    },
+    {
+      "id": "b3c92de688fe0604",
+      "type": "text",
+      "x": 40,
+      "y": 1010,
+      "width": 340,
+      "height": 55,
+      "text": "🎓 课程大纲生成器\n*项目源码→15个Lab课程"
+    },
+    {
+      "id": "64736a17cf1768cc",
+      "type": "text",
+      "x": 40,
+      "y": 1080,
+      "width": 340,
+      "height": 55,
+      "text": "🔬 Lab详细内容生成器\n*大纲+源码→完整实验手册"
+    },
+    {
+      "id": "41623578dc925a85",
+      "type": "text",
+      "x": 40,
+      "y": 1150,
+      "width": 340,
+      "height": 55,
+      "text": "🏭 项目工厂\n*行业+平台→全栈项目+课程+文档"
+    },
+    {
+      "id": "30c0832413cf4e9f",
+      "type": "text",
+      "x": 40,
+      "y": 1220,
+      "width": 340,
+      "height": 55,
+      "text": "✍️ CSDN专栏写手\n*Markdown适配+排期+发布"
+    },
+    {
+      "id": "7654102d26868b7a",
+      "type": "text",
+      "x": 40,
+      "y": 1290,
+      "width": 340,
+      "height": 55,
+      "text": "🔄 同步课程内容\n*OpenSpec变更→自动更新Lab"
+    },
+    {
+      "id": "79cf57010bd1e6a8",
+      "type": "text",
+      "x": 40,
+      "y": 1360,
+      "width": 340,
+      "height": 55,
+      "text": "📋 周报生成器\n*随手日报→标准格式周报"
+    },
+    {
+      "id": "002c2d08f3f6074b",
+      "type": "text",
+      "x": 40,
+      "y": 1430,
+      "width": 340,
+      "height": 55,
+      "text": "🎨 UI先行设计\n*先出原型再写代码"
+    },
+    {
+      "id": "05261dea78cb9a78",
+      "type": "text",
+      "x": 40,
+      "y": 1500,
+      "width": 340,
+      "height": 55,
+      "text": "🏗️ UI页面搭建器\n*12种布局+设计令牌体系"
+    },
+    {
+      "id": "216c81a8c3bc156c",
+      "type": "text",
+      "x": 420,
+      "y": 780,
+      "width": 340,
+      "height": 65,
+      "text": "## 📱 自媒体 & 商业\n*14 个技能*",
+      "color": "2"
+    },
+    {
+      "id": "132391c22882a2b8",
+      "type": "text",
+      "x": 420,
+      "y": 940,
+      "width": 340,
+      "height": 55,
+      "text": "🎯 频道战略师\n*Ikigai四圈+七项检验+五重过滤"
+    },
+    {
+      "id": "c6b2c8981c009b95",
+      "type": "text",
+      "x": 420,
+      "y": 1010,
+      "width": 340,
+      "height": 55,
+      "text": "🔬 博主蒸馏器\n*采集笔记→蒸馏爆款→生成创作指南"
+    },
+    {
+      "id": "f802795b82bae4e2",
+      "type": "text",
+      "x": 420,
+      "y": 1080,
+      "width": 340,
+      "height": 55,
+      "text": "🔥 AIHOT资讯日报\n*每日AI五版块自动生成"
+    },
+    {
+      "id": "6d4c7cdca75a6581",
+      "type": "text",
+      "x": 420,
+      "y": 1150,
+      "width": 340,
+      "height": 55,
+      "text": "🏥 dbskill商业诊断\n*21个子工具全覆盖"
+    },
+    {
+      "id": "856ad56e5d6f8c5b",
+      "type": "text",
+      "x": 420,
+      "y": 1220,
+      "width": 340,
+      "height": 55,
+      "text": "🔎 寻找社群\n*先社区后产品"
+    },
+    {
+      "id": "7ae11f6c4aa01bf3",
+      "type": "text",
+      "x": 420,
+      "y": 1290,
+      "width": 340,
+      "height": 55,
+      "text": "🧪 验证想法\n*七项检验评估商业点子"
+    },
+    {
+      "id": "1f26796ddadd07ca",
+      "type": "text",
+      "x": 420,
+      "y": 1360,
+      "width": 340,
+      "height": 55,
+      "text": "🥚 最小可行产品\n*只做核心必要功能"
+    },
+    {
+      "id": "1c78e3b8899d999f",
+      "type": "text",
+      "x": 420,
+      "y": 1430,
+      "width": 340,
+      "height": 55,
+      "text": "⚙️ 流程化\n*先人工跑通再写代码"
+    },
+    {
+      "id": "3c69274f44bbea79",
+      "type": "text",
+      "x": 420,
+      "y": 1500,
+      "width": 340,
+      "height": 55,
+      "text": "🎯 首批客户\n*三圈法则获取种子用户"
+    },
+    {
+      "id": "f85bb6c41abd4fb2",
+      "type": "text",
+      "x": 420,
+      "y": 1570,
+      "width": 340,
+      "height": 55,
+      "text": "💰 定价\n*成本模型 vs 价值模型"
+    },
+    {
+      "id": "8e5e32a90ddc4a95",
+      "type": "text",
+      "x": 420,
+      "y": 1640,
+      "width": 340,
+      "height": 55,
+      "text": "📢 营销计划\n*先教育后销售"
+    },
+    {
+      "id": "021ad124a13cae03",
+      "type": "text",
+      "x": 420,
+      "y": 1710,
+      "width": 340,
+      "height": 55,
+      "text": "📈 稳健增长\n*盈利第一规模第二"
+    },
+    {
+      "id": "0c3985394583ded2",
+      "type": "text",
+      "x": 420,
+      "y": 1780,
+      "width": 340,
+      "height": 55,
+      "text": "🏛️ 公司价值观\n*招聘前定义文化"
+    },
+    {
+      "id": "27d697f0a2413aa3",
+      "type": "text",
+      "x": 420,
+      "y": 1850,
+      "width": 340,
+      "height": 55,
+      "text": "✂️ 极简复盘\n*8条原则快速决策"
+    },
+    {
+      "id": "3be2258da6f3a15b",
+      "type": "text",
+      "x": 800,
+      "y": 780,
+      "width": 340,
+      "height": 65,
+      "text": "## 💻 开发方法论\n*20 个技能*",
+      "color": "3"
+    },
+    {
+      "id": "a66439ee4979efd2",
+      "type": "text",
+      "x": 800,
+      "y": 940,
+      "width": 340,
+      "height": 55,
+      "text": "💡 头脑风暴\n*先探索再写代码"
+    },
+    {
+      "id": "9ba62a5cfad0b10c",
+      "type": "text",
+      "x": 800,
+      "y": 1010,
+      "width": 340,
+      "height": 55,
+      "text": "📋 Planning with Files\n*三文件持久化规划"
+    },
+    {
+      "id": "8e8993b613e982cc",
+      "type": "text",
+      "x": 800,
+      "y": 1080,
+      "width": 340,
+      "height": 55,
+      "text": "📝 写实施计划\n*零上下文分任务定文件"
+    },
+    {
+      "id": "5a0eacd1a369bfec",
+      "type": "text",
+      "x": 800,
+      "y": 1150,
+      "width": 340,
+      "height": 55,
+      "text": "▶️ 执行计划\n*按步骤实施带审查检查点"
+    },
+    {
+      "id": "c346da755aff0385",
+      "type": "text",
+      "x": 800,
+      "y": 1220,
+      "width": 340,
+      "height": 55,
+      "text": "🧪 TDD\n*红→绿→重构循环"
+    },
+    {
+      "id": "1960b07122ebd8d9",
+      "type": "text",
+      "x": 800,
+      "y": 1290,
+      "width": 340,
+      "height": 55,
+      "text": "🔍 系统化调试\n*排查非瞎猜"
+    },
+    {
+      "id": "1ed65fdaadeaa66c",
+      "type": "text",
+      "x": 800,
+      "y": 1360,
+      "width": 340,
+      "height": 55,
+      "text": "🤖 子智能体驱动\n*并行提效隔离风险"
+    },
+    {
+      "id": "ec2181d0d1c95c70",
+      "type": "text",
+      "x": 800,
+      "y": 1430,
+      "width": 340,
+      "height": 55,
+      "text": "🚀 并行调度智能体\n*多AI并行处理"
+    },
+    {
+      "id": "116f3d4ef6203382",
+      "type": "text",
+      "x": 800,
+      "y": 1500,
+      "width": 340,
+      "height": 55,
+      "text": "✅ 完成前验证\n*端到端验证不改不动"
+    },
+    {
+      "id": "abc5218b25d001f7",
+      "type": "text",
+      "x": 800,
+      "y": 1570,
+      "width": 340,
+      "height": 55,
+      "text": "📮 请求代码审查\n*逻辑漏洞+代码质量"
+    },
+    {
+      "id": "b6602e52525be870",
+      "type": "text",
+      "x": 800,
+      "y": 1640,
+      "width": 340,
+      "height": 55,
+      "text": "📬 接收审查反馈\n*验证而非盲从"
+    },
+    {
+      "id": "5f1dea402f04ce6c",
+      "type": "text",
+      "x": 800,
+      "y": 1710,
+      "width": 340,
+      "height": 55,
+      "text": "🏁 完成开发分支\n*合并/PR/清理"
+    },
+    {
+      "id": "71151cc7c22442bd",
+      "type": "text",
+      "x": 800,
+      "y": 1780,
+      "width": 340,
+      "height": 55,
+      "text": "🌲 Git Worktrees\n*隔离环境开发"
+    },
+    {
+      "id": "14b11db8729e6908",
+      "type": "text",
+      "x": 800,
+      "y": 1850,
+      "width": 340,
+      "height": 55,
+      "text": "⚡ Superpowers指南\n*Skills使用基础规则"
+    },
+    {
+      "id": "bb9518ffcd550786",
+      "type": "text",
+      "x": 800,
+      "y": 1920,
+      "width": 340,
+      "height": 55,
+      "text": "✍️ 编写Skills\n*TDD映射+CSO+流程图"
+    },
+    {
+      "id": "a2161610ca0574ed",
+      "type": "text",
+      "x": 800,
+      "y": 1990,
+      "width": 340,
+      "height": 55,
+      "text": "🔧 Skill Creator\n*四阶段官方生成器"
+    },
+    {
+      "id": "ffcf4618f00ddc55",
+      "type": "text",
+      "x": 800,
+      "y": 2060,
+      "width": 340,
+      "height": 55,
+      "text": "📦 Agent Skills\n*Addy Osmani工程库"
+    },
+    {
+      "id": "c513760e26acdf57",
+      "type": "text",
+      "x": 800,
+      "y": 2130,
+      "width": 340,
+      "height": 55,
+      "text": "🔄 Ralph Wiggum\n*AI自主循环迭代"
+    },
+    {
+      "id": "af25c6346e49cf8c",
+      "type": "text",
+      "x": 800,
+      "y": 2200,
+      "width": 340,
+      "height": 55,
+      "text": "💎 Taste品味UI\n*43k Star设计灵敏度"
+    },
+    {
+      "id": "41b1fe772642f7e4",
+      "type": "text",
+      "x": 800,
+      "y": 2270,
+      "width": 340,
+      "height": 55,
+      "text": "📋 PM Skills\n*100+产品经理技能"
+    },
+    {
+      "id": "a5ed259deb9cd96e",
+      "type": "text",
+      "x": 1180,
+      "y": 780,
+      "width": 340,
+      "height": 65,
+      "text": "## 🔧 效率工具\n*13 个技能*",
+      "color": "5"
+    },
+    {
+      "id": "b1c0a5d2b0d6f9ff",
+      "type": "text",
+      "x": 1180,
+      "y": 940,
+      "width": 340,
+      "height": 55,
+      "text": "🧠 Headroom\n*上下文压缩60-95% Token"
+    },
+    {
+      "id": "1e19909a3d4a6d2e",
+      "type": "text",
+      "x": 1180,
+      "y": 1010,
+      "width": 340,
+      "height": 55,
+      "text": "🌐 Agent Reach\n*搜17平台零API费"
+    },
+    {
+      "id": "50bb08e55ef94180",
+      "type": "text",
+      "x": 1180,
+      "y": 1080,
+      "width": 340,
+      "height": 55,
+      "text": "🖥️ OpenCLI\n*Chrome操作任意网站"
+    },
+    {
+      "id": "3dc1c2ced7a0934a",
+      "type": "text",
+      "x": 1180,
+      "y": 1150,
+      "width": 340,
+      "height": 55,
+      "text": "🧪 Webapp Testing\n*Playwright自动化"
+    },
+    {
+      "id": "facd71e00f97e8d1",
+      "type": "text",
+      "x": 1180,
+      "y": 1220,
+      "width": 340,
+      "height": 55,
+      "text": "🔌 MCP Builder\n*四阶段搭建MCP"
+    },
+    {
+      "id": "13aa1b6d1dec1407",
+      "type": "text",
+      "x": 1180,
+      "y": 1290,
+      "width": 340,
+      "height": 55,
+      "text": "📡 Last30Days\n*30天社区信号搜索"
+    },
+    {
+      "id": "17c5935dc47e6c3e",
+      "type": "text",
+      "x": 1180,
+      "y": 1360,
+      "width": 340,
+      "height": 55,
+      "text": "📓 NotebookLM\n*文档问答带引用"
+    },
+    {
+      "id": "1cc31e90fc8adccd",
+      "type": "text",
+      "x": 1180,
+      "y": 1430,
+      "width": 340,
+      "height": 55,
+      "text": "📝 Obsidian Markdown\n*Wikilinks/Callouts"
+    },
+    {
+      "id": "8f3416dfe80787d2",
+      "type": "text",
+      "x": 1180,
+      "y": 1500,
+      "width": 340,
+      "height": 55,
+      "text": "🗃️ Obsidian Bases\n*视图/过滤器/公式"
+    },
+    {
+      "id": "41d68a0d0fec9c61",
+      "type": "text",
+      "x": 1180,
+      "y": 1570,
+      "width": 340,
+      "height": 55,
+      "text": "🎨 Obsidian Canvas\n*JSON Canvas画布"
+    },
+    {
+      "id": "ed39dc1a09592974",
+      "type": "text",
+      "x": 1180,
+      "y": 1640,
+      "width": 340,
+      "height": 55,
+      "text": "⌨️ Obsidian CLI\n*命令行操作vault"
+    },
+    {
+      "id": "bc883528b5990e47",
+      "type": "text",
+      "x": 1180,
+      "y": 1710,
+      "width": 340,
+      "height": 55,
+      "text": "📄 Defuddle\n*网页提取干净Markdown"
+    },
+    {
+      "id": "e13f3bbe789e2209",
+      "type": "text",
+      "x": 1180,
+      "y": 1780,
+      "width": 340,
+      "height": 55,
+      "text": "🧬 Claude Scientific\n*140+科学计算技能"
+    },
+    {
+      "id": "1ab02197174758ab",
+      "type": "text",
+      "x": 1560,
+      "y": 780,
+      "width": 340,
+      "height": 65,
+      "text": "## 🎨 设计 / 媒体\n*11 个技能*",
+      "color": "1"
+    },
+    {
+      "id": "91c0ab94be4f8027",
+      "type": "text",
+      "x": 1560,
+      "y": 940,
+      "width": 340,
+      "height": 55,
+      "text": "🎯 UI UX Pro Max\n*161规则+67风格"
+    },
+    {
+      "id": "079534e093b31c0d",
+      "type": "text",
+      "x": 1560,
+      "y": 1010,
+      "width": 340,
+      "height": 55,
+      "text": "📊 PPTX\n*Anthropic官方PPT技能"
+    },
+    {
+      "id": "b3ebb2f9b1f6f265",
+      "type": "text",
+      "x": 1560,
+      "y": 1080,
+      "width": 340,
+      "height": 55,
+      "text": "🪧 归藏社交卡片\n*28版式+10主题"
+    },
+    {
+      "id": "1b414faeaea441fa",
+      "type": "text",
+      "x": 1560,
+      "y": 1150,
+      "width": 340,
+      "height": 55,
+      "text": "🖼️ 小红书图片\n*小红书风格图片生成"
+    },
+    {
+      "id": "b46d71a442b6387e",
+      "type": "text",
+      "x": 1560,
+      "y": 1220,
+      "width": 340,
+      "height": 55,
+      "text": "📝 Word文档\n*创建编辑docx"
+    },
+    {
+      "id": "3e95de90570cd142",
+      "type": "text",
+      "x": 1560,
+      "y": 1290,
+      "width": 340,
+      "height": 55,
+      "text": "📕 PDF处理\n*提取/创建/合并/拆分"
+    },
+    {
+      "id": "563a0679eab9ca5b",
+      "type": "text",
+      "x": 1560,
+      "y": 1360,
+      "width": 340,
+      "height": 55,
+      "text": "📗 Excel表格\n*公式/图表/透视表"
+    },
+    {
+      "id": "56d5ecb819d445ee",
+      "type": "text",
+      "x": 1560,
+      "y": 1430,
+      "width": 340,
+      "height": 55,
+      "text": "🎨 Frontend Design\n*564K+安装去AI味UI"
+    },
+    {
+      "id": "a0197486baa66b8f",
+      "type": "text",
+      "x": 1560,
+      "y": 1500,
+      "width": 340,
+      "height": 55,
+      "text": "🖼️ 封面图生成\n*(空壳待配置)"
+    },
+    {
+      "id": "7a99dd25fd31d673",
+      "type": "text",
+      "x": 1560,
+      "y": 1570,
+      "width": 340,
+      "height": 55,
+      "text": "🎨 图片生成\n*(空壳待配置)"
+    },
+    {
+      "id": "256a18a034e469eb",
+      "type": "text",
+      "x": 1560,
+      "y": 1640,
+      "width": 340,
+      "height": 55,
+      "text": "📊 幻灯片生成\n*(空壳待配置)"
+    },
+    {
+      "id": "a557aece92f96ec1",
+      "type": "text",
+      "x": 1940,
+      "y": 780,
+      "width": 340,
+      "height": 65,
+      "text": "## 📦 空壳目录\n*4 个技能*",
+      "color": "6"
+    },
+    {
+      "id": "3897c11de037b99f",
+      "type": "text",
+      "x": 1940,
+      "y": 940,
+      "width": 340,
+      "height": 55,
+      "text": "📖 读书学习\n*无SKILL.md"
+    },
+    {
+      "id": "997d335f8c16b597",
+      "type": "text",
+      "x": 1940,
+      "y": 1010,
+      "width": 340,
+      "height": 55,
+      "text": "🔍 代码审查专家\n*无SKILL.md"
+    },
+    {
+      "id": "f1c89c3ddba63e68",
+      "type": "text",
+      "x": 1940,
+      "y": 1080,
+      "width": 340,
+      "height": 55,
+      "text": "Σ Sigma\n*用途未知"
+    },
+    {
+      "id": "d7a5381469e97a56",
+      "type": "text",
+      "x": 1940,
+      "y": 1150,
+      "width": 340,
+      "height": 55,
+      "text": "🔨 Skill Forge + Review\n*无SKILL.md"
+    }
+  ],
+  "edges": [
+    {
+      "id": "d6099bb4cd4df49b",
+      "fromNode": "787ab995d25be9cf",
+      "fromSide": "bottom",
+      "toNode": "11035d065cbeab4f",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "a3c1b9e044a83e24",
+      "fromNode": "11035d065cbeab4f",
+      "fromSide": "bottom",
+      "toNode": "fd985b3be021d108",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e402fd8dc5b06c44",
+      "fromNode": "11035d065cbeab4f",
+      "fromSide": "bottom",
+      "toNode": "b3c92de688fe0604",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e1d5629dccdf6a2b",
+      "fromNode": "11035d065cbeab4f",
+      "fromSide": "bottom",
+      "toNode": "64736a17cf1768cc",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "c802284eff974a51",
+      "fromNode": "11035d065cbeab4f",
+      "fromSide": "bottom",
+      "toNode": "41623578dc925a85",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "89a35f537f5b574f",
+      "fromNode": "11035d065cbeab4f",
+      "fromSide": "bottom",
+      "toNode": "30c0832413cf4e9f",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "d84fdfb552d58ace",
+      "fromNode": "11035d065cbeab4f",
+      "fromSide": "bottom",
+      "toNode": "7654102d26868b7a",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "edbdda5adfb6a5b8",
+      "fromNode": "11035d065cbeab4f",
+      "fromSide": "bottom",
+      "toNode": "79cf57010bd1e6a8",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "c45f95c4a5ce32bf",
+      "fromNode": "11035d065cbeab4f",
+      "fromSide": "bottom",
+      "toNode": "002c2d08f3f6074b",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "a4c199c5a1d07042",
+      "fromNode": "11035d065cbeab4f",
+      "fromSide": "bottom",
+      "toNode": "05261dea78cb9a78",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "705c58ad0f947ef2",
+      "fromNode": "787ab995d25be9cf",
+      "fromSide": "bottom",
+      "toNode": "216c81a8c3bc156c",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "33b93cb8c358a799",
+      "fromNode": "216c81a8c3bc156c",
+      "fromSide": "bottom",
+      "toNode": "132391c22882a2b8",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "6743b9a757db270a",
+      "fromNode": "216c81a8c3bc156c",
+      "fromSide": "bottom",
+      "toNode": "c6b2c8981c009b95",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "50bc30d81ae1897f",
+      "fromNode": "216c81a8c3bc156c",
+      "fromSide": "bottom",
+      "toNode": "f802795b82bae4e2",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "94f15038fdc96f3a",
+      "fromNode": "216c81a8c3bc156c",
+      "fromSide": "bottom",
+      "toNode": "6d4c7cdca75a6581",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "74bcf126823b6762",
+      "fromNode": "216c81a8c3bc156c",
+      "fromSide": "bottom",
+      "toNode": "856ad56e5d6f8c5b",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "5cd9e1dd71619e7d",
+      "fromNode": "216c81a8c3bc156c",
+      "fromSide": "bottom",
+      "toNode": "7ae11f6c4aa01bf3",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "5043c44f1d644607",
+      "fromNode": "216c81a8c3bc156c",
+      "fromSide": "bottom",
+      "toNode": "1f26796ddadd07ca",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "ace5db22359d37ac",
+      "fromNode": "216c81a8c3bc156c",
+      "fromSide": "bottom",
+      "toNode": "1c78e3b8899d999f",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "1dfdfdc0ca72010b",
+      "fromNode": "216c81a8c3bc156c",
+      "fromSide": "bottom",
+      "toNode": "3c69274f44bbea79",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "2571d0efdff6cc46",
+      "fromNode": "216c81a8c3bc156c",
+      "fromSide": "bottom",
+      "toNode": "f85bb6c41abd4fb2",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "1750c149c28c4443",
+      "fromNode": "216c81a8c3bc156c",
+      "fromSide": "bottom",
+      "toNode": "8e5e32a90ddc4a95",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "63ef15f695abf142",
+      "fromNode": "216c81a8c3bc156c",
+      "fromSide": "bottom",
+      "toNode": "021ad124a13cae03",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "0391d90ae6d2f6d5",
+      "fromNode": "216c81a8c3bc156c",
+      "fromSide": "bottom",
+      "toNode": "0c3985394583ded2",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "4e8fffe4800f8242",
+      "fromNode": "216c81a8c3bc156c",
+      "fromSide": "bottom",
+      "toNode": "27d697f0a2413aa3",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "806e8c978ea0e5c8",
+      "fromNode": "787ab995d25be9cf",
+      "fromSide": "bottom",
+      "toNode": "3be2258da6f3a15b",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e9be223d18687f0f",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "a66439ee4979efd2",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "5247395e012cfd59",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "9ba62a5cfad0b10c",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e97f334d4a475294",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "8e8993b613e982cc",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "da7e3a4f17cad1d4",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "5a0eacd1a369bfec",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "3e9ec764643325a0",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "c346da755aff0385",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e523b6a6e43059f2",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "1960b07122ebd8d9",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "eaa32cc8a2c3a08d",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "1ed65fdaadeaa66c",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "fd210e3cd6731cde",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "ec2181d0d1c95c70",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e3153852d62b7dab",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "116f3d4ef6203382",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "cca1e1f61d56fa03",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "abc5218b25d001f7",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "9dd03e86beaf0d38",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "b6602e52525be870",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "bb78fdca76db8711",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "5f1dea402f04ce6c",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "f38aac6d8541c9fc",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "71151cc7c22442bd",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "5590c33b7f7d9176",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "14b11db8729e6908",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "11f2a6d3de403462",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "bb9518ffcd550786",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "0df335fc720297b4",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "a2161610ca0574ed",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "f3abd0631255605c",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "ffcf4618f00ddc55",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "ee4e9df7aeb48bf9",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "c513760e26acdf57",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "d13847b4f84b88cc",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "af25c6346e49cf8c",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "ac5cb14118d704b6",
+      "fromNode": "3be2258da6f3a15b",
+      "fromSide": "bottom",
+      "toNode": "41b1fe772642f7e4",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "d980002d4aeceff2",
+      "fromNode": "787ab995d25be9cf",
+      "fromSide": "bottom",
+      "toNode": "a5ed259deb9cd96e",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "dfb697aa3868a8de",
+      "fromNode": "a5ed259deb9cd96e",
+      "fromSide": "bottom",
+      "toNode": "b1c0a5d2b0d6f9ff",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "eee69c51216749b2",
+      "fromNode": "a5ed259deb9cd96e",
+      "fromSide": "bottom",
+      "toNode": "1e19909a3d4a6d2e",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "6de590fdf68953c9",
+      "fromNode": "a5ed259deb9cd96e",
+      "fromSide": "bottom",
+      "toNode": "50bb08e55ef94180",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "94cfd118e1f09951",
+      "fromNode": "a5ed259deb9cd96e",
+      "fromSide": "bottom",
+      "toNode": "3dc1c2ced7a0934a",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "bb6a949220187729",
+      "fromNode": "a5ed259deb9cd96e",
+      "fromSide": "bottom",
+      "toNode": "facd71e00f97e8d1",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "6ca64760c88bb48b",
+      "fromNode": "a5ed259deb9cd96e",
+      "fromSide": "bottom",
+      "toNode": "13aa1b6d1dec1407",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "599f94878699c5d9",
+      "fromNode": "a5ed259deb9cd96e",
+      "fromSide": "bottom",
+      "toNode": "17c5935dc47e6c3e",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "dbc24d9fd1c530e8",
+      "fromNode": "a5ed259deb9cd96e",
+      "fromSide": "bottom",
+      "toNode": "1cc31e90fc8adccd",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "ccaef7e1dc59f0a2",
+      "fromNode": "a5ed259deb9cd96e",
+      "fromSide": "bottom",
+      "toNode": "8f3416dfe80787d2",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "98ca8d5fcb3a212d",
+      "fromNode": "a5ed259deb9cd96e",
+      "fromSide": "bottom",
+      "toNode": "41d68a0d0fec9c61",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "267bfccb54a0fd21",
+      "fromNode": "a5ed259deb9cd96e",
+      "fromSide": "bottom",
+      "toNode": "ed39dc1a09592974",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "25e707fc58f1157a",
+      "fromNode": "a5ed259deb9cd96e",
+      "fromSide": "bottom",
+      "toNode": "bc883528b5990e47",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "a3e74a00cb1de404",
+      "fromNode": "a5ed259deb9cd96e",
+      "fromSide": "bottom",
+      "toNode": "e13f3bbe789e2209",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "36d8747bf6338e33",
+      "fromNode": "787ab995d25be9cf",
+      "fromSide": "bottom",
+      "toNode": "1ab02197174758ab",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "9da23807f802da1c",
+      "fromNode": "1ab02197174758ab",
+      "fromSide": "bottom",
+      "toNode": "91c0ab94be4f8027",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "4c90dc6071bb49b9",
+      "fromNode": "1ab02197174758ab",
+      "fromSide": "bottom",
+      "toNode": "079534e093b31c0d",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "912f882ae64e5754",
+      "fromNode": "1ab02197174758ab",
+      "fromSide": "bottom",
+      "toNode": "b3ebb2f9b1f6f265",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "84e91e19c1e31b58",
+      "fromNode": "1ab02197174758ab",
+      "fromSide": "bottom",
+      "toNode": "1b414faeaea441fa",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "cea5d0b1bb947ef4",
+      "fromNode": "1ab02197174758ab",
+      "fromSide": "bottom",
+      "toNode": "b46d71a442b6387e",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "db03fa63a284f9c4",
+      "fromNode": "1ab02197174758ab",
+      "fromSide": "bottom",
+      "toNode": "3e95de90570cd142",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "a442b35c051bb5fb",
+      "fromNode": "1ab02197174758ab",
+      "fromSide": "bottom",
+      "toNode": "563a0679eab9ca5b",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "ef9ac98a95b2b99e",
+      "fromNode": "1ab02197174758ab",
+      "fromSide": "bottom",
+      "toNode": "56d5ecb819d445ee",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "f4109c4d0081fae0",
+      "fromNode": "1ab02197174758ab",
+      "fromSide": "bottom",
+      "toNode": "a0197486baa66b8f",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "9ddf69630cf175fd",
+      "fromNode": "1ab02197174758ab",
+      "fromSide": "bottom",
+      "toNode": "7a99dd25fd31d673",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "001a63b787692142",
+      "fromNode": "1ab02197174758ab",
+      "fromSide": "bottom",
+      "toNode": "256a18a034e469eb",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e3a329a686feff58",
+      "fromNode": "787ab995d25be9cf",
+      "fromSide": "bottom",
+      "toNode": "a557aece92f96ec1",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "e0fefd2eef9b037c",
+      "fromNode": "a557aece92f96ec1",
+      "fromSide": "bottom",
+      "toNode": "3897c11de037b99f",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "d9cf502d93361e65",
+      "fromNode": "a557aece92f96ec1",
+      "fromSide": "bottom",
+      "toNode": "997d335f8c16b597",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "b2975e68eca27a76",
+      "fromNode": "a557aece92f96ec1",
+      "fromSide": "bottom",
+      "toNode": "f1c89c3ddba63e68",
+      "toSide": "top",
+      "toEnd": "arrow"
+    },
+    {
+      "id": "cb5ba31a122546a8",
+      "fromNode": "a557aece92f96ec1",
+      "fromSide": "bottom",
+      "toNode": "d7a5381469e97a56",
+      "toSide": "top",
+      "toEnd": "arrow"
+    }
+  ]
+}

@@ -189,7 +189,7 @@
     border-bottom:1px solid var(--g3); border-radius:var(--r-sm) var(--r-sm) 0 0;
     margin-left:-4px; margin-right:-4px;
   }
-  .category-header h2 { font-size:1.15rem; font-weight:700; letter-spacing:-0.01em; }
+  .category-header h2 { font-size:1.3rem; font-weight:700; letter-spacing:-0.01em; }
   .category-count { font-size:0.82rem; color:var(--g6); font-weight:500; }
   .category-toggle {
     margin-left:auto; font-size:0.76rem; color:var(--g5); cursor:pointer;
@@ -217,7 +217,7 @@
     background:var(--g0); border:1px solid var(--g3); border-radius:var(--r);
     box-shadow:var(--sh-xs); transition:all 0.25s cubic-bezier(0.16,1,0.3,1);
     position:relative; overflow:hidden; display:flex; flex-direction:column;
-    animation:fadeIn 0.4s ease both;
+    animation:fadeIn 0.4s ease both; cursor:pointer;
   }
   .card:hover { box-shadow:var(--sh-lg); transform:translateY(-2px); border-color:var(--g4); }
   .card-inner { padding:18px 20px; flex:1; display:flex; flex-direction:column; }
@@ -358,6 +358,119 @@
     .pill { padding:6px 12px; font-size:0.78rem; }
     .page-header h1 { font-size:1.3rem; }
   }
+
+  /* ===== DETAIL MODAL ===== */
+  .modal-overlay {
+    position:fixed; inset:0; z-index:900; background:rgba(0,0,0,0.45);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity 0.25s;
+    backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
+  }
+  .modal-overlay.open { opacity:1; pointer-events:auto; }
+  .modal {
+    background:var(--g0); border:1px solid var(--g3); border-radius:var(--r-lg);
+    box-shadow:var(--sh-lg); width:min(780px, 92vw); max-height:85vh;
+    display:flex; flex-direction:column; overflow:hidden;
+    transform:translateY(20px) scale(0.97); transition:transform 0.3s cubic-bezier(0.16,1,0.3,1);
+  }
+  .modal-overlay.open .modal { transform:translateY(0) scale(1); }
+  .modal-header {
+    display:flex; align-items:center; gap:12px; padding:20px 24px;
+    border-bottom:1px solid var(--g3); flex-shrink:0;
+  }
+  .modal-header-icon { font-size:1.8rem; line-height:1; }
+  .modal-header-info { flex:1; min-width:0; }
+  .modal-header-name { font-weight:700; font-size:1.45rem; letter-spacing:-0.01em; }
+  .modal-header-path {
+    font-size:0.85rem; color:var(--g5); font-family:"JetBrains Mono","SF Mono",monospace;
+    margin-top:2px; word-break:break-all;
+  }
+  .modal-close {
+    width:32px; height:32px; border-radius:50%; border:1px solid var(--g3);
+    background:var(--g0); cursor:pointer; font-size:1rem; display:flex;
+    align-items:center; justify-content:center; color:var(--g6); transition:all 0.15s;
+  }
+  .modal-close:hover { background:var(--g2); color:var(--g9); }
+  .modal-body { flex:1; overflow-y:auto; padding:20px 24px; font-size:0.95rem; }
+  .modal-body::-webkit-scrollbar { width:4px; }
+  .modal-body::-webkit-scrollbar-thumb { background:var(--g4); border-radius:4px; }
+  .modal-section { margin-bottom:20px; }
+  .modal-section:last-child { margin-bottom:0; }
+  .modal-section-title { font-size:1rem;
+    font-size:1rem; font-weight:650; color:var(--g6); text-transform:uppercase;
+    letter-spacing:0.04em; margin-bottom:10px; display:flex; align-items:center; gap:6px;
+  }
+  .modal-section-title::after {
+    content:""; flex:1; height:1px; background:var(--g3);
+  }
+  .detail-files {
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr));
+    gap:4px;
+  }
+  .detail-file { font-size:0.95rem;
+    display:flex; align-items:center; gap:6px; padding:6px 10px; border-radius:6px;
+    background:var(--g1); border:1px solid var(--g2);
+    font-family:"JetBrains Mono","SF Mono",monospace; font-size:0.95rem;
+  }
+  .detail-file .fi { font-size:1rem; flex-shrink:0; }
+  .detail-file.is-md { border-color:#d4b06040; background:#fef9f0; }
+  [data-theme="dark"] .detail-file.is-md { border-color:#4a3a2040; background:#2a2218; }
+  .detail-subdir {
+    display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:6px;
+    background:var(--blue-bg); border:1px solid var(--blue);
+    font-weight:500; font-size:0.92rem; margin:2px;
+  }
+  .detail-excerpt {
+    background:var(--g1); border:1px solid var(--g3); border-radius:var(--r-sm);
+    padding:16px 18px; font-size:0.95rem; line-height:1.75; color:var(--g7);
+    white-space:normal; max-height:460px; overflow-y:auto;
+    font-family:"Inter","PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  .detail-excerpt .md-frontmatter { font-size:0.8rem;
+    background:var(--g2); border-radius:6px; padding:8px 12px; margin-bottom:12px;
+    font-family:"JetBrains Mono","SF Mono",monospace; font-size:0.8rem;
+    color:var(--g5); white-space:pre-wrap; line-height:1.45;
+  }
+  .detail-excerpt .md-h2 { font-size:1.2rem; font-weight:700; color:var(--g9); margin:14px 0 8px; }
+  .detail-excerpt .md-h3 { font-size:1.1rem; font-weight:700; color:var(--g9); margin:12px 0 6px; }
+  .detail-excerpt .md-h4 { font-size:1rem; font-weight:650; color:var(--g8); margin:10px 0 4px; }
+  .detail-excerpt .md-h5 { font-size:0.95rem; font-weight:600; color:var(--g8); margin:8px 0 4px; }
+  .detail-excerpt .md-code { font-size:0.82rem;
+    display:block; background:var(--g2); border:1px solid var(--g3); border-radius:6px;
+    padding:10px 14px; margin:8px 0; font-family:"JetBrains Mono","SF Mono",monospace;
+    font-size:0.82rem; line-height:1.5; overflow-x:auto; white-space:pre;
+  }
+  .detail-excerpt .md-inline { font-size:0.85rem;
+    background:var(--g2); padding:1px 5px; border-radius:4px;
+    font-family:"JetBrains Mono","SF Mono",monospace; font-size:0.85rem; color:var(--rose);
+  }
+  .detail-excerpt .md-table { font-size:0.9rem;
+    width:100%; border-collapse:collapse; margin:10px 0; font-size:0.9rem;
+  }
+  .detail-excerpt .md-table td {
+    padding:6px 10px; border:1px solid var(--g3); vertical-align:top;
+  }
+  .detail-excerpt .md-ul { padding-left:20px; margin:6px 0; }
+  .detail-excerpt .md-ul li { margin:3px 0; }
+  .detail-excerpt .md-hr { border:none; border-top:1px solid var(--g3); margin:14px 0; }
+  .detail-excerpt strong { color:var(--g9); font-weight:650; }
+  .detail-excerpt em { color:var(--g7); }
+  .detail-meta {
+    display:flex; gap:12px; flex-wrap:wrap; font-size:0.95rem; color:var(--g6);
+  }
+  .detail-meta-item { display:flex; align-items:center; gap:4px; }
+  .detail-empty { font-size:0.92rem;
+    text-align:center; padding:32px 20px; color:var(--g5);
+  }
+  .detail-empty-icon { font-size:2.5rem; display:block; margin-bottom:10px; }
+  .detail-trigger-box {
+    background:var(--g1); border:1px solid var(--g3); border-radius:var(--r-sm);
+    padding:12px 14px; margin-bottom:10px;
+  }
+  .detail-trigger-box .tt { font-size:0.98rem;
+    font-size:0.98rem; color:var(--g7); line-height:1.65;
+  }
+  .detail-trigger-box .tt strong { color:var(--g9); }
 </style>
 </head>
 <body>
@@ -445,6 +558,22 @@
 <button class="btt" id="btt" onclick="scrollToTop()" title="回到顶部">🚀</button>
 <div class="toast" id="toast"></div>
 
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeDetail()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-header-icon" id="modalIcon"></span>
+      <div class="modal-header-info">
+        <div class="modal-header-name" id="modalName"></div>
+        <div class="modal-header-path" id="modalPath"></div>
+      </div>
+      <button class="modal-close" onclick="closeDetail()" title="关闭">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="scripts/skill-details.js"></script>
 <script>
 // ===== DATA =====
 const CAT_META = {
@@ -778,6 +907,9 @@ function showToast(msg) {
 document.addEventListener('keydown', e => {
   if ((e.metaKey||e.ctrlKey) && e.key === 'k') { e.preventDefault(); document.getElementById('search').focus(); }
   if (e.key === 'Escape') {
+    if (document.getElementById('modalOverlay').classList.contains('open')) {
+      closeDetail(); return;
+    }
     const s = document.getElementById('search');
     s.blur(); s.value = ''; applyFilters();
   }
@@ -798,6 +930,173 @@ document.addEventListener('keydown', e => {
     else idx = Math.max(idx-1, 0);
     visible[idx].focus({preventScroll:false});
   }
+});
+
+// ===== DETAIL MODAL =====
+function resolveDetailKey(skillF) {
+  // Clean up the f field to match SKILL_DETAILS keys
+  let key = skillF.trim();
+  // Remove parenthetical notes like （软链接）
+  key = key.replace(/[（(][^)）]*[)）]/g, '').trim();
+  // Handle compound entries (skill-forge · skill-review)
+  if (key.includes(' · ')) {
+    return key.split(' · ')[0].trim();
+  }
+  return key;
+}
+
+function renderMarkdown(md) {
+  if (!md) return '';
+  // Escape HTML first
+  let html = md
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // YAML frontmatter --- ... ---
+  html = html.replace(/^---([\s\S]*?)---/, '<div class="md-frontmatter">$1</div>');
+
+  // Code blocks ``` ... ```
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="md-code"><code>$2</code></pre>');
+
+  // Inline code `...`
+  html = html.replace(/`([^`]+)`/g, '<code class="md-inline">$1</code>');
+
+  // Headings
+  html = html.replace(/^#### (.+)$/gm, '<h5 class="md-h5">$1</h5>');
+  html = html.replace(/^### (.+)$/gm, '<h4 class="md-h4">$1</h4>');
+  html = html.replace(/^## (.+)$/gm, '<h3 class="md-h3">$1</h3>');
+  html = html.replace(/^# (.+)$/gm, '<h2 class="md-h2">$1</h2>');
+
+  // Bold / Italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+
+  // Horizontal rule --- or ***
+  html = html.replace(/^(---|\*\*\*)$/gm, '<hr class="md-hr">');
+
+  // Tables (simple: | a | b |)
+  html = html.replace(/^\|(.+)\|$/gm, function(line) {
+    var cells = line.replace(/^\||\|$/g, '').split('|');
+    var isSep = cells.every(function(c) { return /^[\s:-]+$/.test(c); });
+    if (isSep) return '<!-- table-sep -->';
+    var tds = cells.map(function(c) { return '<td>' + c.trim() + '</td>'; }).join('');
+    return '<tr>' + tds + '</tr>';
+  });
+  // Wrap consecutive <tr>s in <table>
+  html = html.replace(/((?:(?:<tr>.*?<\/tr>|<!-- table-sep -->)\s*)+)/g, function(m) {
+    return '<table class="md-table">' + m.replace(/<!-- table-sep -->\s*/g, '') + '</table>';
+  });
+
+  // Unordered lists
+  html = html.replace(/^(\s*)[-*] (.+)$/gm, '<li>$2</li>');
+  html = html.replace(/((?:<li>.*?<\/li>\s*)+)/g, '<ul class="md-ul">$1</ul>');
+
+  // Line breaks
+  html = html.replace(/\n\n/g, '<br><br>');
+  html = html.replace(/\n/g, '<br>');
+
+  return html;
+}
+
+function openDetail(skill) {
+  const overlay = document.getElementById('modalOverlay');
+  const lookupKey = resolveDetailKey(skill.f);
+  let detail = (typeof SKILL_DETAILS !== 'undefined') ? SKILL_DETAILS[lookupKey] : null;
+
+  // Set header
+  document.getElementById('modalIcon').textContent = skill.i;
+  document.getElementById('modalName').textContent = skill.n;
+  document.getElementById('modalPath').textContent = detail ? detail.path : skill.f;
+
+  // Build body
+  let html = '';
+
+  // Trigger phrases
+  html += '<div class="modal-section">';
+  html += '<div class="modal-section-title">💬 触发词</div>';
+  html += '<div class="detail-trigger-box"><div class="tt">' + skill.t + '</div></div>';
+  html += '</div>';
+
+  if (detail) {
+    // Description
+    html += '<div class="modal-section">';
+    html += '<div class="modal-section-title">📝 简介</div>';
+    html += '<div class="detail-meta">' + skill.d + '</div>';
+    html += '</div>';
+
+    // Meta info
+    html += '<div class="modal-section">';
+    html += '<div class="modal-section-title">📊 统计</div>';
+    html += '<div class="detail-meta">';
+    html += '<span class="detail-meta-item">📁 目录 <strong>' + detail.path + '</strong></span>';
+    html += '<span class="detail-meta-item">📄 ' + detail.totalFiles + ' 个文件</span>';
+    if (detail.hasSkillMd) html += '<span class="detail-meta-item">✅ 有 SKILL.md</span>';
+    else html += '<span class="detail-meta-item">⚠️ 无 SKILL.md</span>';
+    html += '</div></div>';
+
+    // Subdirectories
+    if (detail.subdirs && detail.subdirs.length > 0) {
+      html += '<div class="modal-section">';
+      html += '<div class="modal-section-title">📂 子目录 (' + detail.subdirs.length + ')</div>';
+      html += '<div>' + detail.subdirs.map(d => '<span class="detail-subdir">📁 ' + d + '</span>').join('') + '</div>';
+      html += '</div>';
+    }
+
+    // Files
+    if (detail.files && detail.files.length > 0) {
+      html += '<div class="modal-section">';
+      html += '<div class="modal-section-title">📄 文件列表</div>';
+      html += '<div class="detail-files">';
+      html += detail.files.map(f => {
+        let cls = '', icon = '📄';
+        if (f.endsWith('.md')) { cls = ' is-md'; icon = '📝'; }
+        else if (f.endsWith('.py')) { icon = '🐍'; }
+        else if (f.endsWith('.js')||f.endsWith('.ts')||f.endsWith('.mjs')) { icon = '🟨'; }
+        else if (f.endsWith('.html')) { icon = '🌐'; }
+        else if (f.endsWith('.css')) { icon = '🎨'; }
+        else if (f.endsWith('.json')) { icon = '📋'; }
+        else if (f.endsWith('.sh')) { icon = '💻'; }
+        return '<span class="detail-file' + cls + '"><span class="fi">' + icon + '</span>' + f + '</span>';
+      }).join('') + '</div></div>';
+    }
+
+    // SKILL.md excerpt
+    if (detail.hasSkillMd && detail.excerpt) {
+      html += '<div class="modal-section">';
+      html += '<div class="modal-section-title">📖 SKILL.md 预览</div>';
+      html += '<div class="detail-excerpt">' + renderMarkdown(detail.excerpt) + '</div>';
+      html += '</div>';
+    }
+  } else {
+    // No detail found
+    html += '<div class="detail-empty">';
+    html += '<span class="detail-empty-icon">📦</span>';
+    html += '<p>暂无详细目录信息</p>';
+    html += '<p style="font-size:0.78rem;color:var(--g5);margin-top:4px">查找键: ' + lookupKey + '</p>';
+    html += '</div>';
+  }
+
+  document.getElementById('modalBody').innerHTML = html;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail() {
+  const overlay = document.getElementById('modalOverlay');
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Add card click to open detail (delegate on container)
+document.getElementById('cardsContainer').addEventListener('click', function(e) {
+  // Don't open detail if clicking copy button, fav button, or trigger text
+  if (e.target.closest('[data-action="copy"]') || e.target.closest('[data-action="fav"]')) return;
+  const card = e.target.closest('.card');
+  if (!card) return;
+  const skillName = card.dataset.name;
+  const skill = skills.find(s => s.n === skillName);
+  if (skill) openDetail(skill);
 });
 
 // ===== INIT =====
