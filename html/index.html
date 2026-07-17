@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 知识库 · 交互式文档导航</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap');
+
+:root{
+  --bg:#fafafa;--card:#fff;--border:rgba(0,0,0,0.06);
+  --text:#1a1a1a;--muted:rgba(0,0,0,0.5);--dim:rgba(0,0,0,0.25);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Inter','Noto Sans SC','PingFang SC',sans-serif;
+  line-height:1.6;min-height:100vh;
+}
+
+/* Header */
+.header{
+  text-align:center;padding:64px 24px 40px;
+}
+.header .logo{
+  font-size:48px;display:block;margin-bottom:16px;
+  animation:logoBounce 2s ease-in-out infinite;
+}
+@keyframes logoBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.header h1{font-size:clamp(24px,4vw,36px);font-weight:900;letter-spacing:-1px;margin-bottom:6px;}
+.header p{font-size:14px;color:var(--muted);}
+
+/* Container */
+.container{max-width:1100px;margin:0 auto;padding:0 24px 60px;}
+
+/* Category */
+.cat{margin-bottom:48px;}
+.cat-title{
+  font-size:13px;font-weight:700;letter-spacing:2px;
+  color:var(--dim);text-transform:uppercase;
+  margin-bottom:16px;padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+}
+
+/* Grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+
+/* Card */
+.card{
+  display:flex;align-items:flex-start;gap:14px;
+  padding:18px 20px;border-radius:14px;
+  background:var(--card);border:1px solid var(--border);
+  text-decoration:none;color:var(--text);
+  transition:all .3s cubic-bezier(.22,.61,.36,1);
+}
+.card:hover{
+  border-color:rgba(0,0,0,0.12);
+  transform:translateY(-3px);
+  box-shadow:0 8px 30px rgba(0,0,0,0.06);
+}
+.card .icon{
+  width:44px;height:44px;border-radius:12px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+}
+.card .info h3{font-size:15px;font-weight:700;margin-bottom:2px;letter-spacing:-0.3px;}
+.card .info .desc{font-size:12px;color:var(--muted);line-height:1.5;}
+.card .info .tag{
+  display:inline-block;margin-top:6px;padding:2px 8px;border-radius:4px;
+  font-size:10px;font-weight:600;letter-spacing:1px;
+}
+
+/* Footer */
+.footer{
+  text-align:center;padding:36px 24px;border-top:1px solid var(--border);
+  color:var(--dim);font-size:12px;
+}
+
+@media(max-width:640px){
+  .header{padding:40px 16px 28px;}
+  .container{padding:0 16px 40px;}
+  .grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="logo">📚</span>
+  <h1>AI 知识库 · 交互式文档</h1>
+  <p>17 篇深度内容 · 11 种设计风格 · 点击任意卡片即可阅读</p>
+</div>
+
+<div class="container">
+
+  <!-- ═══ AI 核心认知 ═══ -->
+  <div class="cat">
+    <div class="cat-title">🧠 AI 核心认知</div>
+    <div class="grid">
+      <a href="从零认知LLM及应用场景-胶片复古风.html" class="card">
+        <div class="icon" style="background:rgba(180,150,100,0.1);">🎬</div>
+        <div class="info">
+          <h3>从零认知大语言模型（LLM）</h3>
+          <div class="desc">什么是LLM？如何工作？主要家族、能力边界、正确使用姿势</div>
+          <span class="tag" style="background:rgba(180,150,100,0.1);color:#8b6914;">胶片复古风</span>
+        </div>
+      </a>
+      <a href="小白必学AI提示词技巧-国潮风.html" class="card">
+        <div class="icon" style="background:rgba(200,40,40,0.08);">🏮</div>
+        <div class="info">
+          <h3>小白必学 AI 提示词技巧</h3>
+          <div class="desc">八大提词术 · 七要素公式 · 红黑榜 · 场景速查模板</div>
+          <span class="tag" style="background:rgba(200,40,40,0.08);color:#c02030;">国潮风</span>
+        </div>
+      </a>
+      <a href="灵活驾驭各大AI场景实战落地-赛博朋克风.html" class="card">
+        <div class="icon" style="background:rgba(0,200,255,0.08);">⚡</div>
+        <div class="info">
+          <h3>灵活驾驭各大 AI 场景实战落地</h3>
+          <div class="desc">6大场景矩阵 · 4种编排模式 · 场景切换能力</div>
+          <span class="tag" style="background:rgba(0,200,255,0.08);color:#0af;">赛博朋克风</span>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══ 开发方法论 ═══ -->
+  <div class="cat">
+    <div class="cat-title">📐 开发方法论</div>
+    <div class="grid">
+      <a href="SDD-规范驱动开发详解.html" class="card">
+        <div class="icon" style="background:rgba(120,80,240,0.08);">📐</div>
+        <div class="info">
+          <h3>SDD · 规范驱动开发详解</h3>
+          <div class="desc">六要素规范 · 四阶段工作流 · Vibe Coding对比 · 在线Spec生成器</div>
+          <span class="tag" style="background:rgba(120,80,240,0.08);color:#7850f0;">3D 交互</span>
+        </div>
+      </a>
+      <a href="OpenSpec+Superpowers完全掌握指南.html" class="card">
+        <div class="icon" style="background:rgba(100,160,240,0.08);">🦸</div>
+        <div class="info">
+          <h3>掌握 OpenSpec + Superpowers</h3>
+          <div class="desc">14大技能 · 5大命令 · 完整工作流 · 真实一天演示</div>
+          <span class="tag" style="background:rgba(100,160,240,0.08);color:#60a0f0;">3D 粒子</span>
+        </div>
+      </a>
+      <a href="AI系统架构设计进阶-暗黑风.html" class="card">
+        <div class="icon" style="background:rgba(100,120,255,0.08);">🏗️</div>
+        <div class="info">
+          <h3>AI 系统架构设计进阶</h3>
+          <div class="desc">五层架构 · MCP协议 · 智能体编排 · RAG · Memory · 生产级要素</div>
+          <span class="tag" style="background:rgba(100,120,255,0.08);color:#6c8cff;">暗黑风</span>
+        </div>
+      </a>
+      <a href="AI规范驱动+Harness-古风卷.html" class="card">
+        <div class="icon" style="background:rgba(180,80,40,0.08);">📜</div>
+        <div class="info">
+          <h3>AI 规范驱动 + Harness 机杼之术</h3>
+          <div class="desc">规矩以成方圆 · 机杼以织经纬 · Harness九大机巧 · 六步心法</div>
+          <span class="tag" style="background:rgba(180,80,40,0.08);color:#b04020;">古风卷轴</span>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══ 全栈实战 ═══ -->
+  <div class="cat">
+    <div class="cat-title">⚡ 全栈实战</div>
+    <div class="grid">
+      <a href="全栈项目开发全流程-田园风.html" class="card">
+        <div class="icon" style="background:rgba(80,160,80,0.08);">🌾</div>
+        <div class="info">
+          <h3>全栈项目开发全流程</h3>
+          <div class="desc">春耕夏耘秋收冬藏 · 四时歌 · 农具间工具链速查</div>
+          <span class="tag" style="background:rgba(80,160,80,0.08);color:#5a8c4e;">田园风</span>
+        </div>
+      </a>
+      <a href="有想法就能落地成产品-扁平插画风.html" class="card">
+        <div class="icon" style="background:rgba(240,100,100,0.08);">🚀</div>
+        <div class="info">
+          <h3>有想法就能落地成产品</h3>
+          <div class="desc">五步地图 · AI工具箱 · 零到一时间线 · 你只需要这么少</div>
+          <span class="tag" style="background:rgba(240,100,100,0.08);color:#f06060;">扁平插画风</span>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══ 变现 & 商业 ═══ -->
+  <div class="cat">
+    <div class="cat-title">💰 变现 & 商业价值</div>
+    <div class="grid">
+      <a href="倍数提升AI开发变现力-学术风.html" class="card">
+        <div class="icon" style="background:rgba(30,77,140,0.08);">🎓</div>
+        <div class="info">
+          <h3>倍数提升 AI 开发变现力</h3>
+          <div class="desc">实证研究 · 五大变现杠杆 · MEM公式 · 8×成长路径</div>
+          <span class="tag" style="background:rgba(30,77,140,0.08);color:#1e4d8c;">学术风</span>
+        </div>
+      </a>
+      <a href="让AI在企业落地产生业务价值-手绘风.html" class="card">
+        <div class="icon" style="background:rgba(220,140,60,0.08);">✏️</div>
+        <div class="info">
+          <h3>让 AI 在企业落地产生业务价值</h3>
+          <div class="desc">五大死法 · 落地框架 · 企业版SDD · 10条自检清单</div>
+          <span class="tag" style="background:rgba(220,140,60,0.08);color:#c08040;">手绘风</span>
+        </div>
+      </a>
+      <a href="workbuddy_3d_mindmap.html" class="card">
+        <div class="icon" style="background:rgba(255,200,50,0.1);">💎</div>
+        <div class="info">
+          <h3>Workbuddy 8大搞钱 Skill 知识库</h3>
+          <div class="desc">3D水晶柱思维导图 · 8大变现技能 · 点击宝石查看详情</div>
+          <span class="tag" style="background:rgba(255,200,50,0.1);color:#b8940a;">3D 知识库</span>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══ 工具 & 生态 ═══ -->
+  <div class="cat">
+    <div class="cat-title">🔧 工具 & 生态</div>
+    <div class="grid">
+      <a href="Agent-Reach.html" class="card">
+        <div class="icon" style="background:rgba(0,190,150,0.08);">🌐</div>
+        <div class="info">
+          <h3>Agent-Reach · AI 联网触达层</h3>
+          <div class="desc">MCP Server · 9+平台支持 · 零API费用 · 一行命令接入</div>
+          <span class="tag" style="background:rgba(0,190,150,0.08);color:#00c896;">图标增强</span>
+        </div>
+      </a>
+      <a href="skills-dashboard.html" class="card">
+        <div class="icon" style="background:rgba(120,100,200,0.08);">📊</div>
+        <div class="info">
+          <h3>Skills Dashboard</h3>
+          <div class="desc">技能仪表盘总览</div>
+          <span class="tag" style="background:rgba(120,100,200,0.08);color:#7864c8;">仪表盘</span>
+        </div>
+      </a>
+      <a href="ruflo.html" class="card">
+        <div class="icon" style="background:rgba(100,180,220,0.08);">🔀</div>
+        <div class="info">
+          <h3>Ruflo · 多智能体框架</h3>
+          <div class="desc">Claude Code 多智能体编排配置说明</div>
+          <span class="tag" style="background:rgba(100,180,220,0.08);color:#60a8d0;">文档</span>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══ 产品设计 ═══ -->
+  <div class="cat">
+    <div class="cat-title">📱 产品 & 设计</div>
+    <div class="grid">
+      <a href="redNoteExpressApp-prd.html" class="card">
+        <div class="icon" style="background:rgba(240,80,100,0.08);">📕</div>
+        <div class="info">
+          <h3>红薯快写 App · PRD</h3>
+          <div class="desc">小红书风格文章AI生成器 · 产品需求文档</div>
+          <span class="tag" style="background:rgba(240,80,100,0.08);color:#e85060;">PRD</span>
+        </div>
+      </a>
+      <a href="AI-Native研发核心流程图-试用版.html" class="card">
+        <div class="icon" style="background:rgba(100,180,140,0.08);">🔬</div>
+        <div class="info">
+          <h3>AI Native 研发核心流程图</h3>
+          <div class="desc">AI 原生研发流程全景图</div>
+          <span class="tag" style="background:rgba(100,180,140,0.08);color:#58a878;">流程图</span>
+        </div>
+      </a>
+      <a href="四大平台-2025热门技术方向对比.html" class="card">
+        <div class="icon" style="background:rgba(180,140,60,0.08);">📊</div>
+        <div class="info">
+          <h3>四大平台 2025 热门技术方向对比</h3>
+          <div class="desc">技术趋势横向对比分析</div>
+          <span class="tag" style="background:rgba(180,140,60,0.08);color:#b09030;">对比分析</span>
+        </div>
+      </a>
+      <a href="100_UI_Skills_Html/erp-dashboard.html" class="card">
+        <div class="icon" style="background:rgba(120,120,200,0.08);">🎨</div>
+        <div class="info">
+          <h3>100 UI Skills · Dashboard 合集</h3>
+          <div class="desc">ERP · 金融 · 医疗 · PM · 旅行 五种 Dashboard</div>
+          <span class="tag" style="background:rgba(120,120,200,0.08);color:#7878c8;">UI 合集</span>
+        </div>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<footer class="footer">
+  <p>📚 AI 知识库 · 持续更新 · 用 AI 驱动知识沉淀</p>
+</footer>
+
+</body>
+</html>
