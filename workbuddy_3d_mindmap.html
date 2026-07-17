@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workbuddy 8大搞钱 Skill · 3D知识库</title>
+<style>
+  :root {
+    --bg: #050510;
+    --surface: rgba(16, 16, 40, 0.85);
+    --border: rgba(255, 255, 255, 0.08);
+    --text: #e8e8f0;
+    --muted: rgba(255, 255, 255, 0.45);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: crosshair;
+  }
+
+  #c { position: fixed; inset: 0; z-index: 1; }
+
+  /* ── Top bar ── */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+    padding: 18px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    pointer-events: none;
+  }
+  .topbar .brand {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .topbar .brand .mark {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #ffd93d;
+    box-shadow: 0 0 16px #ffd93d, 0 0 40px rgba(255,217,61,0.5);
+    animation: markPulse 2s ease-in-out infinite;
+  }
+  @keyframes markPulse {
+    0%, 100% { box-shadow: 0 0 16px #ffd93d, 0 0 40px rgba(255,217,61,0.5); }
+    50% { box-shadow: 0 0 28px #ffd93d, 0 0 70px rgba(255,217,61,0.8); }
+  }
+  .topbar h1 { font-size: 18px; font-weight: 700; color: #fff; letter-spacing: 1px; }
+  .topbar .tag {
+    font-size: 10px; letter-spacing: 2px;
+    color: var(--muted); text-transform: uppercase;
+  }
+
+  /* ── Bottom hint ── */
+  .hint {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    z-index: 10; pointer-events: none;
+    font-size: 12px; color: var(--muted);
+    letter-spacing: 1px;
+    display: flex; gap: 20px;
+  }
+  .hint kbd {
+    display: inline-block;
+    padding: 2px 8px; border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.15);
+    font-size: 10px; color: rgba(255,255,255,0.6);
+    background: rgba(255,255,255,0.04);
+  }
+
+  /* ── Detail Overlay ── */
+  .overlay {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .overlay.on {
+    opacity: 1; pointer-events: auto;
+  }
+  .overlay .backdrop {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.92) 100%);
+    backdrop-filter: blur(12px);
+  }
+  .overlay .panel {
+    position: relative;
+    width: 480px; max-width: 94vw; max-height: 85vh;
+    background: linear-gradient(160deg, rgba(22,22,50,0.95), rgba(12,12,28,0.98));
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 40px 32px 32px;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05) inset;
+    transform: translateY(30px) scale(0.96);
+    transition: transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+    overflow-y: auto;
+  }
+  .overlay.on .panel { transform: translateY(0) scale(1); }
+  .panel .close {
+    position: absolute; top: 14px; right: 16px;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #fff; font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .panel .close:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.3); }
+
+  .panel .icon-block {
+    width: 56px; height: 56px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; margin-bottom: 18px;
+  }
+  .panel .title { font-size: 26px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .panel .subtitle { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+  .panel .row {
+    display: flex; gap: 12px; margin-bottom: 14px; align-items: flex-start;
+  }
+  .panel .row .lbl {
+    flex-shrink: 0; font-size: 11px; font-weight: 600;
+    letter-spacing: 1px; color: var(--muted);
+    padding: 4px 12px; border-radius: 6px;
+    background: rgba(255,255,255,0.04);
+    min-width: 50px; text-align: center;
+  }
+  .panel .row .val { font-size: 14px; color: rgba(255,255,255,0.82); line-height: 1.65; padding-top: 2px; }
+  .panel .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 20px;
+    padding: 10px 22px; border-radius: 24px;
+    font-size: 14px; font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Node count indicator ── */
+  .counter {
+    position: fixed; right: 28px; top: 50%; transform: translateY(-50%);
+    z-index: 10; pointer-events: none;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .counter .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    transition: all 0.4s ease;
+    opacity: 0.35;
+  }
+  .counter .dot.hi { opacity: 1; transform: scale(1.6); box-shadow: 0 0 10px currentColor; }
+
+  @media (max-width: 600px) {
+    .topbar { padding: 12px 16px; }
+    .topbar h1 { font-size: 15px; }
+    .hint { bottom: 16px; font-size: 10px; gap: 10px; }
+    .panel { padding: 28px 18px 22px; }
+    .panel .title { font-size: 20px; }
+    .counter { right: 10px; gap: 4px; }
+    .counter .dot { width: 4px; height: 4px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="mark"></div>
+    <div>
+      <h1>Workbuddy Skill 知识库</h1>
+      <div class="tag">8 Monetizable Skills</div>
+    </div>
+  </div>
+</div>
+
+<div class="counter" id="counter"></div>
+
+<div class="hint">
+  <span><kbd>滚轮</kbd> 缩放</span>
+  <span><kbd>拖拽</kbd> 旋转</span>
+  <span><kbd>点击</kbd> 查看详情</span>
+</div>
+
+<canvas id="c"></canvas>
+
+<!-- Detail panel -->
+<div class="overlay" id="ov">
+  <div class="backdrop"></div>
+  <div class="panel">
+    <button class="close" id="ovClose">✕</button>
+    <div class="icon-block" id="ovIcon"></div>
+    <div class="title" id="ovTitle"></div>
+    <div class="subtitle" id="ovSub"></div>
+    <div class="row"><span class="lbl">功能</span><span class="val" id="ovFunc"></span></div>
+    <div class="row"><span class="lbl">场景</span><span class="val" id="ovScene"></span></div>
+    <div class="row"><span class="lbl">交付</span><span class="val" id="ovDeliver"></span></div>
+    <div class="badge" id="ovBadge"></div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ═══════════════════════════════════
+// DATA
+// ═══════════════════════════════════
+const SKILLS = [
+  { id:1, name:'xhs-ops', full:'小红书代运营', icon:'📕',
+    func:'账号定位 + 爆款选题 + 文案仿写 + 数据复盘',
+    scene:'账号诊断、内容规划，博主起号刚需',
+    deliver:'账号诊断报告',
+    color:'#FF5E7A', hex:0xFF5E7A },
+  { id:2, name:'claude-finance', full:'金融分析', icon:'📊',
+    func:'拆解财报、整理企业资料、输出研报框架',
+    scene:'投研、财经自媒体',
+    deliver:'个股深度分析报告',
+    color:'#FFB830', hex:0xFFB830 },
+  { id:3, name:'claude-legal', full:'企业法务', icon:'⚖️',
+    func:'自动筛查合同风险、标注异常条款',
+    scene:'创业者 / 中小企业刚需',
+    deliver:'合同风险清单',
+    color:'#3DD68C', hex:0x3DD68C },
+  { id:4, name:'cross-border-skill', full:'跨境电商', icon:'🌍',
+    func:'亚马逊/TikTok/Shopify 选品 + 竞品调研',
+    scene:'跨境卖家',
+    deliver:'选品方案、店铺运营报告',
+    color:'#3B9EFF', hex:0x3B9EFF },
+  { id:5, name:'markitdown', full:'文档转换', icon:'📄',
+    func:'PDF/图片/网页一键清洗转 Markdown',
+    scene:'搭建 RAG、企业知识库必备',
+    deliver:'资料整理服务',
+    color:'#B063D8', hex:0xB063D8 },
+  { id:6, name:'Open-LLM-VTuber', full:'虚拟主播', icon:'🎤',
+    func:'本地 AI 数字人，自定义形象音色',
+    scene:'直播 demo、虚拟客服方案',
+    deliver:'数字人 demo',
+    color:'#00D8D8', hex:0x00D8D8 },
+  { id:7, name:'skill-store', full:'技能安装包', icon:'🏪',
+    func:'内置 72 款热门 Skill，可打包行业套装',
+    scene:'帮客户部署调试整套 AI 工作流',
+    deliver:'行业 AI 工具包',
+    color:'#FF8533', hex:0xFF8533 },
+  { id:8, name:'last30days-skill', full:'选题雷达', icon:'📡',
+    func:'抓取海外平台 30 天热点，自动生成选题库',
+    scene:'品牌、内容团队热点周报、竞品监测',
+    deliver:'热点选题周报',
+    color:'#8B8FFF', hex:0x8B8FFF },
+];
+
+// ═══════════════════════════════════
+// THREE.JS SETUP
+// ═══════════════════════════════════
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.3;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#050510');
+scene.fog = new THREE.FogExp2('#050510', 0.00025);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.5, 60);
+camera.position.set(0, 3, 16);
+camera.lookAt(0, 0, 0);
+
+// ── Lights ──
+scene.add(new THREE.AmbientLight('#1a1a3a', 2.5));
+const sun = new THREE.DirectionalLight('#ffffff', 4);
+sun.position.set(10, 12, 8);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.near = 0.5;
+sun.shadow.camera.far = 60;
+sun.shadow.camera.left = -20; sun.shadow.camera.right = 20;
+sun.shadow.camera.top = 20; sun.shadow.camera.bottom = -20;
+sun.shadow.bias = -0.0001;
+scene.add(sun);
+
+const fill = new THREE.DirectionalLight('#445588', 2);
+fill.position.set(-5, -2, -4);
+scene.add(fill);
+
+// ── Controls ──
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.25;
+controls.minDistance = 7;
+controls.maxDistance = 30;
+controls.maxPolarAngle = Math.PI * 0.7;
+controls.target.set(0, 0.5, 0);
+controls.update();
+
+// ═══════════════════════════════════
+// STARFIELD
+// ═══════════════════════════════════
+const starsGeo = new THREE.BufferGeometry();
+const starVerts = [];
+for (let i = 0; i < 2000; i++) {
+  const r = 18 + Math.random() * 30;
+  const th = Math.random() * Math.PI * 2;
+  const ph = Math.acos(2 * Math.random() - 1);
+  starVerts.push(
+    r * Math.sin(ph) * Math.cos(th),
+    r * Math.sin(ph) * Math.sin(th),
+    r * Math.cos(ph)
+  );
+}
+starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
+const starsMat = new THREE.PointsMaterial({
+  color: '#ffffff', size: 0.04, transparent: true, opacity: 0.6,
+  blending: THREE.AdditiveBlending, depthWrite: false,
+});
+const stars = new THREE.Points(starsGeo, starsMat);
+scene.add(stars);
+
+// ═══════════════════════════════════
+// GROUND GRID
+// ═══════════════════════════════════
+const gridHelper = new THREE.PolarGridHelper(14, 48, 32, 256, '#222244', '#111122');
+gridHelper.position.y = -5.5;
+scene.add(gridHelper);
+
+// ═══════════════════════════════════
+// CENTRAL "COMPASS" PLATFORM
+// ═══════════════════════════════════
+const platformGroup = new THREE.Group();
+scene.add(platformGroup);
+
+// Base disc
+const discGeo = new THREE.CylinderGeometry(2.2, 2.4, 0.15, 64);
+const discMat = new THREE.MeshStandardMaterial({
+  color: '#1a1a30', roughness: 0.4, metalness: 0.8,
+});
+const disc = new THREE.Mesh(discGeo, discMat);
+disc.position.y = -0.5;
+disc.castShadow = true; disc.receiveShadow = true;
+platformGroup.add(disc);
+
+// Glowing ring on disc
+const discRingGeo = new THREE.TorusGeometry(2.3, 0.03, 16, 120);
+const discRing = new THREE.Mesh(discRingGeo, new THREE.MeshStandardMaterial({
+  color: '#ffd93d', emissive: '#ffd93d', emissiveIntensity: 2, roughness: 0.2, metalness: 0.2,
+}));
+discRing.rotation.x = Math.PI / 2;
+discRing.position.y = -0.42;
+platformGroup.add(discRing);
+
+// Inner glowing ring
+const innerRingGeo = new THREE.TorusGeometry(1.6, 0.02, 16, 80);
+const innerRing = new THREE.Mesh(innerRingGeo, new THREE.MeshStandardMaterial({
+  color: '#ffd93d', emissive: '#ffa000', emissiveIntensity: 1.2, roughness: 0.2, metalness: 0.2,
+  transparent: true, opacity: 0.7,
+}));
+innerRing.rotation.x = Math.PI / 2;
+innerRing.position.y = -0.4;
+platformGroup.add(innerRing);
+
+// Central pillar
+const pillarGeo = new THREE.CylinderGeometry(0.4, 0.55, 2.8, 32);
+const pillarMat = new THREE.MeshStandardMaterial({
+  color: '#222240', roughness: 0.3, metalness: 0.7,
+  emissive: '#111122', emissiveIntensity: 0.3,
+});
+const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+pillar.position.y = 0.9;
+pillar.castShadow = true;
+platformGroup.add(pillar);
+
+// Top crystal / orb
+const orbGeo = new THREE.SphereGeometry(0.52, 64, 64);
+const orbMat = new THREE.MeshStandardMaterial({
+  color: '#ffd93d', emissive: '#ffd93d', emissiveIntensity: 2.2,
+  roughness: 0.1, metalness: 0.15,
+});
+const orb = new THREE.Mesh(orbGeo, orbMat);
+orb.position.y = 2.4;
+orb.castShadow = true;
+platformGroup.add(orb);
+
+// Orb wireframe cage
+const cageGeo = new THREE.IcosahedronGeometry(0.65, 1);
+const cage = new THREE.Mesh(cageGeo, new THREE.MeshBasicMaterial({
+  color: '#ffd93d', wireframe: true, transparent: true, opacity: 0.2, depthWrite: false,
+}));
+cage.position.copy(orb.position);
+platformGroup.add(cage);
+
+// Outer wireframe ring around orb
+const orbRingGeo = new THREE.TorusGeometry(0.85, 0.02, 16, 64);
+const orbRing = new THREE.Mesh(orbRingGeo, new THREE.MeshStandardMaterial({
+  color: '#ffd93d', emissive: '#ffd93d', emissiveIntensity: 1.8, roughness: 0.2,
+}));
+orbRing.position.copy(orb.position);
+orbRing.rotation.x = Math.PI / 2.5;
+platformGroup.add(orbRing);
+
+const orbRing2 = new THREE.Mesh(
+  new THREE.TorusGeometry(0.85, 0.015, 16, 64),
+  orbRing.material.clone()
+);
+orbRing2.position.copy(orb.position);
+orbRing2.rotation.x = -Math.PI / 3;
+orbRing2.rotation.z = Math.PI / 3;
+orbRing2.material.emissiveIntensity = 1;
+platformGroup.add(orbRing2);
+
+// ═══════════════════════════════════
+// SKILL PILLARS — floating crystal columns
+// ═══════════════════════════════════
+const nodeData = [];
+const nodeMeshes = [];
+const radius = 6.5;
+
+SKILLS.forEach((sk, i) => {
+  const angle = (i / SKILLS.length) * Math.PI * 2;
+  const heightVariation = Math.sin(i * 2.4) * 1.8;
+  const x = Math.cos(angle) * radius;
+  const z = Math.sin(angle) * radius;
+  const y = heightVariation;
+
+  const group = new THREE.Group();
+  group.position.set(x, y, z);
+  scene.add(group);
+
+  // Base pedestal
+  const pedestalGeo = new THREE.CylinderGeometry(0.35, 0.45, 0.25, 24);
+  const pedestal = new THREE.Mesh(pedestalGeo, new THREE.MeshStandardMaterial({
+    color: sk.color, emissive: sk.color, emissiveIntensity: 0.5,
+    roughness: 0.3, metalness: 0.5,
+  }));
+  pedestal.position.y = -1.1;
+  pedestal.castShadow = true; pedestal.receiveShadow = true;
+  group.add(pedestal);
+
+  // Main crystal column (tall octahedron-ish)
+  const crystalGeo = new THREE.CylinderGeometry(0.15, 0.3, 2.0, 8);
+  const crystalMat = new THREE.MeshStandardMaterial({
+    color: sk.color, emissive: sk.color, emissiveIntensity: 0.6,
+    roughness: 0.15, metalness: 0.3, transparent: true, opacity: 0.85,
+  });
+  const crystal = new THREE.Mesh(crystalGeo, crystalMat);
+  crystal.position.y = 0;
+  crystal.castShadow = true;
+  group.add(crystal);
+
+  // Top gem
+  const gemGeo = new THREE.OctahedronGeometry(0.4, 0);
+  const gemMat = new THREE.MeshStandardMaterial({
+    color: sk.color, emissive: sk.color, emissiveIntensity: 1.0,
+    roughness: 0.1, metalness: 0.1,
+  });
+  const gem = new THREE.Mesh(gemGeo, gemMat);
+  gem.position.y = 1.15;
+  gem.castShadow = true;
+  gem.userData = { skillIndex: i, type: 'gem' };
+  group.add(gem);
+
+  // Glow ring around gem
+  const gRingGeo = new THREE.TorusGeometry(0.48, 0.025, 12, 32);
+  const gRing = new THREE.Mesh(gRingGeo, new THREE.MeshStandardMaterial({
+    color: sk.color, emissive: sk.color, emissiveIntensity: 1.3,
+    roughness: 0.2, metalness: 0.2,
+  }));
+  gRing.position.y = 1.15;
+  group.add(gRing);
+
+  // Vertical light beam (semi-transparent inner column)
+  const beamGeo = new THREE.CylinderGeometry(0.06, 0.08, 2.8, 8);
+  const beamMat = new THREE.MeshBasicMaterial({
+    color: sk.color, transparent: true, opacity: 0.15, depthWrite: false,
+  });
+  const beam = new THREE.Mesh(beamGeo, beamMat);
+  beam.position.y = 0.2;
+  group.add(beam);
+
+  // Floating particles around column
+  const ptsGeo = new THREE.BufferGeometry();
+  const ptCount = 50;
+  const ptsArr = [];
+  for (let j = 0; j < ptCount; j++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = 0.5 + Math.random() * 0.6;
+    const h = (Math.random() - 0.5) * 2.4;
+    ptsArr.push(Math.cos(a) * r, h, Math.sin(a) * r);
+  }
+  ptsGeo.setAttribute('position', new THREE.Float32BufferAttribute(ptsArr, 3));
+  const pts = new THREE.Points(ptsGeo, new THREE.PointsMaterial({
+    color: sk.color, size: 0.03, blending: THREE.AdditiveBlending,
+    depthWrite: false, transparent: true, opacity: 0.7,
+  }));
+  group.add(pts);
+
+  // Connection line to center
+  const midX = x * 0.4; const midZ = z * 0.4;
+  const curve = new THREE.QuadraticBezierCurve3(
+    new THREE.Vector3(0, 1.5, 0),
+    new THREE.Vector3(midX, y * 0.5 + 2.2, midZ),
+    new THREE.Vector3(x, y + 1.15, z)
+  );
+  const curvePts = curve.getPoints(80);
+  const curveGeo = new THREE.BufferGeometry().setFromPoints(curvePts);
+  const curveLine = new THREE.Line(curveGeo, new THREE.LineBasicMaterial({
+    color: sk.color, transparent: true, opacity: 0.22, depthWrite: false,
+  }));
+  scene.add(curveLine);
+
+  // Dashed ring at base
+  const baseRingGeo = new THREE.TorusGeometry(0.55, 0.015, 8, 48);
+  const baseRing = new THREE.Mesh(baseRingGeo, new THREE.MeshStandardMaterial({
+    color: sk.color, emissive: sk.color, emissiveIntensity: 0.4,
+    roughness: 0.4, transparent: true, opacity: 0.6,
+  }));
+  baseRing.rotation.x = Math.PI / 2;
+  baseRing.position.y = -1.1;
+  group.add(baseRing);
+
+  nodeData.push({
+    group, gem, gRing, crystal, crystalMat, gRingMat: gRing.material,
+    beam, beamMat, pts, baseRing,
+    baseY: y, angle, radius, curve, curveLine,
+    skill: sk,
+  });
+  nodeMeshes.push(gem);
+});
+
+// ═══════════════════════════════════
+// DATA FLOW PARTICLES along curves
+// ═══════════════════════════════════
+const flowGroups = [];
+nodeData.forEach((nd) => {
+  const flowGeo = new THREE.BufferGeometry();
+  const flowCount = 8;
+  const flowPositions = [];
+  const flowDataPerParticle = [];
+  for (let j = 0; j < flowCount; j++) {
+    const t = j / flowCount;
+    const pt = nd.curve.getPoint(t);
+    flowPositions.push(pt.x, pt.y, pt.z);
+    flowDataPerParticle.push({ t, speed: 0.08 + Math.random() * 0.12 });
+  }
+  flowGeo.setAttribute('position', new THREE.Float32BufferAttribute(flowPositions, 3));
+  const flowMat = new THREE.PointsMaterial({
+    color: nd.skill.color, size: 0.06, blending: THREE.AdditiveBlending,
+    depthWrite: false, transparent: true, opacity: 0.8,
+  });
+  const flowPts = new THREE.Points(flowGeo, flowMat);
+  flowPts.userData = { particles: flowDataPerParticle };
+  scene.add(flowPts);
+  flowGroups.push(flowPts);
+});
+
+// ═══════════════════════════════════
+// FLOATING AMBIENT PARTICLES
+// ═══════════════════════════════════
+const ambientGeo = new THREE.BufferGeometry();
+const ambientCount = 400;
+const ambientPositions = [];
+const ambientColors = [];
+for (let i = 0; i < ambientCount; i++) {
+  const r = 3 + Math.random() * 11;
+  const th = Math.random() * Math.PI * 2;
+  const ph = Math.acos(2 * Math.random() - 1);
+  ambientPositions.push(r * Math.sin(ph) * Math.cos(th), r * Math.sin(ph) * Math.sin(th) + 1, r * Math.cos(ph));
+  const c = new THREE.Color().setHSL(0.08 + Math.random() * 0.12, 0.7, 0.5 + Math.random() * 0.4);
+  ambientColors.push(c.r, c.g, c.b);
+}
+ambientGeo.setAttribute('position', new THREE.Float32BufferAttribute(ambientPositions, 3));
+ambientGeo.setAttribute('color', new THREE.Float32BufferAttribute(ambientColors, 3));
+const ambientPts = new THREE.Points(ambientGeo, new THREE.PointsMaterial({
+  size: 0.045, vertexColors: true, blending: THREE.AdditiveBlending,
+  depthWrite: false, transparent: true, opacity: 0.55,
+}));
+scene.add(ambientPts);
+
+// ═══════════════════════════════════
+// RAYCASTER
+// ═══════════════════════════════════
+const raycaster = new THREE.Raycaster();
+raycaster.far = 25;
+const mouse = new THREE.Vector2();
+let hoveredIdx = -1;
+
+function updateMouse(e) {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+}
+
+// ═══════════════════════════════════
+// DETAIL PANEL
+// ═══════════════════════════════════
+const ov = document.getElementById('ov');
+const ovClose = document.getElementById('ovClose');
+let openSkill = null;
+
+function openPanel(sk) {
+  document.getElementById('ovIcon').textContent = sk.icon;
+  document.getElementById('ovIcon').style.background = `linear-gradient(135deg, ${sk.color}, ${sk.color}88)`;
+  document.getElementById('ovTitle').textContent = sk.full;
+  document.getElementById('ovSub').textContent = `#${sk.id}  ${sk.name}`;
+  document.getElementById('ovFunc').textContent = sk.func;
+  document.getElementById('ovScene').textContent = sk.scene;
+  document.getElementById('ovDeliver').textContent = sk.deliver;
+  const badge = document.getElementById('ovBadge');
+  badge.textContent = `💰 付费交付：${sk.deliver}`;
+  badge.style.background = sk.color;
+  badge.style.color = (sk.id === 2) ? '#1a1a1a' : '#fff';
+  ov.classList.add('on');
+  openSkill = sk;
+  controls.autoRotate = false;
+}
+
+function closePanel() {
+  ov.classList.remove('on');
+  openSkill = null;
+  controls.autoRotate = true;
+}
+
+ovClose.addEventListener('click', (e) => { e.stopPropagation(); closePanel(); });
+ov.querySelector('.backdrop').addEventListener('click', closePanel);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePanel(); });
+
+// ═══════════════════════════════════
+// MOUSE / TOUCH
+// ═══════════════════════════════════
+window.addEventListener('click', (e) => {
+  if (ov.classList.contains('on')) return;
+  updateMouse(e);
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(nodeMeshes);
+  if (hits.length > 0 && hits[0].object.userData.type === 'gem') {
+    openPanel(SKILLS[hits[0].object.userData.skillIndex]);
+  }
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (ov.classList.contains('on')) {
+    if (hoveredIdx >= 0) {
+      resetHover(hoveredIdx);
+      hoveredIdx = -1;
+    }
+    return;
+  }
+  updateMouse(e);
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(nodeMeshes);
+  if (hits.length > 0 && hits[0].object.userData.type === 'gem') {
+    const idx = hits[0].object.userData.skillIndex;
+    if (hoveredIdx !== idx) {
+      if (hoveredIdx >= 0) resetHover(hoveredIdx);
+      hoveredIdx = idx;
+      setHover(idx, true);
+    }
+  } else if (hoveredIdx >= 0) {
+    resetHover(hoveredIdx);
+    hoveredIdx = -1;
+  }
+});
+
+function setHover(idx, on) {
+  const nd = nodeData[idx];
+  nd.gem.scale.setScalar(1.3);
+  nd.gRing.scale.setScalar(1.25);
+  nd.crystalMat.emissiveIntensity = 1.4;
+  nd.crystalMat.opacity = 1;
+  nd.gRingMat.emissiveIntensity = 2.2;
+  nd.beamMat.opacity = 0.35;
+  nd.baseRing.scale.setScalar(1.2);
+  document.body.style.cursor = 'pointer';
+  document.getElementById('counter').children[idx].classList.add('hi');
+}
+
+function resetHover(idx) {
+  const nd = nodeData[idx];
+  nd.gem.scale.setScalar(1);
+  nd.gRing.scale.setScalar(1);
+  nd.crystalMat.emissiveIntensity = 0.6;
+  nd.crystalMat.opacity = 0.85;
+  nd.gRingMat.emissiveIntensity = 1.3;
+  nd.beamMat.opacity = 0.15;
+  nd.baseRing.scale.setScalar(1);
+  document.body.style.cursor = 'crosshair';
+  document.getElementById('counter').children[idx].classList.remove('hi');
+}
+
+// Touch
+window.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1 && !ov.classList.contains('on')) {
+    const t = e.touches[0];
+    mouse.x = (t.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(t.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(nodeMeshes);
+    if (hits.length > 0 && hits[0].object.userData.type === 'gem') {
+      openPanel(SKILLS[hits[0].object.userData.skillIndex]);
+    }
+  }
+}, { passive: true });
+
+// ═══════════════════════════════════
+// SIDE DOT INDICATORS
+// ═══════════════════════════════════
+const counterEl = document.getElementById('counter');
+SKILLS.forEach((sk) => {
+  const dot = document.createElement('div');
+  dot.className = 'dot';
+  dot.style.color = sk.color;
+  dot.style.backgroundColor = sk.color;
+  dot.title = sk.full;
+  counterEl.appendChild(dot);
+});
+
+// Resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ═══════════════════════════════════
+// ANIMATION LOOP
+// ═══════════════════════════════════
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+  const dt = Math.min(clock.getDelta(), 0.1);
+
+  controls.update();
+
+  // Orb pulse
+  const pulse = 1 + Math.sin(t * 1.6) * 0.08 + Math.sin(t * 3.1) * 0.04;
+  orb.scale.setScalar(pulse);
+  cage.scale.setScalar(pulse * 1.02);
+  cage.rotation.y += dt * 0.2;
+  cage.rotation.x += dt * 0.15;
+  orbRing.rotation.z += dt * 0.4;
+  orbRing2.rotation.z -= dt * 0.3;
+  orbRing2.rotation.x += dt * 0.2;
+  discRing.rotation.z += dt * 0.15;
+
+  // Pillar glow ring rotation
+  nodeData.forEach((nd, i) => {
+    nd.gRing.rotation.x += dt * 0.5;
+    nd.gRing.rotation.z += dt * 0.4;
+    nd.baseRing.rotation.z += dt * 0.3;
+    nd.pts.rotation.y += dt * 0.5 + i * 0.05;
+    nd.pts.rotation.x += dt * 0.2;
+    // Subtle bob
+    const bob = Math.sin(t * 1.3 + i * 0.8) * 0.3;
+    nd.group.position.y = nd.baseY + bob;
+    // Beam pulse
+    nd.beamMat.opacity = 0.12 + Math.sin(t * 2.5 + i) * 0.06 + (hoveredIdx === i ? 0.25 : 0);
+  });
+
+  // Flow particles along curves
+  flowGroups.forEach((flow, i) => {
+    const nd = nodeData[i];
+    const pts = flow.userData.particles;
+    const posArr = flow.geometry.attributes.position.array;
+    pts.forEach((p, j) => {
+      p.t += p.speed * dt;
+      if (p.t > 1) p.t -= 1;
+      const pt = nd.curve.getPoint(p.t);
+      posArr[j * 3] = pt.x;
+      posArr[j * 3 + 1] = pt.y;
+      posArr[j * 3 + 2] = pt.z;
+    });
+    flow.geometry.attributes.position.needsUpdate = true;
+    // Opacity pulse
+    flow.material.opacity = 0.5 + Math.sin(t * 3 + i) * 0.3;
+  });
+
+  // Ambient particles slow rotation
+  ambientPts.rotation.y += dt * 0.04;
+  ambientPts.rotation.x += dt * 0.02;
+
+  // Stars drift
+  stars.rotation.y += dt * 0.015;
+  stars.rotation.x += dt * 0.008;
+
+  renderer.render(scene, camera);
+}
+
+// ── Intro camera fly-in ──
+function introFly() {
+  const start = { x: 0, y: 10, z: 24 };
+  const end = { x: 0, y: 3, z: 16 };
+  const dur = 2200;
+  const t0 = performance.now();
+  function step(now) {
+    const p = Math.min((now - t0) / dur, 1);
+    const e = 1 - Math.pow(1 - p, 3);
+    camera.position.set(
+      start.x + (end.x - start.x) * e,
+      start.y + (end.y - start.y) * e,
+      start.z + (end.z - start.z) * e
+    );
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+introFly();
+animate();
+
+console.log('%c🧬 Workbuddy 3D 知识库 %c已就绪',
+  'font-size:16px;color:#ffd93d;', 'color:#aaa;');
+console.log('  点击发光的宝石节点查看技能详情');
+</script>
+</body>
+</html>
