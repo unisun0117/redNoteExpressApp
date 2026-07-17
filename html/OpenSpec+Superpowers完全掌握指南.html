@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>掌握 OpenSpec + Superpowers · 终极开发工作流</title>
+<style>
+:root{
+  --bg:#060612;--card:rgba(14,14,38,0.9);--border:rgba(255,255,255,0.07);
+  --text:#e0e0ee;--muted:rgba(255,255,255,0.48);
+  --p1:#a78bfa;--p2:#60a5fa;--p3:#34d399;--p4:#fbbf24;--p5:#f472b6;
+  --red:#ef4444;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:var(--bg);color:var(--text);overflow-x:hidden;
+  font-family:'PingFang SC','Microsoft YaHei','Noto Sans SC',system-ui,sans-serif;
+  cursor:default;
+}
+
+/* ── 3D BG ── */
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+/* ── Progress ── */
+.progress-bar{
+  position:fixed;top:0;left:0;height:3px;z-index:100;
+  background:linear-gradient(90deg,var(--p1),var(--p2),var(--p3),var(--p4),var(--p5));
+  transition:width .1s linear;
+}
+
+/* ── Sections ── */
+.section{
+  position:relative;z-index:1;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:80px 24px;
+}
+.section .inner{max-width:1000px;width:100%;}
+.section h2{
+  font-size:clamp(28px,5vw,46px);font-weight:900;line-height:1.2;
+  background:linear-gradient(135deg,#fff,rgba(255,255,255,0.7));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:32px;
+}
+.section h2 .hl{background:linear-gradient(135deg,var(--p1),var(--p2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+
+/* ── Hero ── */
+.hero{text-align:center;}
+.hero .duo{
+  display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:32px;
+}
+.hero .duo .orb{
+  width:90px;height:90px;border-radius:24px;
+  display:flex;align-items:center;justify-content:center;font-size:42px;
+  animation:orbFloat 4s ease-in-out infinite;
+  box-shadow:0 0 50px rgba(167,139,250,0.3);
+}
+.hero .duo .orb.o1{background:linear-gradient(135deg,#7c3aed,#a78bfa);animation-delay:0s;}
+.hero .duo .orb.o2{background:linear-gradient(135deg,#2563eb,#60a5fa);animation-delay:-2s;}
+.hero .duo .link{
+  font-size:32px;animation:linkPulse 2s ease-in-out infinite;
+}
+@keyframes orbFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes linkPulse{0%,100%{opacity:0.4}50%{opacity:1}}
+.hero .tag{
+  display:inline-block;padding:5px 18px;border-radius:20px;
+  border:1px solid rgba(167,139,250,0.3);background:rgba(167,139,250,0.08);
+  color:var(--p1);font-size:12px;letter-spacing:3px;margin-bottom:18px;
+}
+.hero .sub{font-size:17px;color:var(--muted);max-width:520px;margin:8px auto 0;}
+
+/* ── Cards ── */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;}
+.card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:18px;padding:26px 22px;
+  backdrop-filter:blur(16px);
+  transition:all .4s cubic-bezier(.22,.61,.36,1);
+  opacity:0;transform:translateY(40px);
+  cursor:default;
+}
+.card.visible{opacity:1;transform:translateY(0);}
+.card:hover{
+  border-color:rgba(255,255,255,0.15);
+  transform:translateY(-6px)!important;
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);
+}
+.card .ci{
+  font-size:34px;margin-bottom:12px;
+  width:52px;height:52px;border-radius:13px;
+  display:flex;align-items:center;justify-content:center;
+}
+.card h3{font-size:17px;margin-bottom:6px;color:#fff;}
+.card p,.card li{font-size:14px;color:var(--muted);line-height:1.7;}
+.card ul{padding-left:18px;margin-top:4px;}
+.card ul li{margin-bottom:3px;}
+
+/* ── Skill Row ── */
+.skill-row{
+  display:flex;flex-wrap:wrap;gap:10px;justify-content:center;
+}
+.skill-chip{
+  padding:10px 18px;border-radius:22px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,0.03);
+  font-size:13px;color:var(--muted);
+  display:flex;align-items:center;gap:7px;
+  transition:all .3s ease;cursor:pointer;
+}
+.skill-chip:hover{
+  border-color:var(--p1);background:rgba(167,139,250,0.08);
+  color:#fff;transform:translateY(-2px);
+}
+.skill-chip .sc-ico{font-size:18px;}
+
+/* ── Flow Pipeline ── */
+.pipeline{
+  display:flex;align-items:center;flex-wrap:wrap;
+  gap:12px;justify-content:center;margin:24px 0;
+}
+.pipe-step{
+  padding:16px 22px;border-radius:14px;
+  background:var(--card);border:1px solid var(--border);
+  text-align:center;min-width:110px;
+  transition:all .35s ease;
+  position:relative;
+}
+.pipe-step:hover{
+  border-color:var(--p1);transform:translateY(-4px);
+  box-shadow:0 12px 30px rgba(167,139,250,0.15);
+}
+.pipe-step .ps-icon{font-size:28px;margin-bottom:6px;}
+.pipe-step .ps-label{font-size:12px;font-weight:700;color:#fff;letter-spacing:1px;}
+.pipe-step .ps-small{font-size:10px;color:var(--muted);margin-top:2px;}
+.pipe-arrow{font-size:22px;color:var(--muted);}
+
+/* ── Code block ── */
+.code-block{
+  background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.08);
+  border-radius:14px;padding:20px 24px;
+  font-family:'SF Mono','Fira Code',monospace;
+  font-size:12px;color:#a0c0e8;overflow-x:auto;
+  margin:16px 0;line-height:1.9;
+}
+.code-block .kw{color:var(--p1);}
+.code-block .str{color:var(--p3);}
+.code-block .cmt{color:rgba(255,255,255,0.22);}
+.code-block .hl2{color:var(--p2);}
+
+/* ── Terminal ── */
+.terminal{
+  background:#0a0a14;border:1px solid rgba(255,255,255,0.1);
+  border-radius:16px;overflow:hidden;
+  box-shadow:0 30px 80px rgba(0,0,0,0.6);
+}
+.terminal .tbar{
+  background:rgba(255,255,255,0.04);padding:10px 16px;
+  display:flex;gap:8px;align-items:center;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.terminal .tbar span{width:10px;height:10px;border-radius:50%;}
+.terminal .tbar .r{background:#ef4444;}.terminal .tbar .y{background:#fbbf24;}.terminal .tbar .g{background:#34d399;}
+.terminal .tbar .tt{font-size:11px;color:var(--muted);margin-left:8px;}
+.terminal .tbody{
+  padding:20px 24px;font-family:'SF Mono','Fira Code',monospace;
+  font-size:12px;line-height:2;min-height:180px;
+}
+.terminal .tbody .tp{color:var(--p3);}
+.terminal .tbody .tc{color:#fff;}
+.terminal .tbody .to{color:var(--muted);}
+.terminal .tbody .th{color:var(--p1);}
+
+/* ── Interactive Map ── */
+.workflow-map{
+  display:flex;flex-direction:column;gap:0;position:relative;
+  padding:20px 0;
+}
+.workflow-map::before{
+  content:'';position:absolute;left:30px;top:0;bottom:0;
+  width:2px;background:linear-gradient(180deg,var(--p1),var(--p2),var(--p3),var(--p4),var(--p5));
+}
+.wf-row{
+  display:flex;align-items:center;gap:20px;
+  padding:16px 0 16px 50px;position:relative;
+  transition:all .35s ease;
+  opacity:0;transform:translateX(-20px);
+}
+.wf-row.visible{opacity:1;transform:translateX(0);}
+.wf-row::before{
+  content:'';position:absolute;left:24px;top:22px;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--p1);border:3px solid var(--bg);
+  box-shadow:0 0 16px rgba(167,139,250,0.6);
+}
+.wf-row:nth-child(2)::before{background:var(--p2);box-shadow:0 0 16px rgba(96,165,250,0.6);}
+.wf-row:nth-child(3)::before{background:var(--p3);box-shadow:0 0 16px rgba(52,211,153,0.6);}
+.wf-row:nth-child(4)::before{background:var(--p4);box-shadow:0 0 16px rgba(251,191,36,0.6);}
+.wf-row:nth-child(5)::before{background:var(--p5);box-shadow:0 0 16px rgba(244,114,182,0.6);}
+.wf-row .wf-icon{
+  width:44px;height:44px;border-radius:12px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+.wf-row .wf-info h4{font-size:16px;color:#fff;margin-bottom:2px;}
+.wf-row .wf-info p{font-size:13px;color:var(--muted);line-height:1.6;}
+.wf-row .wf-badge{
+  margin-left:auto;padding:4px 12px;border-radius:12px;
+  font-size:11px;font-weight:600;white-space:nowrap;
+  border:1px solid var(--border);
+  color:var(--muted);flex-shrink:0;
+}
+
+/* ── Tab Switcher ── */
+.tabs{display:flex;gap:0;border-radius:14px;overflow:hidden;border:1px solid var(--border);margin-bottom:20px;}
+.tab-btn{
+  flex:1;padding:14px 18px;border:none;
+  background:rgba(255,255,255,0.02);
+  color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;
+  transition:all .3s;letter-spacing:1px;
+}
+.tab-btn.active{background:rgba(167,139,250,0.1);color:#fff;}
+.tab-btn:not(:last-child){border-right:1px solid var(--border);}
+.tab-panel{display:none;animation:fadeSlide .4s ease;}
+.tab-panel.active{display:block;}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Footer ── */
+.footer{
+  position:relative;z-index:1;text-align:center;
+  padding:40px 24px;border-top:1px solid var(--border);
+  color:var(--muted);font-size:12px;
+}
+.footer a{color:var(--p1);text-decoration:none;}
+
+/* ── Tilt ── */
+.tilt{transition:transform .1s ease-out;}
+
+@media(max-width:640px){
+  .section{padding:50px 16px;}
+  .hero .duo .orb{width:60px;height:60px;font-size:28px;border-radius:18px;}
+  .hero .duo{gap:12px;}
+  .pipeline{flex-direction:column;align-items:stretch;}
+  .pipe-arrow{transform:rotate(90deg);}
+  .grid2,.grid3{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- ═══════ HERO ═══════ -->
+<section class="section hero" data-section="0">
+  <div class="inner">
+    <div class="duo">
+      <div class="orb o1">📐</div>
+      <div class="link">⚡</div>
+      <div class="orb o2">🦸</div>
+    </div>
+    <div class="tag">THE ULTIMATE DEV WORKFLOW</div>
+    <h2>掌握 <span class="hl">OpenSpec</span> + <span class="hl">Superpowers</span></h2>
+    <p class="sub">一个管"做什么"，一个管"怎么做"。两者结合，就是 AI 时代最强开发工作流。</p>
+  </div>
+</section>
+
+<!-- ═══════ OVERVIEW ═══════ -->
+<section class="section" data-section="1">
+  <div class="inner">
+    <h2>🎯 <span class="hl">一分钟</span>看懂</h2>
+    <div class="grid2">
+      <div class="card tilt" style="border-top:3px solid var(--p1);">
+        <div class="ci" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);">📐</div>
+        <h3>OpenSpec · 管"做什么"</h3>
+        <p>结构化的<strong style="color:var(--p1);">项目规范管理系统</strong>。每一个功能变更都是一份完整的提案文档，包含需求、设计、任务清单和规格说明。</p>
+        <ul>
+          <li>📋 Proposal — 为什么要做、改什么</li>
+          <li>🏗️ Design — 技术方案和架构决策</li>
+          <li>✅ Tasks — 可执行的任务清单</li>
+          <li>📝 Specs — 功能规格说明文档</li>
+        </ul>
+      </div>
+      <div class="card tilt" style="border-top:3px solid var(--p2);">
+        <div class="ci" style="background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.2);">🦸</div>
+        <h3>Superpowers · 管"怎么做"</h3>
+        <p>14 个<strong style="color:var(--p2);">Claude Code 技能</strong>组成的 AI 辅助开发方法论。覆盖从需求到交付的完整开发流程。</p>
+        <ul>
+          <li>🧠 Brainstorming — 想法 → 设计</li>
+          <li>🧪 TDD — 先写测试再写代码</li>
+          <li>🔍 Debugging — 系统化排查</li>
+          <li>👀 Code Review — AI 审查代码</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ WORKFLOW MAP ═══════ -->
+<section class="section" data-section="2">
+  <div class="inner">
+    <h2>🗺️ <span class="hl">完整工作流</span>地图</h2>
+    <p style="color:var(--muted);margin-bottom:24px;">从灵感到交付，OpenSpec + Superpowers 覆盖每一个环节：</p>
+    <div class="workflow-map">
+      <div class="wf-row">
+        <div class="wf-icon" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);">💡</div>
+        <div class="wf-info"><h4>1. 需求探索</h4><p>用 Brainstorming 理清思路，产出结构化设计</p></div>
+        <div class="wf-badge" style="color:var(--p1);border-color:rgba(167,139,250,0.3);">🦸 Superpowers</div>
+      </div>
+      <div class="wf-row">
+        <div class="wf-icon" style="background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.2);">📐</div>
+        <div class="wf-info"><h4>2. 编写提案</h4><p>用 OpenSpec 生成 proposal → design → tasks → specs</p></div>
+        <div class="wf-badge" style="color:var(--p2);border-color:rgba(96,165,250,0.3);">📐 OpenSpec</div>
+      </div>
+      <div class="wf-row">
+        <div class="wf-icon" style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);">⚡</div>
+        <div class="wf-info"><h4>3. 按规范实施</h4><p>TDD 写测试 → 实现代码 → Code Review 审查 → 验证</p></div>
+        <div class="wf-badge" style="color:var(--p3);border-color:rgba(52,211,153,0.3);">🤝 两者结合</div>
+      </div>
+      <div class="wf-row">
+        <div class="wf-icon" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);">🔄</div>
+        <div class="wf-info"><h4>4. 同步归档</h4><p>sync 增量规范到主文档 → archive 归档完成变更</p></div>
+        <div class="wf-badge" style="color:var(--p4);border-color:rgba(251,191,36,0.3);">📐 OpenSpec</div>
+      </div>
+      <div class="wf-row">
+        <div class="wf-icon" style="background:rgba(244,114,182,0.1);border:1px solid rgba(244,114,182,0.2);">🚀</div>
+        <div class="wf-info"><h4>5. 交付验证</h4><p>finishing-branch → verification → 决定合并或提 PR</p></div>
+        <div class="wf-badge" style="color:var(--p5);border-color:rgba(244,114,182,0.3);">🦸 Superpowers</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SUPERPOWERS SKILLS ═══════ -->
+<section class="section" data-section="3">
+  <div class="inner">
+    <h2>🦸 <span class="hl">Superpowers</span> 14 大技能</h2>
+    <p style="color:var(--muted);margin-bottom:18px;">按使用顺序排列，覆盖从构思到交付的全流程：</p>
+
+    <div class="tabs" id="skillTabs">
+      <button class="tab-btn active" onclick="switchTab(0)">🧠 构思</button>
+      <button class="tab-btn" onclick="switchTab(1)">⚡ 开发</button>
+      <button class="tab-btn" onclick="switchTab(2)">🔍 验证</button>
+      <button class="tab-btn" onclick="switchTab(3)">🚀 交付</button>
+      <button class="tab-btn" onclick="switchTab(4)">🏗️ 高级</button>
+    </div>
+
+    <div class="tab-panel active" id="tab0">
+      <div class="grid2">
+        <div class="card tilt">
+          <div class="ci" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);">🧠</div>
+          <h3>brainstorming 头脑风暴</h3>
+          <p>任何创意工作前必须先用的技能。通过 9 步流程把模糊想法变成完整设计：探索上下文 → 可视化 → 提问澄清 → 提2-3方案 → 展示设计 → 写设计文档 → 自审 → 用户审阅 → 转实施。</p>
+        </div>
+        <div class="card tilt">
+          <div class="ci" style="background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.2);">📝</div>
+          <h3>writing-plans 编写计划</h3>
+          <p>把设计文档转成可执行的实施计划。拆解任务、排优先级、预估工作量。复杂任务先出计划再动手，确认后 AI 按计划逐步执行。</p>
+        </div>
+      </div>
+    </div>
+    <div class="tab-panel" id="tab1">
+      <div class="grid2">
+        <div class="card tilt">
+          <div class="ci" style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);">🧪</div>
+          <h3>test-driven-development TDD</h3>
+          <p>铁律：先写失败的测试，再写代码让它通过。新功能、Bug修复、重构——全部适用。不写测试先写代码？删掉重来。</p>
+        </div>
+        <div class="card tilt">
+          <div class="ci" style="background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.2);">⚡</div>
+          <h3>executing-plans 执行计划</h3>
+          <p>按照已确认的计划逐步实施。每一步有明确的输入输出和验收标准，像流水线一样把计划变成代码。</p>
+        </div>
+      </div>
+    </div>
+    <div class="tab-panel" id="tab2">
+      <div class="grid2">
+        <div class="card tilt">
+          <div class="ci" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);">🔍</div>
+          <h3>systematic-debugging 系统化调试</h3>
+          <p>bug 找不到原因时不要瞎猜。这个技能引导你走系统化排查流程：复现 → 隔离 → 定位根因 → 修复 → 验证。</p>
+        </div>
+        <div class="card tilt">
+          <div class="ci" style="background:rgba(244,114,182,0.1);border:1px solid rgba(244,114,182,0.2);">👀</div>
+          <h3>code-review 代码审查</h3>
+          <p>写完代码让 AI 审一遍。检查逻辑漏洞、安全隐患、代码质量。分为请求审查和接收审查两个技能，双向视角。</p>
+        </div>
+      </div>
+    </div>
+    <div class="tab-panel" id="tab3">
+      <div class="grid2">
+        <div class="card tilt">
+          <div class="ci" style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);">✅</div>
+          <h3>verification-before-completion 完成前验证</h3>
+          <p>功能做完了 ≠ 可以交了。这个技能确保实现和设计文档一致，所有验收标准通过，没有遗漏的边界情况。</p>
+        </div>
+        <div class="card tilt">
+          <div class="ci" style="background:rgba(244,114,182,0.1);border:1px solid rgba(244,114,182,0.2);">🚀</div>
+          <h3>finishing-a-development-branch 收尾分支</h3>
+          <p>功能开发完成后的标准收尾流程：检查是否有未提交的改动 → 决定合并还是提 PR → 清理开发痕迹。</p>
+        </div>
+      </div>
+    </div>
+    <div class="tab-panel" id="tab4">
+      <div class="grid2">
+        <div class="card tilt">
+          <div class="ci" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);">🤖</div>
+          <h3>subagent-driven-development 子智能体</h3>
+          <p>派发多个 AI 子智能体并行执行任务，像微服务一样拆分工作，然后汇总结果。</p>
+        </div>
+        <div class="card tilt">
+          <div class="ci" style="background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.2);">🌳</div>
+          <h3>using-git-worktrees 工作树</h3>
+          <p>用 git worktree 并行开发多个功能，互不干扰。每个 worktree 独立工作区，切分支不用 stash。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ OPENSPEC COMMANDS ═══════ -->
+<section class="section" data-section="4">
+  <div class="inner">
+    <h2>📐 <span class="hl">OpenSpec</span> 五大命令</h2>
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="ps-icon">🔍</div>
+        <div class="ps-label">/opsx:explore</div>
+        <div class="ps-small">思路探索 & 问题分析</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">
+        <div class="ps-icon">📝</div>
+        <div class="ps-label">/opsx:propose</div>
+        <div class="ps-small">生成完整变更提案</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">
+        <div class="ps-icon">⚡</div>
+        <div class="ps-label">/opsx:apply</div>
+        <div class="ps-small">按任务清单实施变更</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">
+        <div class="ps-icon">🔄</div>
+        <div class="ps-label">/opsx:sync</div>
+        <div class="ps-small">delta spec → 主 spec</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">
+        <div class="ps-icon">📦</div>
+        <div class="ps-label">/opsx:archive</div>
+        <div class="ps-small">归档已完成变更</div>
+      </div>
+    </div>
+
+    <div class="terminal" style="margin-top:28px;">
+      <div class="tbar"><span class="r"></span><span class="y"></span><span class="g"></span><span class="tt">OpenSpec 提案示例 — 红薯快写 App</span></div>
+      <div class="tbody">
+        <div><span class="th">$ /opsx:propose</span></div>
+        <div style="margin-top:4px;"><span class="tp">生成变更提案中...</span></div>
+        <div style="margin-top:8px;"><span class="tc">📄 proposal.md</span></div>
+        <div><span class="to">├─ Why: 内容创作者每次写小红书文章需要30-60分钟...</span></div>
+        <div><span class="to">├─ What: 全新的移动端 Web App，上传图片+关键词 → AI 生成文章</span></div>
+        <div><span class="to">├─ Capabilities: 文章生成、风格系统、爆款分析、用户认证...</span></div>
+        <div><span class="to">└─ Impact: 全新全栈项目，前端 React + 后端 FastAPI</span></div>
+        <div style="margin-top:4px;"><span class="tc">🏗️ design.md</span></div>
+        <div><span class="to">├─ 技术架构: React 19 + Vite → FastAPI → DeepSeek</span></div>
+        <div><span class="to">└─ 部署方案: Vercel（前端）+ PythonAnywhere（后端）</span></div>
+        <div style="margin-top:4px;"><span class="tc">✅ tasks.md</span></div>
+        <div><span class="to">├─ 1. 项目初始化 (4项)</span></div>
+        <div><span class="to">├─ 2. 数据模型 (4项)</span></div>
+        <div><span class="to">├─ 3. 用户认证 (6项)</span></div>
+        <div><span class="to">├─ ... 共 9 大类 50+ 子任务</span></div>
+        <div><span class="to">└─ 每项有明确的 checkbox 跟踪进度</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ COMBINED WORKFLOW ═══════ -->
+<section class="section" data-section="5">
+  <div class="inner">
+    <h2>⚡ <span class="hl">两者结合</span>：真实开发的一天</h2>
+    <p style="color:var(--muted);margin-bottom:20px;">模拟一次完整的"红薯快写"功能开发流程，看 OpenSpec + Superpowers 如何配合：</p>
+
+    <div class="terminal" id="demoTerm">
+      <div class="tbar"><span class="r"></span><span class="y"></span><span class="g"></span><span class="tt">真实工作流演示 — 新增"历史记录"功能</span></div>
+      <div class="tbody" id="demoBody">
+        <div><span class="tp">$ </span><span class="tc">开始一天的工作...</span></div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:16px;">
+      <button onclick="runDemo()" id="demoBtn" style="padding:12px 28px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all .3s;">▶ 运行完整演示</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ CHEATSHEET ═══════ -->
+<section class="section" data-section="6">
+  <div class="inner">
+    <h2>📋 <span class="hl">速查表</span>：什么场景用什么</h2>
+    <div class="grid3">
+      <div class="card tilt" style="border-left:3px solid var(--p1);">
+        <h3>💡 新功能从零开始</h3>
+        <p style="margin-top:8px;">1. <strong style="color:var(--p1);">/brainstorming</strong> 理清思路<br>2. <strong style="color:var(--p2);">/opsx:propose</strong> 生成提案<br>3. <strong style="color:var(--p3);">/opsx:apply</strong> 按任务实施<br>4. <strong style="color:var(--p4);">/code-review</strong> 审代码<br>5. <strong style="color:var(--p5);">/opsx:archive</strong> 归档</p>
+      </div>
+      <div class="card tilt" style="border-left:3px solid var(--p3);">
+        <h3>🐛 修 Bug</h3>
+        <p style="margin-top:8px;">1. <strong style="color:var(--p1);">/systematic-debugging</strong> 排查<br>2. <strong style="color:var(--p3);">/test-driven-development</strong> 写复现测试<br>3. 修代码让测试通过<br>4. <strong style="color:var(--p4);">/code-review</strong> 确认修复<br>5. <strong style="color:var(--p5);">/finishing-a-development-branch</strong></p>
+      </div>
+      <div class="card tilt" style="border-left:3px solid var(--p4);">
+        <h3>🔄 重构优化</h3>
+        <p style="margin-top:8px;">1. <strong style="color:var(--p2);">/opsx:explore</strong> 分析现状<br>2. <strong style="color:var(--p2);">/opsx:propose</strong> 写重构方案<br>3. <strong style="color:var(--p3);">/test-driven-development</strong> 保住现有行为<br>4. 逐步重构 + <strong style="color:var(--p4);">/code-review</strong><br>5. <strong style="color:var(--p1);">/opsx:sync</strong> 更新规范</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ TIPS ═══════ -->
+<section class="section" data-section="7">
+  <div class="inner">
+    <h2>🧠 <span class="hl">高手技巧</span></h2>
+    <div class="grid2">
+      <div class="card tilt">
+        <div class="ci" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);">🎯</div>
+        <h3>原则一：先 Spec 后 Skill</h3>
+        <p>先跑 <strong style="color:var(--p1);">/opsx:explore → propose</strong> 把需求写成规范文档，再用 <strong style="color:var(--p2);">Superpowers</strong> 技能按规范实施。规范是"合同"，技能是"施工队"。</p>
+      </div>
+      <div class="card tilt">
+        <div class="ci" style="background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.2);">🔗</div>
+        <h3>原则二：命令链式调用</h3>
+        <p>熟练后可以一口气串联：<br><code style="background:rgba(255,255,255,0.04);padding:3px 8px;border-radius:6px;font-size:12px;">/brainstorming → /opsx:propose → /opsx:apply → /code-review → /opsx:archive</code></p>
+      </div>
+      <div class="card tilt">
+        <div class="ci" style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);">📦</div>
+        <h3>原则三：规范即文档</h3>
+        <p>OpenSpec 的 specs/ 目录就是你的<strong style="color:var(--p3);">活文档</strong>。每次 /opsx:sync 把增量合并进主规范，项目文档永远不会过时。</p>
+      </div>
+      <div class="card tilt">
+        <div class="ci" style="background:rgba(244,114,182,0.1);border:1px solid rgba(244,114,182,0.2);">🚫</div>
+        <h3>原则四：不过度使用</h3>
+        <p>修一个 typo、改一行 CSS 不需要走完整流程。<strong style="color:var(--p5);">小任务直接做</strong>，中大型功能才启动 OpenSpec + Superpowers 工作流。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>📐 OpenSpec + 🦸 Superpowers · AI 时代最强开发工作流</p>
+  <p style="margin-top:6px;">先写规范，再按技能实施 — 让 AI 从"猜"变成"精准执行" 🎯</p>
+</footer>
+
+<!-- ═══════ SCRIPTS ═══════ -->
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+const canvas=document.getElementById('bg-canvas');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth,window.innerHeight);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(50,window.innerWidth/window.innerHeight,0.5,40);
+camera.position.z=10;
+
+// Dual particle systems
+const geo1=new THREE.BufferGeometry();const N1=400;
+const p1=new Float32Array(N1*3);const c1=new Float32Array(N1*3);
+for(let i=0;i<N1;i++){
+  p1[i*3]=(Math.random()-0.5)*14;p1[i*3+1]=(Math.random()-0.5)*8;p1[i*3+2]=(Math.random()-0.5)*3;
+  const c=new THREE.Color().setHSL(0.7+Math.random()*0.15,0.6,0.5+Math.random()*0.4);
+  c1[i*3]=c.r;c1[i*3+1]=c.g;c1[i*3+2]=c.b;
+}
+geo1.setAttribute('position',new THREE.BufferAttribute(p1,3));
+geo1.setAttribute('color',new THREE.BufferAttribute(c1,3));
+const pts1=new THREE.Points(geo1,new THREE.PointsMaterial({size:0.035,vertexColors:true,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:0.7}));
+scene.add(pts1);
+
+const geo2=new THREE.BufferGeometry();const N2=300;
+const p2=new Float32Array(N2*3);const c2=new Float32Array(N2*3);
+for(let i=0;i<N2;i++){
+  p2[i*3]=(Math.random()-0.5)*12;p2[i*3+1]=(Math.random()-0.5)*8;p2[i*3+2]=(Math.random()-0.5)*3;
+  const c=new THREE.Color().setHSL(0.55+Math.random()*0.1,0.5,0.55+Math.random()*0.35);
+  c2[i*3]=c.r;c2[i*3+1]=c.g;c2[i*3+2]=c.b;
+}
+geo2.setAttribute('position',new THREE.BufferAttribute(p2,3));
+geo2.setAttribute('color',new THREE.BufferAttribute(c2,3));
+const pts2=new THREE.Points(geo2,new THREE.PointsMaterial({size:0.03,vertexColors:true,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:0.55}));
+scene.add(pts2);
+
+// Rings
+const rGeo=new THREE.TorusGeometry(3.2,0.02,16,120);
+const r=new THREE.Mesh(rGeo,new THREE.MeshBasicMaterial({color:0xa78bfa,transparent:true,opacity:0.12,depthWrite:false}));
+scene.add(r);
+const r2Geo=new THREE.TorusGeometry(2.6,0.015,16,100);
+const r2=new THREE.Mesh(r2Geo,new THREE.MeshBasicMaterial({color:0x60a5fa,transparent:true,opacity:0.1,depthWrite:false}));
+r2.rotation.x=Math.PI/4;r2.rotation.y=Math.PI/4;
+scene.add(r2);
+
+let mx=0,my=0,tx=0,ty=0;
+window.addEventListener('mousemove',e=>{tx=(e.clientX/window.innerWidth)*2-1;ty=-(e.clientY/window.innerHeight)*2+1;});
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const t=clock.getElapsedTime(),dt=Math.min(clock.getDelta(),0.1);
+  mx+=(tx-mx)*0.04;my+=(ty-my)*0.04;
+  pts1.rotation.y+=dt*0.05;pts1.rotation.x+=dt*0.02;
+  pts2.rotation.y-=dt*0.04;pts2.rotation.x-=dt*0.025;
+  r.rotation.z+=dt*0.2;r.rotation.x+=dt*0.1;
+  r2.rotation.z-=dt*0.15;r2.rotation.y+=dt*0.12;
+  camera.position.x+=(mx*1.2-camera.position.x)*0.03;
+  camera.position.y+=(my*0.7-camera.position.y)*0.03;
+  camera.lookAt(0,0,0);
+  renderer.render(scene,camera);
+}
+animate();
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);
+});
+</script>
+
+<script>
+// Progress
+const sections=document.querySelectorAll('.section');
+const progressBar=document.getElementById('progressBar');
+window.addEventListener('scroll',()=>{
+  const pct=Math.min(window.scrollY/(document.documentElement.scrollHeight-window.innerHeight),1);
+  progressBar.style.width=(pct*100)+'%';
+},{passive:true});
+
+// Intersection Observer
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.card,.wf-row').forEach((el,i)=>{
+        el.style.transitionDelay=(i*0.07)+'s';el.classList.add('visible');
+      });
+    }
+  });
+},{threshold:0.12});
+sections.forEach(s=>obs.observe(s));
+
+// Tilt
+document.querySelectorAll('.tilt').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    const rect=el.getBoundingClientRect();
+    const x=(e.clientX-rect.left)/rect.width-0.5;
+    const y=(e.clientY-rect.top)/rect.height-0.5;
+    el.style.transform=`perspective(800px) rotateY(${x*8}deg) rotateX(${-y*8}deg) translateY(-6px)`;
+  });
+  el.addEventListener('mouseleave',()=>{
+    el.style.transform='perspective(800px) rotateY(0) rotateX(0) translateY(0)';
+  });
+});
+
+// Tab switcher
+window.switchTab=function(idx){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  document.querySelectorAll('.tab-panel').forEach((p,i)=>p.classList.toggle('active',i===idx));
+};
+
+// Demo terminal
+window.runDemo=function(){
+  const tb=document.getElementById('demoBody');
+  const btn=document.getElementById('demoBtn');
+  btn.disabled=true;btn.textContent='⏳ 演示中...';
+  const steps=[
+    '<div style="margin-top:8px;"><span class="th">━━━ 上午 9:00 · 需求探索 ━━━</span></div>',
+    '<div><span class="tp">$ </span><span class="tc">/brainstorming</span></div>',
+    '<div><span class="to">🧠 让我们理清"历史记录"功能的需求...</span></div>',
+    '<div><span class="to">  ├─ 用户需要查看之前的生成记录</span></div>',
+    '<div><span class="to">  ├─ 每条记录包含：文章内容、使用的图片、风格配置</span></div>',
+    '<div><span class="to">  └─ 支持分页、搜索、删除</span></div>',
+    '<div style="margin-top:8px;"><span class="th">━━━ 上午 10:00 · 编写提案 ━━━</span></div>',
+    '<div><span class="tp">$ </span><span class="tc">/opsx:propose</span></div>',
+    '<div><span class="to">📄 已生成：proposal.md</span></div>',
+    '<div><span class="to">🏗️ 已生成：design.md（API 设计、数据库迁移）</span></div>',
+    '<div><span class="to">✅ 已生成：tasks.md（8 个子任务）</span></div>',
+    '<div style="margin-top:8px;"><span class="th">━━━ 上午 10:30 · 开始实施 ━━━</span></div>',
+    '<div><span class="tp">$ </span><span class="tc">/opsx:apply</span></div>',
+    '<div><span class="tp">$ </span><span class="tc">/test-driven-development</span></div>',
+    '<div><span class="to">🧪 先写测试：test_history_api.py</span></div>',
+    '<div><span class="to">   ❌ Test FAILED (expected)</span></div>',
+    '<div><span class="to">⚡ 实现：POST /api/history, GET /api/history</span></div>',
+    '<div><span class="to">   ✅ Test PASSED</span></div>',
+    '<div><span class="to">🔄 重复 TDD 循环完成 8 个子任务...</span></div>',
+    '<div style="margin-top:8px;"><span class="th">━━━ 下午 2:00 · 代码审查 ━━━</span></div>',
+    '<div><span class="tp">$ </span><span class="tc">/code-review</span></div>',
+    '<div><span class="to">👀 AI 审查中... 发现 2 个问题：</span></div>',
+    '<div><span class="to">   1. 分页参数缺少边界校验 ⚠️</span></div>',
+    '<div><span class="to">   2. 删除操作缺少权限检查 🔴</span></div>',
+    '<div><span class="to">🔧 修复完成，重新审查通过 ✅</span></div>',
+    '<div style="margin-top:8px;"><span class="th">━━━ 下午 3:00 · 同步归档 ━━━</span></div>',
+    '<div><span class="tp">$ </span><span class="tc">/opsx:sync</span></div>',
+    '<div><span class="to">🔄 将 add-history-and-sync-credits 的 delta spec 合并到主规范...</span></div>',
+    '<div><span class="tp">$ </span><span class="tc">/opsx:archive</span></div>',
+    '<div><span class="to">📦 归档完成！变更已记录到 archive/</span></div>',
+    '<div style="margin-top:8px;"><span class="tp">$ </span><span class="tc">/finishing-a-development-branch</span></div>',
+    '<div><span class="to">🚀 检查未提交改动 → 决定合并到 master → 完成！</span></div>',
+    '<div style="margin-top:8px;color:#34d399;">✅ 一天工作结束。从需求到交付，OpenSpec + Superpowers 全程护航。</div>',
+  ];
+  tb.innerHTML=steps[0];
+  let i=1;
+  const iv=setInterval(()=>{
+    if(i<steps.length){tb.innerHTML+=steps[i];i++;tb.scrollTop=tb.scrollHeight;}
+    else{clearInterval(iv);btn.disabled=false;btn.textContent='🔄 重新运行';}
+  },350);
+};
+</script>
+</body>
+</html>

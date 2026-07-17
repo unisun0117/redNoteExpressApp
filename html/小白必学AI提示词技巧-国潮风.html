@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小白必学 · AI 提示词技巧 · 国潮秘籍</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&display=swap');
+
+:root{
+  --red:#c41e2a;--dark-red:#8b1a1a;--gold:#d4a843;--light-gold:#f0d68a;
+  --jade:#3b8c7a;--deep-blue:#1a3a5c;--ink:#1a1410;
+  --cream:#fdf5e6;--bg:#faf6ed;--card:rgba(255,250,240,0.85);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Noto Serif SC','STSong',serif;
+  overflow-x:hidden;cursor:default;
+  background-image:
+    repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(212,168,67,0.04) 40px,rgba(212,168,67,0.04) 41px);
+}
+
+/* ── Red top banner ── */
+.top-banner{
+  position:fixed;top:0;left:0;right:0;height:6px;z-index:100;
+  background:linear-gradient(90deg,var(--dark-red),var(--red),var(--gold),var(--red),var(--dark-red));
+}
+/* Decorative cloud pattern on banner */
+.top-banner::after{
+  content:'';
+  position:absolute;bottom:-12px;left:0;right:0;height:12px;
+  background:url("data:image/svg+xml,%3Csvg width='40' height='12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 12 Q10 0 20 12 Q30 0 40 12' fill='none' stroke='%23c41e2a' stroke-width='1.5' opacity='0.5'/%3E%3C/svg%3E") repeat-x;
+}
+
+/* ── Lanterns ── */
+.lanterns{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.lantern{
+  position:absolute;top:-10px;
+  display:flex;flex-direction:column;align-items:center;
+  animation:lanternSway 4s ease-in-out infinite;
+}
+.lantern:nth-child(1){left:8%;animation-delay:0s;}
+.lantern:nth-child(2){left:25%;animation-delay:-1.5s;}
+.lantern:nth-child(3){left:75%;animation-delay:-3s;}
+.lantern:nth-child(4){left:90%;animation-delay:-0.8s;}
+.lantern .l-top{width:20px;height:6px;background:var(--gold);border-radius:3px 3px 0 0;}
+.lantern .l-body{
+  width:36px;height:48px;background:linear-gradient(180deg,var(--red),var(--dark-red));
+  border-radius:18px;position:relative;
+  box-shadow:0 0 20px rgba(196,30,42,0.4),0 0 40px rgba(196,30,42,0.15);
+  animation:lanternGlow 2s ease-in-out infinite;
+}
+.lantern .l-body::before{
+  content:'';position:absolute;top:8px;bottom:8px;left:50%;width:2px;
+  background:var(--gold);opacity:0.4;transform:translateX(-50%);
+}
+.lantern .l-body::after{
+  content:'';position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
+  width:14px;height:4px;background:var(--gold);border-radius:0 0 3px 3px;
+}
+.lantern .l-tassel{
+  width:1px;height:16px;background:var(--gold);
+  position:relative;
+}
+.lantern .l-tassel::after{
+  content:'';position:absolute;bottom:0;left:-4px;
+  width:10px;height:8px;background:var(--gold);
+  border-radius:0 0 5px 5px;opacity:0.7;
+}
+@keyframes lanternSway{
+  0%,100%{transform:rotate(-3deg)}
+  50%{transform:rotate(3deg)}
+}
+@keyframes lanternGlow{
+  0%,100%{box-shadow:0 0 20px rgba(196,30,42,0.4),0 0 40px rgba(196,30,42,0.15)}
+  50%{box-shadow:0 0 30px rgba(196,30,42,0.6),0 0 60px rgba(255,180,60,0.25)}
+}
+
+/* ── Cloud pattern BG ── */
+.cloud-pattern{
+  position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.03;
+  background-image:url("data:image/svg+xml,%3Csvg width='100' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 40 Q30 25 40 40 Q45 30 50 40' fill='none' stroke='%23c41e2a' stroke-width='1'/%3E%3C/svg%3E");
+  background-size:100px 60px;
+}
+
+/* ── Progress ── */
+.progress-bar{
+  position:fixed;top:6px;left:0;height:3px;z-index:100;
+  background:linear-gradient(90deg,var(--gold),var(--light-gold),var(--gold));
+  transition:width .1s linear;
+  box-shadow:0 0 8px rgba(212,168,67,0.5);
+}
+
+/* ── Sections ── */
+.section{
+  position:relative;z-index:1;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:80px 24px;
+}
+.section .inner{max-width:940px;width:100%;}
+.section h2{
+  font-family:'Noto Serif SC',serif;
+  font-size:clamp(26px,4.5vw,42px);font-weight:900;
+  letter-spacing:4px;line-height:1.3;margin-bottom:32px;
+  color:var(--dark-red);
+  padding-bottom:18px;
+  border-bottom:2px solid rgba(196,30,42,0.15);
+  position:relative;
+}
+.section h2::after{
+  content:'◆';position:absolute;bottom:-8px;left:0;
+  color:var(--gold);font-size:10px;
+}
+.section h2 .hl{color:var(--red);}
+
+/* ── Hero ── */
+.hero{text-align:center;}
+.hero .frame{
+  display:inline-block;padding:6px 30px;
+  border:2px solid var(--red);border-radius:30px;
+  color:var(--red);font-size:12px;letter-spacing:4px;
+  margin-bottom:24px;
+  background:rgba(196,30,42,0.03);
+}
+.hero .seal-block{
+  display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:28px;
+}
+.hero .big-seal{
+  width:80px;height:80px;border:3px solid var(--red);border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Ma Shan Zheng',cursive;
+  font-size:28px;color:var(--red);
+  transform:rotate(-6deg);
+  box-shadow:3px 3px 0 rgba(196,30,42,0.12);
+  background:rgba(255,255,255,0.6);
+  animation:sealStamp 0.6s cubic-bezier(.22,.61,.36,1) forwards;
+}
+@keyframes sealStamp{
+  0%{transform:rotate(-6deg) scale(2);opacity:0}
+  100%{transform:rotate(-6deg) scale(1);opacity:1}
+}
+.hero h1{
+  font-family:'Noto Serif SC',serif;
+  font-size:clamp(34px,7vw,58px);font-weight:900;letter-spacing:6px;
+  line-height:1.3;margin-bottom:12px;
+  background:linear-gradient(180deg,var(--dark-red),var(--red));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero .sub{font-size:16px;color:var(--gold);letter-spacing:4px;}
+
+/* ── Cards ── */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
+.card{
+  background:var(--card);
+  border:1px solid rgba(196,30,42,0.1);
+  border-radius:12px;padding:30px 26px;
+  position:relative;overflow:hidden;
+  backdrop-filter:blur(6px);
+  transition:all .45s cubic-bezier(.22,.61,.36,1);
+  opacity:0;transform:translateY(40px);
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;width:4px;height:0;
+  background:var(--red);
+  transition:height .5s ease;
+}
+.card:hover::before{height:100%;}
+.card.visible{opacity:1;transform:translateY(0);}
+.card:hover{
+  border-color:rgba(196,30,42,0.25);
+  transform:translateY(-6px)!important;
+  box-shadow:0 16px 48px rgba(196,30,42,0.08);
+}
+.card .c-icon{
+  font-size:36px;margin-bottom:12px;
+  width:52px;height:52px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+}
+.card h3{font-size:17px;color:var(--dark-red);margin-bottom:8px;letter-spacing:2px;}
+.card p,.card li{font-size:14px;color:rgba(26,20,16,0.65);line-height:1.8;letter-spacing:0.5px;}
+.card ul{padding-left:18px;margin-top:4px;}
+.card ul li{margin-bottom:3px;}
+.card .card-tip{
+  margin-top:12px;padding:8px 14px;border-radius:8px;
+  font-size:12px;font-weight:700;letter-spacing:1px;
+}
+
+/* ── Golden border panel ── */
+.gold-panel{
+  border:2px solid rgba(212,168,67,0.3);
+  border-radius:8px;padding:32px 28px;
+  background:rgba(240,214,138,0.04);
+  position:relative;
+}
+.gold-panel::before{
+  content:'◆';position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  color:var(--gold);font-size:14px;background:var(--bg);padding:0 10px;
+}
+.gold-panel::after{
+  content:'◆';position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);
+  color:var(--gold);font-size:14px;background:var(--bg);padding:0 10px;
+}
+
+/* ── Prompt card ── */
+.prompt-card{
+  border-radius:12px;overflow:hidden;
+  border:1px solid rgba(196,30,42,0.1);
+  background:rgba(255,255,255,0.7);
+}
+.prompt-card .pc-header{
+  padding:14px 20px;
+  font-size:12px;font-weight:700;letter-spacing:2px;
+  display:flex;align-items:center;gap:8px;
+}
+.prompt-card .pc-body{
+  padding:18px 20px;font-size:13px;line-height:1.9;
+  font-family:'SF Mono','Fira Code',monospace;
+}
+.pc-bad .pc-header{background:rgba(196,30,42,0.06);color:var(--red);}
+.pc-bad .pc-body{color:rgba(26,20,16,0.5);}
+.pc-good .pc-header{background:rgba(59,140,122,0.06);color:var(--jade);}
+.pc-good .pc-body{color:rgba(26,20,16,0.7);}
+
+/* ── Technique grid ── */
+.tech-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;}
+.tech-item{
+  padding:24px 22px;border-radius:12px;
+  border:1px solid rgba(196,30,42,0.08);
+  background:rgba(255,255,255,0.6);
+  display:flex;gap:16px;align-items:flex-start;
+  transition:all .35s ease;
+  opacity:0;transform:translateY(30px);
+}
+.tech-item.visible{opacity:1;transform:translateY(0);}
+.tech-item:hover{
+  border-color:rgba(196,30,42,0.25);
+  background:rgba(255,255,255,0.85);
+  transform:translateY(-4px)!important;
+  box-shadow:0 10px 30px rgba(196,30,42,0.06);
+}
+.tech-item .t-num{
+  width:40px;height:40px;border-radius:10px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:900;font-size:18px;
+  color:#fff;
+  background:linear-gradient(135deg,var(--red),var(--dark-red));
+}
+.tech-item .t-info h4{font-size:15px;color:var(--dark-red);margin-bottom:3px;letter-spacing:1px;}
+.tech-item .t-info p{font-size:13px;color:rgba(26,20,16,0.6);line-height:1.7;}
+
+/* ── Do / Don't table ── */
+.dodont-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.dodont-col{padding:24px;border-radius:12px;}
+.dodont-col.do{border:1px solid rgba(59,140,122,0.2);background:rgba(59,140,122,0.04);}
+.dodont-col.dont{border:1px solid rgba(196,30,42,0.15);background:rgba(196,30,42,0.03);}
+.dodont-col h3{font-size:18px;margin-bottom:14px;letter-spacing:2px;display:flex;align-items:center;gap:8px;}
+.dodont-col ul{list-style:none;padding:0;}
+.dodont-col li{padding:10px 0;font-size:14px;line-height:1.7;color:rgba(26,20,16,0.65);border-bottom:1px solid rgba(0,0,0,0.04);display:flex;align-items:center;gap:8px;}
+
+/* ── Quote ── */
+.quote{
+  padding:22px 28px;margin:20px 0;
+  border-left:3px solid var(--red);
+  background:rgba(196,30,42,0.03);
+  font-size:14px;line-height:1.9;letter-spacing:1px;
+  color:rgba(26,20,16,0.6);
+}
+
+/* ── Footer ── */
+.footer{
+  position:relative;z-index:1;text-align:center;
+  padding:48px 24px;border-top:2px solid rgba(196,30,42,0.1);
+  color:rgba(26,20,16,0.4);font-size:12px;letter-spacing:2px;
+}
+
+@media(max-width:640px){
+  .section{padding:48px 16px;}
+  .hero h1{letter-spacing:3px;}
+  .lantern{display:none;}
+  .lantern:nth-child(1),.lantern:nth-child(4){display:flex;}
+  .lantern:nth-child(1){left:5%;}.lantern:nth-child(4){left:88%;}
+  .dodont-grid{grid-template-columns:1fr;}
+  .grid2,.grid3,.tech-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="top-banner"></div>
+<div class="cloud-pattern"></div>
+<div class="lanterns">
+  <div class="lantern"><div class="l-top"></div><div class="l-body"></div><div class="l-tassel"></div></div>
+  <div class="lantern"><div class="l-top"></div><div class="l-body"></div><div class="l-tassel"></div></div>
+  <div class="lantern"><div class="l-top"></div><div class="l-body"></div><div class="l-tassel"></div></div>
+  <div class="lantern"><div class="l-top"></div><div class="l-body"></div><div class="l-tassel"></div></div>
+</div>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- ═══════ HERO ═══════ -->
+<section class="section hero" data-section="0">
+  <div class="inner">
+    <div class="frame">◆ AI 提词心法 ◆</div>
+    <div class="seal-block">
+      <div class="big-seal">妙</div>
+    </div>
+    <h1>小白必学<br>AI 提示词技巧</h1>
+    <p class="sub">— 一言兴邦 · 一言废事 —</p>
+  </div>
+</section>
+
+<!-- ═══════ WHY IT MATTERS ═══════ -->
+<section class="section" data-section="1">
+  <div class="inner">
+    <h2>🎯 <span class="hl">一句话</span>，天壤之别</h2>
+    <p style="color:rgba(26,20,16,0.55);margin-bottom:24px;letter-spacing:1px;">同样的 AI，不同的提示词，产出判若云泥。以下是同一任务的两种问法：</p>
+
+    <div class="grid2">
+      <div class="prompt-card pc-bad">
+        <div class="pc-header">❌ 模糊问法 — 效果稀烂</div>
+        <div class="pc-body">"帮我写一篇关于健康的文章。"</div>
+      </div>
+      <div class="prompt-card pc-good">
+        <div class="pc-header">✅ 精准问法 — 一击即中</div>
+        <div class="pc-body">"你是一位营养学专家。请写一篇面向25-35岁上班族的健康早餐指南。包含：1）为什么早餐重要 2）5个快手早餐食谱 3）常见误区。每部分约200字，语气轻松幽默，多用emoji。"</div>
+      </div>
+    </div>
+
+    <div class="quote" style="margin-top:20px;">
+      <strong>🔑 核心原则：</strong>AI 不是读心术师。你给的信息越精确，它返回的结果越靠谱。模糊的输入 = 随机的输出。
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 8 TECHNIQUES ═══════ -->
+<section class="section" data-section="2">
+  <div class="inner">
+    <h2>📜 <span class="hl">八大提词术</span> · 从入门到精通</h2>
+    <p style="color:rgba(26,20,16,0.5);margin-bottom:24px;letter-spacing:1px;">以下八招，招招实用。通晓三招即可超越 90% 的用户，八招全会，AI 任你驱使。</p>
+
+    <div class="tech-grid">
+      <div class="tech-item">
+        <div class="t-num">壹</div>
+        <div class="t-info">
+          <h4>🎭 角色扮演法</h4>
+          <p>给 AI 一个明确的身份："你是一位资深律师""你是一个小红书博主"。角色越具体，输出越专业。这招解决 80% 的"AI 回答太泛"问题。</p>
+        </div>
+      </div>
+      <div class="tech-item">
+        <div class="t-num">贰</div>
+        <div class="t-info">
+          <h4>📋 结构化输出法</h4>
+          <p>告诉 AI 你要的格式：列表、表格、JSON、Markdown。不要让它自己决定排版。"请用分点列出，每点不超过50字"胜过千言万语。</p>
+        </div>
+      </div>
+      <div class="tech-item">
+        <div class="t-num">叁</div>
+        <div class="t-info">
+          <h4>📝 示例引导法</h4>
+          <p>给 AI 1-2 个范例再让它写。"请参考以下风格：xxx。请用类似的风格写 yyy。" 示例是最高效的沟通方式——比描述 100 句都管用。</p>
+        </div>
+      </div>
+      <div class="tech-item">
+        <div class="t-num">肆</div>
+        <div class="t-info">
+          <h4>⛓️ 链式追问法</h4>
+          <p>不要一次问完。第一轮搭框架，第二轮填细节，第三轮润色。如同雕刻——粗坯→精雕→抛光，链式推进比一口气要完美结果靠谱得多。</p>
+        </div>
+      </div>
+      <div class="tech-item">
+        <div class="t-num">伍</div>
+        <div class="t-info">
+          <h4>🚫 负面约束法</h4>
+          <p>明确告诉 AI 不要做什么。"不要用专业术语""不要超过 500 字""不要提竞争对手"。排除法比指定法更高效——AI 非常善于遵守"禁止"指令。</p>
+        </div>
+      </div>
+      <div class="tech-item">
+        <div class="t-num">陆</div>
+        <div class="t-info">
+          <h4>🎯 场景限定法</h4>
+          <p>设定具体场景：受众是谁、在什么平台发布、目的是什么。"写给 60 岁老人的手机使用指南"和"写给极客的技术评测"，同一个主题，两种写法。</p>
+        </div>
+      </div>
+      <div class="tech-item">
+        <div class="t-num">柒</div>
+        <div class="t-info">
+          <h4>🧠 思维链法</h4>
+          <p>让 AI"先想再说"。"请一步步推理""请先分析问题再给出答案"。这对复杂任务（数学、逻辑、分析）尤其有效，让 AI 把思考过程写出来，正确率飙升。</p>
+        </div>
+      </div>
+      <div class="tech-item">
+        <div class="t-num">捌</div>
+        <div class="t-info">
+          <h4>🔄 迭代优化法</h4>
+          <p>第一版不满意？不要重来。直接说："更简洁一些""换一个更活泼的语气""把第3点展开详细说"。把 AI 当学徒——不断给反馈，它越改越好。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ DO & DON'T ═══════ -->
+<section class="section" data-section="3">
+  <div class="inner">
+    <h2>⚖️ <span class="hl">提词红黑榜</span></h2>
+    <div class="dodont-grid">
+      <div class="dodont-col do">
+        <h3>✅ 金榜 · 该这样做</h3>
+        <ul>
+          <li>🎯 需求具体："写 300 字的产品介绍"</li>
+          <li>👤 指定角色："你是资深产品经理"</li>
+          <li>📐 明确格式："用 Markdown 表格呈现"</li>
+          <li>📝 给出示例："参考这个风格写"</li>
+          <li>🚫 设置边界："控制在 500 字以内"</li>
+          <li>🔄 迭代打磨："第二段再展开一些"</li>
+          <li>👥 指定受众："写给完全不懂技术的人"</li>
+          <li>🗣️ 指定语气："轻松幽默，多用比喻"</li>
+        </ul>
+      </div>
+      <div class="dodont-col dont">
+        <h3>❌ 黑榜 · 千万别这样</h3>
+        <ul>
+          <li>💬 模糊提问："写点东西"</li>
+          <li>🤷 无角色："你随便发挥"</li>
+          <li>📄 无格式要求</li>
+          <li>🎲 让 AI 猜你的喜好</li>
+          <li>📜 无字数限制</li>
+          <li>🔄 不满意就重开新对话</li>
+          <li>👤 不指定目标读者</li>
+          <li>😐 接受第一个答案不调整</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ FORMULA ═══════ -->
+<section class="section" data-section="4">
+  <div class="inner">
+    <h2>🧪 <span class="hl">万能公式</span> · 拿来即用</h2>
+    <p style="color:rgba(26,20,16,0.5);margin-bottom:24px;letter-spacing:1px;">记住这个公式，你就能写出 90 分的提示词。把它记在心里，每次问 AI 前过一遍。</p>
+
+    <div class="gold-panel">
+      <div style="text-align:center;margin-bottom:28px;">
+        <div style="font-size:clamp(18px,3vw,26px);font-weight:900;color:var(--dark-red);letter-spacing:3px;line-height:2;">
+          👤 角色 + 🎯 任务 + 📋 格式 + 👥 受众 + 🗣️ 语气 + 📝 示例 + 🚫 约束
+        </div>
+        <div style="font-size:13px;color:var(--gold);letter-spacing:2px;margin-top:4px;">— 七要素提词公式 —</div>
+      </div>
+
+      <div style="font-family:'SF Mono',monospace;font-size:12px;line-height:2.2;color:rgba(26,20,16,0.6);">
+<span style="color:var(--red);">【角色】</span>你是一位有10年经验的小红书运营专家
+<span style="color:var(--red);">【任务】</span>请为"车载香薰"写一篇小红书种草文案
+<span style="color:var(--red);">【格式】</span>包含：吸睛标题（20字内）+ 痛点引入 + 3个卖点 + 结尾引导互动
+<span style="color:var(--red);">【受众】</span>面向 25-35 岁有车女性
+<span style="color:var(--red);">【语气】</span>闺蜜聊天风，亲切自然，多用 emoji
+<span style="color:var(--red);">【示例】</span>参考这个风格：[粘贴一个你喜欢的爆款文案链接或文本]
+<span style="color:var(--red);">【约束】</span>全文不超过 500 字，不要用过于夸张的形容词
+      </div>
+    </div>
+
+    <div class="quote" style="margin-top:24px;">
+      <strong>🧠 记忆口诀：</strong>"角任格受气例束" — 角色定调、任务明确、格式清晰、受众精准、语气到位、示例引路、约束兜底。七字诀在手，提词无忧。
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ REAL EXAMPLES ═══════ -->
+<section class="section" data-section="5">
+  <div class="inner">
+    <h2>📖 <span class="hl">实战案例</span> · 看差距</h2>
+
+    <div class="grid2">
+      <div class="card" style="border-left:3px solid var(--red);">
+        <div class="c-icon" style="background:rgba(196,30,42,0.06);">❌</div>
+        <h3>普通人问法</h3>
+        <div style="background:rgba(0,0,0,0.03);padding:12px 16px;border-radius:8px;font-size:13px;line-height:1.8;color:rgba(26,20,16,0.5);margin-bottom:12px;">
+          "帮我写个简历"
+        </div>
+        <p style="font-size:13px;">→ AI 随机生成，千篇一律，毫无亮点</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--jade);">
+        <div class="c-icon" style="background:rgba(59,140,122,0.06);">✅</div>
+        <h3>高手问法</h3>
+        <div style="background:rgba(0,0,0,0.03);padding:12px 16px;border-radius:8px;font-size:13px;line-height:1.8;color:rgba(26,20,16,0.65);margin-bottom:12px;">
+          "你是一位资深HR。帮我写一份产品经理的求职简历。我有3年B端SaaS经验、主导过2个从0到1的项目、会SQL和Python。请突出数据驱动决策能力，量化项目成果。语气专业但不僵硬，一页A4纸以内。"
+        </div>
+        <p style="font-size:13px;">→ AI 有的放矢，产出精准匹配JD</p>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:20px;">
+      <div class="card" style="border-left:3px solid var(--red);">
+        <div class="c-icon" style="background:rgba(196,30,42,0.06);">❌</div>
+        <h3>普通人问法</h3>
+        <div style="background:rgba(0,0,0,0.03);padding:12px 16px;border-radius:8px;font-size:13px;line-height:1.8;color:rgba(26,20,16,0.5);margin-bottom:12px;">
+          "解释一下什么是 REST API"
+        </div>
+        <p style="font-size:13px;">→ 百科式回答，看不懂也记不住</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--jade);">
+        <div class="c-icon" style="background:rgba(59,140,122,0.06);">✅</div>
+        <h3>高手问法</h3>
+        <div style="background:rgba(0,0,0,0.03);padding:12px 16px;border-radius:8px;font-size:13px;line-height:1.8;color:rgba(26,20,16,0.65);margin-bottom:12px;">
+          "我是一个刚学前端 3 个月的新手。请用餐厅点餐的比喻解释什么是 REST API，每个 HTTP 方法（GET/POST/PUT/DELETE）对应什么操作。不要用专业术语，如果能用一个生活场景串起来最好。"
+        </div>
+        <p style="font-size:13px;">→ 通俗易懂，过目不忘</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ PRO TIPS ═══════ -->
+<section class="section" data-section="6">
+  <div class="inner">
+    <h2>🏆 <span class="hl">高手进阶</span> · 三条铁律</h2>
+
+    <div class="grid3">
+      <div class="card" style="text-align:center;">
+        <div class="c-icon" style="margin:0 auto 14px;background:rgba(196,30,42,0.06);border:1px solid rgba(196,30,42,0.12);">🔁</div>
+        <h3>铁律一 · 永不满足第一版</h3>
+        <p>第一版只是草稿。AI 的首次输出 = 给你一个修改的起点。好的成果永远是迭代出来的，不是一次生成的。</p>
+        <div class="card-tip" style="background:rgba(196,30,42,0.05);color:var(--red);">"再改一版" 是最高效的咒语</div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div class="c-icon" style="margin:0 auto 14px;background:rgba(212,168,67,0.08);border:1px solid rgba(212,168,67,0.2);">📎</div>
+        <h3>铁律二 · 给参考不给抽象</h3>
+        <p>说"写得有趣一点"不如直接粘贴一段你觉得"有趣"的文字。AI 是模仿大师——给它具体样本，它秒懂你要什么。</p>
+        <div class="card-tip" style="background:rgba(212,168,67,0.08);color:var(--gold);">示例 > 描述 × 100</div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div class="c-icon" style="margin:0 auto 14px;background:rgba(59,140,122,0.06);border:1px solid rgba(59,140,122,0.12);">🗂️</div>
+        <h3>铁律三 · 建自己的提示词库</h3>
+        <p>遇到好用的提示词，存下来。分类管理：写作类、代码类、分析类……一个月后你就有了专属武器库。</p>
+        <div class="card-tip" style="background:rgba(59,140,122,0.05);color:var(--jade);">沉淀 > 每次重写</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ CHEAT SHEET ═══════ -->
+<section class="section" data-section="7">
+  <div class="inner">
+    <h2>📋 <span class="hl">场景速查</span> · 即查即用</h2>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="c-icon" style="background:rgba(196,30,42,0.06);">✍️</div>
+        <h3>写文案</h3>
+        <div style="font-family:'SF Mono',monospace;font-size:11px;line-height:2;color:rgba(26,20,16,0.55);">
+          "你是 [品牌] 的文案策划。为 [产品] 写一篇 [平台] 种草文案。目标受众 [人群]。风格 [轻松/专业/幽默]。包含 [标题/痛点/卖点/行动号召]。参考：[粘贴范例]。字数：[X] 字以内。"
+        </div>
+      </div>
+      <div class="card">
+        <div class="c-icon" style="background:rgba(59,140,122,0.06);">💻</div>
+        <h3>写代码</h3>
+        <div style="font-family:'SF Mono',monospace;font-size:11px;line-height:2;color:rgba(26,20,16,0.55);">
+          "你是 [语言/框架] 专家。请实现 [功能描述]。要求：[性能/可读性/安全性]。输入：[参数说明]。输出：[返回格式]。技术栈：[React/FastAPI/...]。不要用 [禁用的库/写法]。"
+        </div>
+      </div>
+      <div class="card">
+        <div class="c-icon" style="background:rgba(212,168,67,0.06);">🔍</div>
+        <h3>学知识</h3>
+        <div style="font-family:'SF Mono',monospace;font-size:11px;line-height:2;color:rgba(26,20,16,0.55);">
+          "我是 [什么水平] 的初学者。请用 [比喻/生活场景] 解释 [概念]。分 [3-5] 个要点，每个要点配合一个例子。不要用 [专业术语]。如果涉及和其他概念的对比，请用表格。"
+        </div>
+      </div>
+      <div class="card">
+        <div class="c-icon" style="background:rgba(26,20,16,0.06);">📊</div>
+        <h3>做分析</h3>
+        <div style="font-family:'SF Mono',monospace;font-size:11px;line-height:2;color:rgba(26,20,16,0.55);">
+          "请分析 [主题]。从 [维度1/维度2/维度3] 三个角度展开。每个角度的结论用一句话概括，然后展开论证。最后给出一个综合建议。数据来源请标注。如有不确定性请明确指出。"
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ CLOSING ═══════ -->
+<section class="section" data-section="8">
+  <div class="inner" style="text-align:center;">
+    <div style="font-size:72px;margin-bottom:24px;animation:sealStamp 0.8s cubic-bezier(.22,.61,.36,1) forwards;">🧧</div>
+    <h2 style="text-align:center;border-bottom:none;">
+      <span class="hl">一字之差</span>，天壤之别
+    </h2>
+    <p style="color:rgba(26,20,16,0.5);font-size:16px;letter-spacing:2px;line-height:2;max-width:550px;margin:0 auto;">
+      好的提示词，是打开 AI 宝库的钥匙。<br>
+      从今天开始，每次问 AI 前，<br>
+      默念七字诀：<strong style="color:var(--red);">角任格受气例束。</strong><br><br>
+      三天养成习惯，一月功力大成。
+    </p>
+    <div style="margin-top:36px;display:flex;justify-content:center;">
+      <div class="big-seal" style="width:64px;height:64px;font-size:22px;">诀</div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>🏮 小白必学 AI 提示词技巧 · 国潮提词秘籍</p>
+  <p style="margin-top:6px;">角任格受气例束 · 七字诀在手 · 提词无忧</p>
+</footer>
+
+<script>
+const sections=document.querySelectorAll('.section');
+const progressBar=document.getElementById('progressBar');
+window.addEventListener('scroll',()=>{
+  const pct=window.scrollY/(document.documentElement.scrollHeight-window.innerHeight);
+  progressBar.style.width=(Math.min(pct,1)*100)+'%';
+},{passive:true});
+
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.card,.tech-item').forEach((el,i)=>{
+        el.style.transitionDelay=(i*0.06)+'s';el.classList.add('visible');
+      });
+    }
+  });
+},{threshold:0.12});
+sections.forEach(s=>obs.observe(s));
+
+document.querySelectorAll('.card').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    const rect=el.getBoundingClientRect();
+    const x=(e.clientX-rect.left)/rect.width-0.5;
+    const y=(e.clientY-rect.top)/rect.height-0.5;
+    if(el.classList.contains('visible'))
+      el.style.transform=`perspective(800px) rotateY(${x*5}deg) rotateX(${-y*5}deg) translateY(-6px)`;
+  });
+  el.addEventListener('mouseleave',()=>{
+    if(el.classList.contains('visible')) el.style.transform='translateY(0)';
+  });
+});
+</script>
+</body>
+</html>

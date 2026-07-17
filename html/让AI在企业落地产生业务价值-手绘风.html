@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>让 AI 真正在企业中落地 · 手绘实战手册</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&family=Nanum+Pen+Script&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap');
+
+:root{
+  --paper:#fdfaf2;--ink:#2c2c2c;--red:#e85d3a;--blue:#3a7abd;
+  --green:#4a9c5d;--yellow:#f5c242;--purple:#8b5cf6;
+  --sticky-pink:rgba(255,182,193,0.5);--sticky-yellow:rgba(255,248,180,0.7);
+  --sticky-blue:rgba(180,210,240,0.5);--sticky-green:rgba(180,230,200,0.5);
+  --sketch-border:2px solid var(--ink);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Noto Sans SC','PingFang SC',sans-serif;
+  overflow-x:hidden;cursor:default;
+  font-weight:400;line-height:1.8;
+  background-image:
+    url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+/* ── Notebook lines ── */
+.notebook-lines{
+  position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.06;
+  background:repeating-linear-gradient(0deg,transparent,transparent 31px,var(--ink) 31px,var(--ink) 32px);
+}
+.notebook-margin{
+  position:fixed;left:60px;top:0;bottom:0;width:1px;
+  background:rgba(232,93,58,0.15);z-index:0;pointer-events:none;
+}
+
+/* ── Doodle decorations ── */
+.doodles{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.doodle{
+  position:absolute;opacity:0.08;
+  font-family:'Gloria Hallelujah',cursive;
+  font-size:24px;
+  animation:doodleFloat 8s ease-in-out infinite;
+}
+@keyframes doodleFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-15px) rotate(5deg)}}
+.doodle:nth-child(1){top:10%;left:8%;animation-delay:0s;font-size:30px;}
+.doodle:nth-child(2){top:25%;right:5%;animation-delay:-2s;font-size:26px;}
+.doodle:nth-child(3){top:55%;left:3%;animation-delay:-4s;font-size:22px;}
+.doodle:nth-child(4){top:70%;right:10%;animation-delay:-6s;font-size:28px;}
+.doodle:nth-child(5){top:85%;left:50%;animation-delay:-3s;font-size:20px;}
+.doodle:nth-child(6){top:40%;right:15%;animation-delay:-5s;font-size:32px;}
+
+/* ── Squiggly underline ── */
+.squiggle{
+  background:url("data:image/svg+xml,%3Csvg width='20' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 3 Q5 0 10 3 Q15 6 20 3' fill='none' stroke='%23e85d3a' stroke-width='2'/%3E%3C/svg%3E") repeat-x bottom;
+  padding-bottom:6px;
+}
+
+/* ── Progress ── */
+.progress-pencil{
+  position:fixed;top:0;left:0;height:3px;z-index:100;
+  background:var(--red);
+  transition:width .1s linear;
+  box-shadow:0 0 6px rgba(232,93,58,0.4);
+}
+
+/* ── Sections ── */
+.section{
+  position:relative;z-index:1;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:80px 24px;
+}
+.section .inner{max-width:900px;width:100%;}
+
+.section h2{
+  font-family:'Gloria Hallelujah',cursive,'Noto Sans SC',sans-serif;
+  font-size:clamp(24px,4vw,38px);font-weight:700;
+  letter-spacing:1px;line-height:1.3;margin-bottom:28px;
+  color:var(--ink);
+  position:relative;display:inline-block;
+}
+.section h2::after{
+  content:'';position:absolute;bottom:-4px;left:0;right:-10px;height:3px;
+  background:var(--yellow);opacity:0.7;border-radius:2px;
+  transform:rotate(-0.5deg);
+}
+
+/* ── Hero ── */
+.hero{text-align:center;}
+.hero .sketch-icon{
+  display:inline-block;margin-bottom:24px;
+  position:relative;
+}
+.hero .sketch-icon .si-main{
+  font-size:80px;display:block;
+  animation:sketchBounce 3s ease-in-out infinite;
+  filter:drop-shadow(3px 3px 0 rgba(0,0,0,0.08));
+}
+@keyframes sketchBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.hero .sketch-icon .si-doodle{
+  position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);
+  font-family:'Gloria Hallelujah',cursive;
+  font-size:18px;color:var(--red);white-space:nowrap;
+}
+.hero h1{
+  font-family:'Gloria Hallelujah',cursive,'Noto Sans SC',sans-serif;
+  font-size:clamp(28px,5.5vw,48px);font-weight:700;
+  line-height:1.25;letter-spacing:1px;margin-bottom:12px;
+}
+.hero h1 .highlight{
+  background:var(--sticky-yellow);padding:0 8px;display:inline-block;
+  transform:rotate(-1deg);
+}
+.hero .sub{
+  font-size:16px;color:rgba(44,44,44,0.6);font-weight:400;
+}
+
+/* ── Sticky notes ── */
+.sticky-wall{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin:24px 0;}
+.sticky{
+  padding:20px 18px;width:200px;min-height:140px;
+  font-size:14px;line-height:1.7;color:var(--ink);
+  box-shadow:2px 3px 8px rgba(0,0,0,0.06);
+  transform:rotate(-1deg);transition:all .35s ease;
+  position:relative;
+  font-family:'Gloria Hallelujah',cursive,'Noto Sans SC',sans-serif;
+}
+.sticky:nth-child(even){transform:rotate(1.5deg);}
+.sticky:nth-child(3n){transform:rotate(-2deg);}
+.sticky:hover{transform:rotate(0deg) translateY(-6px)!important;box-shadow:4px 8px 20px rgba(0,0,0,0.1);z-index:2;}
+.sticky::before{
+  content:'';position:absolute;top:-6px;left:50%;transform:translateX(-50%);
+  width:40px;height:8px;background:rgba(0,0,0,0.06);border-radius:3px;
+}
+.sticky.s-pink{background:var(--sticky-pink);}
+.sticky.s-yellow{background:var(--sticky-yellow);}
+.sticky.s-blue{background:var(--sticky-blue);}
+.sticky.s-green{background:var(--sticky-green);}
+.sticky h4{font-size:16px;margin-bottom:6px;font-weight:700;}
+.sticky p{font-size:12px;opacity:0.8;}
+
+/* ── Hand-drawn cards ── */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
+.card{
+  background:var(--paper);
+  border:2px solid var(--ink);
+  border-radius:8px 24px 8px 24px;
+  padding:28px 24px;position:relative;
+  transition:all .4s cubic-bezier(.22,.61,.36,1);
+  opacity:0;transform:translateY(40px) rotate(-0.5deg);
+  box-shadow:3px 4px 0 rgba(0,0,0,0.06);
+}
+.card:nth-child(even){border-radius:24px 8px 24px 8px;transform:translateY(40px) rotate(0.5deg);}
+.card.visible{opacity:1;transform:translateY(0) rotate(0)!important;}
+.card:hover{
+  transform:translateY(-6px)!important;
+  box-shadow:6px 8px 0 rgba(0,0,0,0.08);
+}
+.card .c-arrow{
+  position:absolute;top:-14px;right:20px;
+  font-size:28px;animation:arrowBounce 1.5s ease-in-out infinite;
+}
+@keyframes arrowBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.card h3{
+  font-family:'Gloria Hallelujah',cursive;
+  font-size:18px;margin-bottom:8px;color:var(--ink);
+}
+.card p,.card li{font-size:14px;color:rgba(44,44,44,0.7);line-height:1.7;}
+.card ul{list-style:none;padding:0;}
+.card ul li{padding:5px 0;padding-left:16px;position:relative;}
+.card ul li::before{content:'→';position:absolute;left:0;color:var(--red);}
+
+/* ── Scribble box ── */
+.scribble-box{
+  position:relative;padding:28px 30px;margin:24px 0;
+  background:var(--paper);
+}
+.scribble-box::before{
+  content:'';position:absolute;inset:0;
+  border:3px solid var(--ink);
+  border-radius:30px 12px 30px 12px;
+  background:url("data:image/svg+xml,%3Csvg width='200' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10 Q30 5 50 12 Q70 5 90 10 Q110 15 130 8 Q150 5 170 12 Q190 5 190 10' fill='none' stroke='%232c2c2c' stroke-width='1.5' opacity='0.1'/%3E%3C/svg%3E");
+}
+
+/* ── Data bar (hand-drawn style) ── */
+.sketch-bar{margin:16px 0;}
+.sketch-bar .sb-row{
+  display:flex;align-items:center;gap:12px;margin-bottom:10px;
+  font-size:13px;
+}
+.sketch-bar .sb-label{width:140px;text-align:right;color:var(--ink);flex-shrink:0;font-weight:600;}
+.sketch-bar .sb-track{flex:1;height:28px;position:relative;}
+.sketch-bar .sb-fill{
+  height:100%;border-radius:0 10px 10px 0;
+  display:flex;align-items:center;padding-left:10px;
+  font-family:'Gloria Hallelujah',cursive;
+  font-size:12px;color:var(--ink);position:relative;
+  border:2px solid var(--ink);
+}
+.sketch-bar .sb-fill::after{
+  content:'';position:absolute;right:-6px;top:-2px;bottom:-2px;width:4px;
+  background:var(--ink);border-radius:2px;
+}
+
+/* ── Flow chart (hand-drawn boxes) ── */
+.flow-chart{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin:20px 0;}
+.flow-box{
+  padding:14px 22px;border:2px solid var(--ink);
+  border-radius:20px 8px 20px 8px;
+  font-size:14px;font-weight:700;text-align:center;
+  position:relative;
+  font-family:'Gloria Hallelujah',cursive;
+}
+.flow-box:nth-child(odd){border-radius:8px 20px 8px 20px;}
+.flow-arrow{font-size:22px;color:var(--red);font-family:'Gloria Hallelujah',cursive;}
+.flow-box.f-red{background:rgba(232,93,58,0.08);}
+.flow-box.f-blue{background:rgba(58,122,189,0.08);}
+.flow-box.f-green{background:rgba(74,156,93,0.08);}
+.flow-box.f-yellow{background:rgba(245,194,66,0.1);}
+.flow-box.f-purple{background:rgba(139,92,246,0.08);}
+
+/* ── Checklist (hand-drawn) ── */
+.checklist{list-style:none;padding:0;max-width:500px;margin:0 auto;}
+.checklist li{
+  padding:10px 0 10px 32px;position:relative;
+  font-size:15px;line-height:1.7;border-bottom:1px dashed rgba(0,0,0,0.06);
+}
+.checklist li::before{
+  content:'☐';position:absolute;left:0;font-size:18px;color:var(--ink);
+}
+.checklist li.done::before{content:'☑';color:var(--green);}
+
+/* ── Quote ── */
+.quote{
+  padding:20px 28px;margin:20px 0;
+  border:2px dashed var(--ink);border-radius:0 16px 0 16px;
+  font-style:italic;font-size:15px;line-height:1.8;color:rgba(44,44,44,0.7);
+  position:relative;
+}
+.quote::before{
+  content:'"';position:absolute;top:-18px;left:16px;
+  font-size:48px;color:var(--red);opacity:0.4;
+  font-family:serif;line-height:1;
+}
+
+/* ── Footer ── */
+.footer{
+  position:relative;z-index:1;text-align:center;
+  padding:44px 24px;border-top:2px dashed rgba(0,0,0,0.1);
+  color:rgba(44,44,44,0.5);font-size:12px;
+}
+.footer .footer-doodle{font-size:40px;display:block;margin-bottom:8px;}
+
+@media(max-width:640px){
+  .section{padding:48px 16px;}
+  .sticky-wall{flex-direction:column;align-items:center;}
+  .notebook-margin{left:30px;}
+  .grid2,.grid3{grid-template-columns:1fr;}
+  .sketch-bar .sb-label{width:80px;font-size:11px;}
+}
+</style>
+</head>
+<body>
+
+<div class="notebook-lines"></div>
+<div class="notebook-margin"></div>
+<div class="doodles">
+  <span class="doodle">✏️</span><span class="doodle">⭐</span><span class="doodle">💡</span>
+  <span class="doodle">📎</span><span class="doodle">🔧</span><span class="doodle">📋</span>
+</div>
+<div class="progress-pencil" id="progressBar"></div>
+
+<!-- ═══════ HERO ═══════ -->
+<section class="section hero" data-section="0">
+  <div class="inner">
+    <div class="sketch-icon">
+      <span class="si-main">🏢</span>
+      <span class="si-doodle">← 你的公司</span>
+    </div>
+    <h1>
+      让 AI <span class="highlight">真正</span><br>
+      在企业中<span class="highlight">落地</span><br>
+      且产生<span style="text-decoration:underline;text-decoration-color:var(--red);text-underline-offset:6px;">业务价值</span>
+    </h1>
+    <p class="sub">不是做 Demo，不是写 PPT，是真实地改变业务指标</p>
+  </div>
+</section>
+
+<!-- ═══════ THE REALITY ═══════ -->
+<section class="section" data-section="1">
+  <div class="inner">
+    <h2>📊 残酷的现实数据</h2>
+    <p style="color:rgba(44,44,44,0.6);margin-bottom:20px;">这些数字画在纸上、贴在墙上、刻在每一个推动 AI 落地的人心里：</p>
+
+    <div class="sticky-wall">
+      <div class="sticky s-pink">
+        <h4>😱 87%</h4>
+        <p>的 AI 概念验证（PoC）项目从未进入生产环境<br><small>— Gartner 2025</small></p>
+      </div>
+      <div class="sticky s-yellow">
+        <h4>💰 60%</h4>
+        <p>的企业 AI 投资在 2024 年未产生可量化的业务回报<br><small>— McKinsey</small></p>
+      </div>
+      <div class="sticky s-blue">
+        <h4>🔧 73%</h4>
+        <p>的 AI 项目失败于"部署与集成"环节，而非模型本身<br><small>— CB Insights</small></p>
+      </div>
+      <div class="sticky s-green">
+        <h4>📉 45%</h4>
+        <p>的企业 AI 项目在需求阶段就已经偏离了业务目标<br><small>— BCG</small></p>
+      </div>
+    </div>
+
+    <div class="quote">
+      <strong>核心矛盾：</strong>不是 AI 不够强，而是"从技术到业务"的转化环节断裂了。技术团队追求模型精度，业务团队需要流程效率——二者说的是不同的语言。
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ WHY FAIL ═══════ -->
+<section class="section" data-section="2">
+  <div class="inner">
+    <h2>💀 AI 落地的<span style="background:var(--sticky-pink);padding:2px 8px;transform:rotate(-1deg);display:inline-block;">五大死法</span></h2>
+
+    <div class="grid2">
+      <div class="card">
+        <span class="c-arrow">👇</span>
+        <h3>☠️ 死法一 · Demo 即巅峰</h3>
+        <p>PoC 演示效果惊艳，领导拍手叫好。但 Demo 用的是精心挑选的"完美数据"，一到真实环境就崩。从 Demo 到生产，中间隔着数据治理、异常处理、性能优化三座大山。</p>
+      </div>
+      <div class="card">
+        <h3>☠️ 死法二 · 需求漂移</h3>
+        <p>立项时说"用 AI 提升客服效率"，三个月后变成了"做一个会聊天的机器人"。技术目标漂离业务目标，做出来的东西业务团队不买账。</p>
+      </div>
+      <div class="card">
+        <span class="c-arrow">👇</span>
+        <h3>☠️ 死法三 · 集成地狱</h3>
+        <p>AI 模型再好，接不进现有的 ERP/CRM/OA 系统等于零。企业 IT 架构复杂，API 格式不统一，数据格式千奇百怪——集成成本远超模型开发成本。</p>
+      </div>
+      <div class="card">
+        <h3>☠️ 死法四 · 无人负责</h3>
+        <p>技术团队觉得"业务不懂 AI"，业务团队觉得"技术不懂业务"。没有人对"AI 带来的业务指标提升"这个最终结果负责。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ THE FRAMEWORK ═══════ -->
+<section class="section" data-section="3">
+  <div class="inner">
+    <h2>🧭 落地框架 · <span style="font-size:18px;">一张手绘地图</span></h2>
+    <p style="color:rgba(44,44,44,0.6);margin-bottom:24px;">企业 AI 落地不是线性的，而是一个不断循环、持续优化的闭环：</p>
+
+    <div class="flow-chart">
+      <div class="flow-box f-red">🔍 发现业务痛点</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box f-blue">📐 定义价值指标</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box f-green">📋 编写 AI 规范</div>
+      <div class="flow-arrow">↓</div>
+    </div>
+    <div class="flow-chart" style="margin-top:0;">
+      <div class="flow-box f-purple">📊 衡量业务回报</div>
+      <div class="flow-arrow">←</div>
+      <div class="flow-box f-yellow">🚀 集成部署上线</div>
+      <div class="flow-arrow">←</div>
+      <div class="flow-box f-green">⚡ 敏捷迭代开发</div>
+    </div>
+
+    <div class="scribble-box" style="margin-top:32px;">
+      <h3 style="font-family:'Gloria Hallelujah',cursive;text-align:center;margin-bottom:16px;">🔄 闭环铁三角</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;justify-content:center;text-align:center;">
+        <div style="flex:1;min-width:180px;padding:16px;border:2px solid var(--ink);border-radius:12px 0 12px 0;background:rgba(232,93,58,0.06);">
+          <div style="font-size:28px;">👔</div>
+          <strong>业务 Owner</strong><br>
+          <span style="font-size:12px;opacity:0.7;">定义问题<br>定义"什么叫成功"</span>
+        </div>
+        <div style="flex:1;min-width:180px;padding:16px;border:2px solid var(--ink);border-radius:0 12px 0 12px;background:rgba(74,156,93,0.06);">
+          <div style="font-size:28px;">🤖</div>
+          <strong>AI 工程师</strong><br>
+          <span style="font-size:12px;opacity:0.7;">SDD 规范驱动<br>AI 辅助高效实现</span>
+        </div>
+        <div style="flex:1;min-width:180px;padding:16px;border:2px solid var(--ink);border-radius:12px 0 12px 0;background:rgba(58,122,189,0.06);">
+          <div style="font-size:28px;">🔗</div>
+          <strong>集成工程师</strong><br>
+          <span style="font-size:12px;opacity:0.7;">对接企业系统<br>保障生产稳定性</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SDD FOR ENTERPRISE ═══════ -->
+<section class="section" data-section="4">
+  <div class="inner">
+    <h2>📐 <span style="background:var(--sticky-blue);padding:2px 8px;">企业版 SDD</span> · 规范驱动落地方案</h2>
+
+    <div class="grid2">
+      <div class="card" style="border-left:4px solid var(--red);">
+        <h3>📋 第1步 · 业务规范先行</h3>
+        <p>业务 Owner 和 AI 工程师一起，用 OpenSpec 书写项目的 proposal。这不是技术文档——是用业务语言描述：</p>
+        <ul>
+          <li>当前瓶颈是什么？</li>
+          <li>AI 要为哪个 KPI 负责？</li>
+          <li>成功标准是什么（必须可量化）？</li>
+        </ul>
+      </div>
+      <div class="card" style="border-left:4px solid var(--blue);">
+        <h3>🏗️ 第2步 · 技术方案对齐</h3>
+        <p>AI 工程师编写 design.md：数据从哪里来、模型如何集成、接口怎么设计。业务方审阅——确保技术方案<strong>没有偏离业务目标</strong>。</p>
+      </div>
+      <div class="card" style="border-left:4px solid var(--green);">
+        <h3>⚡ 第3步 · AI 辅助实施</h3>
+        <p>利用 Claude Code + Superpowers 技能体系，按 tasks.md 逐项实施。规范文档是"施工合同"——AI 按合同干活，业务方按合同验收。</p>
+      </div>
+      <div class="card" style="border-left:4px solid var(--purple);">
+        <h3>📊 第4步 · 业务指标验收</h3>
+        <p>对照 proposal 中定义的成功标准验收。不是看"模型准确率 97%"，而是看"客服人工转接率降低了 35%"——这才是业务关心的语言。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ POC VS PRODUCTION ═══════ -->
+<section class="section" data-section="5">
+  <div class="inner">
+    <h2>🔬 PoC <span style="font-size:20px;">vs</span> 🏭 生产级 AI</h2>
+
+    <div class="sketch-bar">
+      <div class="sb-row">
+        <span class="sb-label">PoC Demo</span>
+        <span class="sb-track"><span class="sb-fill" style="width:15%;background:rgba(232,93,58,0.1);">15%</span></span>
+      </div>
+      <div class="sb-row">
+        <span class="sb-label">数据治理</span>
+        <span class="sb-track"><span class="sb-fill" style="width:40%;background:rgba(58,122,189,0.1);">40%</span></span>
+      </div>
+      <div class="sb-row">
+        <span class="sb-label">系统集成</span>
+        <span class="sb-track"><span class="sb-fill" style="width:35%;background:rgba(74,156,93,0.1);">35%</span></span>
+      </div>
+      <div class="sb-row">
+        <span class="sb-label">异常处理</span>
+        <span class="sb-track"><span class="sb-fill" style="width:30%;background:rgba(245,194,66,0.15);">30%</span></span>
+      </div>
+      <div class="sb-row">
+        <span class="sb-label">监控运维</span>
+        <span class="sb-track"><span class="sb-fill" style="width:25%;background:rgba(139,92,246,0.1);">25%</span></span>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:12px;color:rgba(44,44,44,0.4);margin-top:8px;">↑ 一个 Demo 只完成了真正生产级 AI 系统的 15% 工作量</p>
+
+    <div class="scribble-box" style="margin-top:28px;">
+      <strong style="font-family:'Gloria Hallelujah',cursive;">💡 经验法则：</strong>
+      如果你觉得一个 AI 功能"两周就能做完"，把时间乘以 4——数据准备一周、模型开发一周、集成两周、异常处理+监控两周、业务验收+优化两周。八周，是一个靠谱的 AI 功能交付周期。
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ ROI ═══════ -->
+<section class="section" data-section="6">
+  <div class="inner">
+    <h2>💰 <span style="background:var(--sticky-yellow);padding:2px 8px;">算清账</span> · AI 投入产出</h2>
+
+    <div class="grid2">
+      <div class="card" style="border-color:var(--red);">
+        <h3>💸 投入端</h3>
+        <ul>
+          <li>👨‍💻 1 个 AI 工程师 · 8 周</li>
+          <li>☁️ API 调用费 · ~¥500/月</li>
+          <li>🔧 集成开发 · 2 周</li>
+          <li>📊 监控运维 · 持续</li>
+          <li style="font-weight:700;border-top:1px dashed rgba(0,0,0,0.1);margin-top:6px;padding-top:6px;">合计：约 ¥40,000–60,000</li>
+        </ul>
+      </div>
+      <div class="card" style="border-color:var(--green);">
+        <h3>💰 产出端（以客服 AI 为例）</h3>
+        <ul>
+          <li>📞 人工转接率 ↓35% → 月省 ¥15,000</li>
+          <li>⏱️ 平均响应时间 ↓60%</li>
+          <li>😊 客户满意度 ↑22%</li>
+          <li>🔄 7×24 不间断服务</li>
+          <li style="font-weight:700;border-top:1px dashed rgba(0,0,0,0.1);margin-top:6px;padding-top:6px;">年化回报：¥180,000+</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="quote" style="text-align:center;">
+      <strong>ROI = 3–4 个月回本，年化回报 3–5 倍。</strong><br>
+      核心前提：<span style="background:var(--sticky-yellow);padding:0 4px;">选对了业务场景</span> + <span style="background:var(--sticky-blue);padding:0 4px;">规范驱动确保了交付质量</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ CHECKLIST ═══════ -->
+<section class="section" data-section="7">
+  <div class="inner">
+    <h2>✅ <span style="background:var(--sticky-green);padding:2px 8px;">落地自检清单</span></h2>
+    <p style="color:rgba(44,44,44,0.6);margin-bottom:20px;">启动 AI 项目之前，对照这张清单逐项打勾。一项不满足，先不要开工。</p>
+
+    <ul class="checklist">
+      <li class="done">选定的业务痛点经过数据验证（不是"我觉得这里需要 AI"）</li>
+      <li class="done">有可量化的成功指标（"提升效率"不是指标，"工单处理时间从 15 分钟降到 5 分钟"才是）</li>
+      <li>业务 Owner 已确认并承诺参与全程验收</li>
+      <li>数据可获取且质量达标（格式统一、无严重缺失、有历史数据便于对比）</li>
+      <li>集成方案已评估（API 兼容性、权限打通、SSO 集成）</li>
+      <li>安全合规已确认（数据不出境、PII 脱敏、审计日志）</li>
+      <li>预算和排期已对齐（8 周标准交付周期）</li>
+      <li>有明确的"如果 AI 不达标"的降级方案</li>
+      <li>监控指标和告警规则已定义</li>
+      <li>用户培训计划已制定（AI 工具需要人会用才有价值）</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════ CLOSING ═══════ -->
+<section class="section" data-section="8">
+  <div class="inner" style="text-align:center;">
+    <div style="font-size:60px;margin-bottom:20px;display:block;">📋</div>
+    <h2 style="display:block;margin:0 auto 20px;text-align:center;">
+      <span style="background:var(--sticky-yellow);padding:4px 12px;display:inline-block;transform:rotate(-1deg);">动手画一画</span>
+    </h2>
+    <div class="scribble-box" style="max-width:550px;margin:0 auto;">
+      <p style="font-size:15px;line-height:2;font-family:'Gloria Hallelujah',cursive;">
+        ✏️ 拿一张纸，画三条线：<br>
+        1️⃣ 你们公司<strong>最大的效率瓶颈</strong>在哪？<br>
+        2️⃣ 如果 AI 能解决它，<strong>值多少钱</strong>？（算得出数字才算）<br>
+        3️⃣ 谁来做 <strong>Business Owner</strong>？（没这个人别开工）<br><br>
+        <span style="color:var(--red);">画完这三条线，你的第一个 AI 落地项目就成功了一半。</span>
+      </p>
+    </div>
+    <div style="margin-top:28px;font-size:14px;opacity:0.5;font-family:'Gloria Hallelujah',cursive;">
+      ✏️ 不要等到"准备好"——从现在开始画第一条线。
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <span class="footer-doodle">✏️</span>
+  <p>让 AI 真正在企业中落地且产生业务价值 · 手绘实战手册</p>
+  <p style="margin-top:4px;">画在纸上 · 刻在脑中 · 落地在生产环境</p>
+</footer>
+
+<script>
+// Progress
+const sections=document.querySelectorAll('.section');
+const progressBar=document.getElementById('progressBar');
+window.addEventListener('scroll',()=>{
+  const pct=window.scrollY/(document.documentElement.scrollHeight-window.innerHeight);
+  progressBar.style.width=(Math.min(pct,1)*100)+'%';
+},{passive:true});
+
+// Intersection Observer
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.card,.sticky').forEach((el,i)=>{
+        el.style.transitionDelay=(i*0.06)+'s';el.classList.add('visible');
+      });
+    }
+  });
+},{threshold:0.12});
+sections.forEach(s=>obs.observe(s));
+
+// Card tilt
+document.querySelectorAll('.card,.sticky').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    const rect=el.getBoundingClientRect();
+    const x=(e.clientX-rect.left)/rect.width-0.5;
+    const y=(e.clientY-rect.top)/rect.height-0.5;
+    el.style.transform=`perspective(800px) rotateY(${x*5}deg) rotateX(${-y*5}deg) translateY(-6px)`;
+  });
+  el.addEventListener('mouseleave',()=>{
+    el.style.transform='';
+  });
+});
+</script>
+</body>
+</html>

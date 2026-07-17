@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全栈项目开发全流程 · 从播种到收获</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=ZCOOL+KuaiLe&display=swap');
+
+:root{
+  --soil:#5c4033;--leaf:#5b8c4e;--light-leaf:#7ab86b;--sky:#c9e4f2;
+  --sun:#f9c74f;--warm:#f4a460;--cream:#fef9ef;--bark:#8b6914;
+  --water:#5ba0c8;--flower:#e8877a;--text:#3e3028;--muted:#7a6b5d;
+  --card-bg:rgba(255,248,235,0.75);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  background:var(--cream);
+  color:var(--text);
+  font-family:'Noto Serif SC','STSong',serif;
+  overflow-x:hidden;
+  cursor:default;
+  background-image:
+    radial-gradient(circle at 15% 8%, rgba(201,228,242,0.5) 0%, transparent 50%),
+    radial-gradient(circle at 85% 92%, rgba(122,184,107,0.15) 0%, transparent 40%);
+}
+
+/* ── Sky gradient top ── */
+.sky-band{
+  position:fixed;top:0;left:0;right:0;height:180px;
+  background:linear-gradient(180deg,var(--sky) 0%,transparent 100%);
+  z-index:0;pointer-events:none;opacity:0.6;
+}
+
+/* ── Ground ── */
+.ground{
+  position:fixed;bottom:0;left:0;right:0;height:100px;
+  background:linear-gradient(180deg,transparent 0%,rgba(139,107,20,0.06) 40%,rgba(92,64,51,0.1) 100%);
+  z-index:0;pointer-events:none;
+}
+
+/* ── Floating leaves ── */
+.leaves{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.leaf{
+  position:absolute;font-size:24px;opacity:0.12;
+  animation:leafFall linear infinite;
+}
+.leaf:nth-child(1){left:5%;animation-duration:14s;animation-delay:0s;font-size:20px;}
+.leaf:nth-child(2){left:20%;animation-duration:18s;animation-delay:-4s;font-size:28px;}
+.leaf:nth-child(3){left:40%;animation-duration:16s;animation-delay:-8s;font-size:22px;}
+.leaf:nth-child(4){left:60%;animation-duration:20s;animation-delay:-12s;font-size:26px;}
+.leaf:nth-child(5){left:75%;animation-duration:15s;animation-delay:-6s;font-size:18px;}
+.leaf:nth-child(6){left:90%;animation-duration:17s;animation-delay:-10s;font-size:30px;}
+.leaf:nth-child(7){left:10%;animation-duration:19s;animation-delay:-14s;font-size:24px;}
+.leaf:nth-child(8){left:50%;animation-duration:13s;animation-delay:-3s;font-size:20px;}
+@keyframes leafFall{
+  0%{transform:translateY(-40px) rotate(0deg) translateX(0);opacity:0;}
+  10%{opacity:0.14}
+  90%{opacity:0.14}
+  100%{transform:translateY(100vh) rotate(360deg) translateX(80px);opacity:0;}
+}
+
+/* ── Fireflies ── */
+.firefly{
+  position:fixed;z-index:0;pointer-events:none;
+  width:4px;height:4px;border-radius:50%;
+  background:var(--sun);
+  box-shadow:0 0 8px var(--sun),0 0 20px rgba(249,199,79,0.5);
+  animation:fireflyFloat 6s ease-in-out infinite;
+}
+.firefly:nth-child(1){left:15%;top:40%;animation-delay:0s;}
+.firefly:nth-child(2){left:70%;top:55%;animation-delay:-2s;}
+.firefly:nth-child(3){left:35%;top:65%;animation-delay:-4s;}
+.firefly:nth-child(4){left:85%;top:35%;animation-delay:-1s;}
+.firefly:nth-child(5){left:55%;top:30%;animation-delay:-3s;}
+@keyframes fireflyFloat{
+  0%,100%{transform:translate(0,0);opacity:0.3}
+  25%{transform:translate(30px,-40px);opacity:0.8}
+  50%{transform:translate(-20px,-80px);opacity:0.2}
+  75%{transform:translate(-40px,-30px);opacity:0.7}
+}
+
+/* ── Progress vine ── */
+.vine-progress{
+  position:fixed;top:0;left:0;height:4px;z-index:100;
+  background:linear-gradient(90deg,var(--soil),var(--leaf),var(--light-leaf),var(--sun));
+  transition:width .1s linear;
+}
+.vine-progress::after{
+  content:'🌱';position:absolute;right:-8px;top:-10px;font-size:14px;
+}
+
+/* ── Sections ── */
+.section{
+  position:relative;z-index:1;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:80px 24px;
+}
+.section .inner{max-width:920px;width:100%;}
+.section h2{
+  font-size:clamp(26px,4.5vw,42px);font-weight:900;
+  letter-spacing:3px;line-height:1.3;margin-bottom:32px;
+  color:var(--soil);
+}
+.section h2 .hl{color:var(--leaf);}
+
+/* ── Hero ── */
+.hero{text-align:center;}
+.hero .garden-icon{
+  font-size:80px;margin-bottom:24px;
+  animation:gardenBounce 3s ease-in-out infinite;
+  display:inline-block;
+  filter:drop-shadow(0 8px 16px rgba(91,140,78,0.2));
+}
+@keyframes gardenBounce{
+  0%,100%{transform:translateY(0) rotate(-3deg)}
+  50%{transform:translateY(-16px) rotate(3deg)}
+}
+.hero h1{
+  font-size:clamp(34px,6.5vw,58px);font-weight:900;letter-spacing:5px;
+  line-height:1.3;margin-bottom:12px;
+  background:linear-gradient(180deg,var(--soil) 0%,var(--leaf) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero .sub{
+  font-size:17px;color:var(--muted);letter-spacing:3px;
+}
+.hero .season-tags{
+  display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:28px;
+}
+.hero .stag{
+  padding:7px 18px;border-radius:20px;
+  font-size:13px;letter-spacing:2px;
+  border:1px solid rgba(91,140,78,0.2);
+  background:rgba(122,184,107,0.06);
+  color:var(--leaf);
+}
+
+/* ── Cards ── */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
+.card{
+  background:var(--card-bg);
+  border:1px solid rgba(139,107,20,0.12);
+  border-radius:16px;padding:28px 24px;
+  position:relative;overflow:hidden;
+  backdrop-filter:blur(8px);
+  transition:all .45s cubic-bezier(.22,.61,.36,1);
+  opacity:0;transform:translateY(40px);
+}
+.card::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,transparent,var(--leaf),transparent);
+  opacity:0;transition:opacity .45s;
+}
+.card:hover::after{opacity:1;}
+.card.visible{opacity:1;transform:translateY(0);}
+.card:hover{
+  background:rgba(255,252,242,0.92);
+  border-color:rgba(139,107,20,0.25);
+  transform:translateY(-6px)!important;
+  box-shadow:0 14px 40px rgba(92,64,51,0.08);
+}
+.card .c-icon{
+  font-size:38px;margin-bottom:12px;
+  width:54px;height:54px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+}
+.card h3{font-size:17px;color:var(--soil);margin-bottom:8px;letter-spacing:1px;}
+.card p,.card li{font-size:14px;color:var(--muted);line-height:1.8;letter-spacing:0.5px;}
+.card ul{padding-left:18px;margin-top:4px;}
+.card ul li{margin-bottom:3px;}
+
+/* ── Growth Timeline ── */
+.growth-line{
+  display:flex;align-items:flex-start;justify-content:center;
+  flex-wrap:wrap;gap:0;
+  position:relative;padding:30px 0;
+}
+.growth-line::before{
+  content:'';position:absolute;top:50%;left:5%;right:5%;height:2px;
+  background:linear-gradient(90deg,var(--soil),var(--leaf),var(--light-leaf),var(--sun),var(--flower));
+  opacity:0.2;
+  transform:translateY(-50%);
+}
+.g-node{
+  flex:1;min-width:140px;max-width:200px;
+  text-align:center;padding:16px 10px;
+  position:relative;z-index:1;
+  opacity:0;transform:translateY(30px);
+  transition:all .5s cubic-bezier(.22,.61,.36,1);
+}
+.g-node.visible{opacity:1;transform:translateY(0);}
+.g-node .g-dot{
+  width:44px;height:44px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;margin:0 auto 10px;
+  border:2px solid rgba(91,140,78,0.3);
+  background:var(--cream);
+  transition:all .4s;
+}
+.g-node:hover .g-dot{
+  transform:scale(1.2);
+  border-color:var(--leaf);
+  box-shadow:0 0 24px rgba(91,140,78,0.2);
+}
+.g-node .g-title{font-size:14px;font-weight:700;color:var(--soil);letter-spacing:1px;margin-bottom:4px;}
+.g-node .g-desc{font-size:11px;color:var(--muted);line-height:1.6;}
+
+/* ── Wooden sign ── */
+.wood-sign{
+  background:linear-gradient(180deg,rgba(200,170,120,0.4),rgba(180,150,100,0.3));
+  border:2px solid rgba(139,107,20,0.2);
+  border-radius:8px;padding:28px 24px;
+  position:relative;
+  box-shadow:0 4px 16px rgba(92,64,51,0.06);
+}
+.wood-sign::before{
+  content:'🔩';position:absolute;top:-10px;left:20px;font-size:16px;
+}
+.wood-sign::after{
+  content:'🔩';position:absolute;top:-10px;right:20px;font-size:16px;
+}
+.wood-sign .ws-title{
+  font-size:18px;font-weight:700;color:var(--soil);
+  letter-spacing:2px;margin-bottom:16px;text-align:center;
+}
+
+/* ── Old paper note ── */
+.note{
+  background:rgba(255,252,240,0.8);
+  border:1px solid rgba(139,107,20,0.15);
+  border-radius:4px;padding:22px 26px;
+  font-family:'Noto Serif SC',serif;
+  font-size:14px;line-height:2;color:var(--muted);
+  letter-spacing:1px;position:relative;
+  box-shadow:2px 3px 8px rgba(92,64,51,0.04);
+}
+.note ul{list-style:none;padding:0;}
+.note li{padding:6px 0;border-bottom:1px dotted rgba(139,107,20,0.1);display:flex;align-items:center;gap:10px;}
+.note li:last-child{border-bottom:none;}
+
+/* ── Field rows ── */
+.field-row{
+  display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;
+}
+.field-plot{
+  flex:1;min-width:240px;
+  background:rgba(122,184,107,0.06);
+  border:1px dashed rgba(91,140,78,0.2);
+  border-radius:12px;padding:22px 20px;
+  transition:all .35s ease;
+}
+.field-plot:hover{
+  background:rgba(122,184,107,0.1);
+  border-color:rgba(91,140,78,0.35);
+  transform:translateY(-3px);
+}
+.field-plot .fp-icon{font-size:28px;margin-bottom:8px;}
+.field-plot h4{font-size:15px;color:var(--soil);margin-bottom:4px;letter-spacing:1px;}
+.field-plot p{font-size:13px;color:var(--muted);line-height:1.7;}
+
+/* ── Tool checklist ── */
+.tool-list{
+  display:flex;flex-wrap:wrap;gap:10px;
+}
+.tool-tag{
+  padding:8px 16px;border-radius:20px;
+  font-size:13px;font-weight:600;letter-spacing:1px;
+  border:1px solid rgba(139,107,20,0.15);
+  background:rgba(255,248,235,0.6);
+  color:var(--muted);
+  display:flex;align-items:center;gap:6px;
+  transition:all .3s ease;
+}
+.tool-tag:hover{
+  border-color:var(--leaf);color:var(--leaf);
+  background:rgba(122,184,107,0.06);
+  transform:translateY(-2px);
+}
+
+/* ── Quote ── */
+.quote{
+  padding:24px 32px;margin:20px 0;
+  background:rgba(249,199,79,0.06);
+  border-left:3px solid var(--sun);
+  font-size:15px;line-height:1.9;letter-spacing:1px;
+  color:var(--muted);font-style:italic;
+  border-radius:0 12px 12px 0;
+}
+
+/* ── Footer ── */
+.footer{
+  position:relative;z-index:1;text-align:center;
+  padding:48px 24px;border-top:1px solid rgba(139,107,20,0.1);
+  color:var(--muted);font-size:12px;letter-spacing:2px;
+}
+
+@media(max-width:640px){
+  .section{padding:48px 16px;}
+  .hero .garden-icon{font-size:56px;}
+  .growth-line{flex-direction:column;align-items:center;gap:8px;}
+  .growth-line::before{display:none;}
+  .g-node{max-width:none;}
+  .grid2,.grid3{grid-template-columns:1fr;}
+  .field-row{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+
+<div class="sky-band"></div>
+<div class="ground"></div>
+<div class="leaves">
+  <span class="leaf">🍃</span><span class="leaf">🌿</span><span class="leaf">🍂</span><span class="leaf">🍃</span>
+  <span class="leaf">🌿</span><span class="leaf">🍂</span><span class="leaf">🍃</span><span class="leaf">🌿</span>
+</div>
+<div class="firefly"></div><div class="firefly"></div><div class="firefly"></div><div class="firefly"></div><div class="firefly"></div>
+<div class="vine-progress" id="vineProgress"></div>
+
+<!-- ═══════ HERO · 田园序 ═══════ -->
+<section class="section hero" data-section="0">
+  <div class="inner">
+    <div class="garden-icon">🏡</div>
+    <h1>全栈项目<br>开发全流程</h1>
+    <p class="sub">— 从播种到收获，一季一耕耘 —</p>
+    <div class="season-tags">
+      <span class="stag">🌱 春·规划</span>
+      <span class="stag">☀️ 夏·开发</span>
+      <span class="stag">🍂 秋·测试</span>
+      <span class="stag">🏠 冬·交付</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 春 · 垦荒播种 ═══════ -->
+<section class="section" data-section="1">
+  <div class="inner">
+    <h2>🌱 春分 · <span class="hl">垦荒与播种</span></h2>
+    <p style="color:var(--muted);margin-bottom:24px;letter-spacing:1px;">万物之始，先选良田，再备良种。项目之初，重在择器与立规。</p>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="c-icon" style="background:rgba(91,140,78,0.08);border:1px solid rgba(91,140,78,0.15);">🌍</div>
+        <h3>选田 — 技术选型</h3>
+        <p>农人种地，先看土质。全栈开发亦然：</p>
+        <ul>
+          <li><strong>前端：</strong>React 19 + Vite + TypeScript</li>
+          <li><strong>后端：</strong>FastAPI / Express / Spring Boot</li>
+          <li><strong>数据库：</strong>PostgreSQL / SQLite / MongoDB</li>
+          <li><strong>部署：</strong>Vercel + PythonAnywhere / Railway</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="c-icon" style="background:rgba(91,140,78,0.08);border:1px solid rgba(91,140,78,0.15);">🌾</div>
+        <h3>选种 — 项目初始化</h3>
+        <p>良种饱满，秋收有望。初始化四步走：</p>
+        <ul>
+          <li>脚手架搭建（Vite / create-react-app）</li>
+          <li>依赖安装与版本锁定</li>
+          <li>目录结构规划（如农夫分畦）</li>
+          <li>Git 初始化 + .gitignore 配置</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="wood-sign" style="margin-top:22px;">
+      <div class="ws-title">🧑‍🌾 老农口诀</div>
+      <div style="text-align:center;font-size:14px;color:var(--muted);line-height:2;letter-spacing:1px;">
+        "选田不精，白忙一季。选种不慎，颗粒无收。"
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 春 · 育苗 ═══════ -->
+<section class="section" data-section="2">
+  <div class="inner">
+    <h2>🌿 谷雨 · <span class="hl">育苗与规划</span></h2>
+    <p style="color:var(--muted);margin-bottom:24px;letter-spacing:1px;">种子入土之前，先画好田垄，算好间距。软件项目，先设计架构，再动手编码。</p>
+
+    <div class="field-row">
+      <div class="field-plot">
+        <div class="fp-icon">📐</div>
+        <h4>需求分析</h4>
+        <p>与"地主"（客户/PM）对需求，明确边界。用 SDD 规范驱动法，写出六要素规范文档。</p>
+      </div>
+      <div class="field-plot">
+        <div class="fp-icon">🏗️</div>
+        <h4>架构设计</h4>
+        <p>画系统架构图。前端路由树、组件树，后端 API 路由、数据模型 ER 图。如田垄分明，各司其职。</p>
+      </div>
+      <div class="field-plot">
+        <div class="fp-icon">🗺️</div>
+        <h4>任务拆解</h4>
+        <p>将大功能拆为小任务。每个任务有明确输入输出和验收标准。如分畦而治，逐块耕耘。</p>
+      </div>
+    </div>
+
+    <div class="quote">
+      <strong>🌱 育苗之道：</strong>规范驱动开发（SDD）是这阶段的最佳工具。先用 /brainstorming 理清思路，再用 /opsx:propose 生成 proposal + design + tasks 三份"农事计划书"。好的计划，让后面的耕耘事半功倍。
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 夏 · 耕耘 ═══════ -->
+<section class="section" data-section="3">
+  <div class="inner">
+    <h2>☀️ 夏至 · <span class="hl">耕耘与浇灌</span></h2>
+    <p style="color:var(--muted);margin-bottom:24px;letter-spacing:1px;">日头最盛的时节，也是庄稼长得最快的时节。写代码、搭接口、连数据库，汗水浇灌，代码生长。</p>
+
+    <div class="grid3">
+      <div class="card">
+        <div class="c-icon" style="background:rgba(91,140,78,0.08);border:1px solid rgba(91,140,78,0.15);">🗄️</div>
+        <h3>数据库建模</h3>
+        <ul>
+          <li>设计数据表结构</li>
+          <li>建 Migration 脚本</li>
+          <li>定义 Model 关联关系</li>
+          <li>Seed 测试数据</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="c-icon" style="background:rgba(91,140,78,0.08);border:1px solid rgba(91,140,78,0.15);">🔌</div>
+        <h3>API 开发</h3>
+        <ul>
+          <li>RESTful 路由设计</li>
+          <li>请求验证与错误处理</li>
+          <li>鉴权中间件</li>
+          <li>API 文档自动生成</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="c-icon" style="background:rgba(91,140,78,0.08);border:1px solid rgba(91,140,78,0.15);">🎨</div>
+        <h3>前端界面</h3>
+        <ul>
+          <li>组件拆分与开发</li>
+          <li>状态管理方案</li>
+          <li>路由与页面搭建</li>
+          <li>API 对接与联调</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="quote" style="margin-top:22px;">
+      <strong>☀️ 盛夏心法：</strong>用 Superpowers 的 TDD 技能——先写测试，再写代码。如农夫先挖好灌溉渠，再引水入田。测试就是你的"沟渠"，确保代码之水不泛滥、不漏失。
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 夏 · 除虫 ═══════ -->
+<section class="section" data-section="4">
+  <div class="inner">
+    <h2>🐛 大暑 · <span class="hl">除虫与养护</span></h2>
+    <p style="color:var(--muted);margin-bottom:24px;letter-spacing:1px;">庄稼长高了，虫子也来了。Bug 如蝗虫，不及时清除，满田皆毁。</p>
+
+    <div class="grid2">
+      <div class="card" style="border-left:3px solid var(--flower);">
+        <div class="c-icon" style="background:rgba(232,135,122,0.08);border:1px solid rgba(232,135,122,0.15);">🔍</div>
+        <h3>系统化排虫</h3>
+        <p>不要乱喷农药——用 <strong>/systematic-debugging</strong> 系统化排查：</p>
+        <ul>
+          <li>复现 Bug → 隔离范围 → 定位根因</li>
+          <li>写复现测试 → 修代码 → 验证通过</li>
+          <li>如捉虫先观其形、辨其类、断其巢</li>
+        </ul>
+      </div>
+      <div class="card" style="border-left:3px solid var(--sun);">
+        <div class="c-icon" style="background:rgba(249,199,79,0.08);border:1px solid rgba(249,199,79,0.15);">👀</div>
+        <h3>代码审阅</h3>
+        <p>请"老农"——<strong>/code-review</strong> 来田里走一圈：</p>
+        <ul>
+          <li>逻辑漏洞——如田埂缺口</li>
+          <li>安全隐患——如围墙有洞</li>
+          <li>代码质量——如秧苗歪斜</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 秋 · 收获 ═══════ -->
+<section class="section" data-section="5">
+  <div class="inner">
+    <h2>🍂 秋分 · <span class="hl">收获与验收</span></h2>
+
+    <div class="growth-line">
+      <div class="g-node">
+        <div class="g-dot" style="background:rgba(249,199,79,0.1);">🧪</div>
+        <div class="g-title">单元测试</div>
+        <div class="g-desc">逐个模块验证<br>如检视每株稻穗</div>
+      </div>
+      <div class="g-node">
+        <div class="g-dot" style="background:rgba(232,135,122,0.1);">🔗</div>
+        <div class="g-title">集成测试</div>
+        <div class="g-desc">前后端联调<br>如检验粮仓连通</div>
+      </div>
+      <div class="g-node">
+        <div class="g-dot" style="background:rgba(91,140,78,0.1);">👤</div>
+        <div class="g-title">用户验收</div>
+        <div class="g-desc">UAT 测试<br>如请乡邻品鉴</div>
+      </div>
+      <div class="g-node">
+        <div class="g-dot" style="background:rgba(91,182,196,0.1);">📋</div>
+        <div class="g-title">规范对照</div>
+        <div class="g-desc">逐条核查验收标准<br>如对账收粮</div>
+      </div>
+      <div class="g-node">
+        <div class="g-dot" style="background:rgba(139,107,20,0.1);">✅</div>
+        <div class="g-title">验收通过</div>
+        <div class="g-desc">/opsx:archive<br>如封仓落锁</div>
+      </div>
+    </div>
+
+    <div class="quote">
+      <strong>🍂 秋收要诀：</strong>/opsx:sync 将增量规范并入主文档，如将新粮入仓；/opsx:archive 归档变更，如记入农事簿。一季辛劳，终得正果。
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 冬 · 入仓 ═══════ -->
+<section class="section" data-section="6">
+  <div class="inner">
+    <h2>🏠 冬至 · <span class="hl">入仓与部署</span></h2>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="c-icon" style="background:rgba(91,182,196,0.08);border:1px solid rgba(91,182,196,0.15);">🚀</div>
+        <h3>部署上线</h3>
+        <ul>
+          <li>前端 → Vercel，推代码即部署</li>
+          <li>后端 → PythonAnywhere / Railway</li>
+          <li>数据库迁移 & 环境变量配置</li>
+          <li>健康检查 + 冒烟测试</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="c-icon" style="background:rgba(139,107,20,0.08);border:1px solid rgba(139,107,20,0.15);">📦</div>
+        <h3>收尾归档</h3>
+        <ul>
+          <li>/finishing-a-development-branch 收尾</li>
+          <li>合并到 master，打 Tag 标记版本</li>
+          <li>更新 CHANGELOG</li>
+          <li>Memory 记录经验教训</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 农具间 ═══════ -->
+<section class="section" data-section="7">
+  <div class="inner">
+    <h2>🔧 <span class="hl">农具间</span> · 全栈工具链</h2>
+    <p style="color:var(--muted);margin-bottom:20px;letter-spacing:1px;">工欲善其事，必先利其器。以下是全栈开发者的一整套"农具"：</p>
+
+    <div class="tool-list">
+      <span class="tool-tag">⚛️ React 19</span>
+      <span class="tool-tag">📘 TypeScript</span>
+      <span class="tool-tag">⚡ Vite</span>
+      <span class="tool-tag">🎨 Tailwind CSS</span>
+      <span class="tool-tag">📱 Ant Design</span>
+      <span class="tool-tag">🐍 FastAPI</span>
+      <span class="tool-tag">🗄️ SQLAlchemy</span>
+      <span class="tool-tag">🔐 JWT Auth</span>
+      <span class="tool-tag">📦 PostgreSQL</span>
+      <span class="tool-tag">🧪 Pytest / Vitest</span>
+      <span class="tool-tag">🚀 Vercel</span>
+      <span class="tool-tag">☁️ PythonAnywhere</span>
+      <span class="tool-tag">🤖 Claude Code</span>
+      <span class="tool-tag">📐 OpenSpec</span>
+      <span class="tool-tag">🦸 Superpowers</span>
+      <span class="tool-tag">🔀 Git & GitHub</span>
+      <span class="tool-tag">📋 Docker</span>
+    </div>
+
+    <div class="note" style="margin-top:24px;">
+      <ul>
+        <li>🌱 <strong>春：</strong>React + Vite 搭架子，FastAPI 起后端，SQLAlchemy 建模型</li>
+        <li>☀️ <strong>夏：</strong>OpenSpec 管规范，Superpowers 助开发，TDD 保质量</li>
+        <li>🍂 <strong>秋：</strong>Pytest 跑测试，Code Review 审代码，Claude Code 辅助排查</li>
+        <li>🏠 <strong>冬：</strong>Vercel + PythonAnywhere 部署，Git Tag 标记版本，归档规范文档</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 四时歌 ═══════ -->
+<section class="section" data-section="8">
+  <div class="inner" style="text-align:center;">
+    <h2 style="text-align:center;">🌾 <span class="hl">四时歌</span> · 全栈开发要诀</h2>
+
+    <div class="grid2">
+      <div class="card" style="border-top:3px solid var(--leaf);">
+        <h3>🌱 春不播，秋不收</h3>
+        <p>需求没搞清楚就写代码，等于种子撒在荒地上。先规划，再动手。SDD 规范驱动是第一道工序。</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--sun);">
+        <h3>☀️ 夏不耘，草欺苗</h3>
+        <p>代码不写测试、不做 Review，Bug 就像野草一样疯长。TDD + Code Review 是日常除草必修课。</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--flower);">
+        <h3>🍂 秋不验，粮生虫</h3>
+        <p>功能做完了不等于能交付。验收标准逐条对照，/opsx:sync 保证文档不落后于代码。</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--water);">
+        <h3>🏠 冬不藏，明春荒</h3>
+        <p>每次交付都是经验的积累。归档、写 Memory、做复盘。今天的沉淀，是明年春天的肥料。</p>
+      </div>
+    </div>
+
+    <div style="margin-top:40px;font-size:60px;animation:gardenBounce 4s ease-in-out infinite;display:inline-block;">🌻</div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>🌾 全栈项目开发全流程 · 从播种到收获</p>
+  <p style="margin-top:6px;">春耕夏耘 · 秋收冬藏 · 四时不废 · 五谷不绝</p>
+</footer>
+
+<script>
+// Vine progress
+const sections=document.querySelectorAll('.section');
+const vineProgress=document.getElementById('vineProgress');
+window.addEventListener('scroll',()=>{
+  const pct=window.scrollY/(document.documentElement.scrollHeight-window.innerHeight);
+  vineProgress.style.width=(Math.min(pct,1)*100)+'%';
+},{passive:true});
+
+// Intersection Observer
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.card,.g-node').forEach((el,i)=>{
+        el.style.transitionDelay=(i*0.06)+'s';el.classList.add('visible');
+      });
+    }
+  });
+},{threshold:0.12});
+sections.forEach(s=>obs.observe(s));
+
+// Card tilt
+document.querySelectorAll('.card').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    const rect=el.getBoundingClientRect();
+    const x=(e.clientX-rect.left)/rect.width-0.5;
+    const y=(e.clientY-rect.top)/rect.height-0.5;
+    if(el.classList.contains('visible'))
+      el.style.transform=`perspective(800px) rotateY(${x*5}deg) rotateX(${-y*5}deg) translateY(-6px)`;
+  });
+  el.addEventListener('mouseleave',()=>{
+    if(el.classList.contains('visible')) el.style.transform='translateY(0)';
+  });
+});
+</script>
+</body>
+</html>

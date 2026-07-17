@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>灵活驾驭各大 AI 场景 · 赛博实战手册</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+SC:wght@300;400;500;700;900&family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+
+:root{
+  --bg:#0a0a0f;--surface:#0f0f1a;--cyan:#00f0ff;--magenta:#ff00aa;--yellow:#ffe600;
+  --green:#00ff88;--orange:#ff6600;--purple:#b366ff;--white:#e0e0f0;
+  --grid:rgba(0,240,255,0.05);--border:rgba(0,240,255,0.15);--glow-cyan:0 0 20px rgba(0,240,255,0.4);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  background:var(--bg);
+  color:var(--white);
+  font-family:'Share Tech Mono','Noto Sans SC',monospace;
+  overflow-x:hidden;cursor:default;
+  line-height:1.7;
+}
+
+/* ── Scanlines ── */
+.scanlines{
+  position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.03;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.8) 2px,rgba(0,0,0,0.8) 4px);
+}
+
+/* ── Grid floor ── */
+.grid-floor{
+  position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.06;
+  background-image:
+    linear-gradient(rgba(0,240,255,0.3) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,240,255,0.3) 1px,transparent 1px);
+  background-size:40px 40px;
+  transform:perspective(600px) rotateX(60deg);
+  transform-origin:center bottom;
+}
+
+/* ── Neon particles ── */
+.neon-particles{position:fixed;inset:0;z-index:0;pointer-events:none;}
+.np{
+  position:absolute;width:2px;height:2px;border-radius:50%;
+  animation:particleUp linear infinite;
+}
+@keyframes particleUp{
+  0%{transform:translateY(0);opacity:0}
+  10%{opacity:1}
+  90%{opacity:0.5}
+  100%{transform:translateY(-100vh);opacity:0}
+}
+
+/* ── Glitch overlay ── */
+.glitch-overlay{
+  position:fixed;inset:0;z-index:999;pointer-events:none;opacity:0;
+  background:linear-gradient(0deg,rgba(255,0,170,0.06) 0%,transparent 10%,transparent 90%,rgba(0,240,255,0.06) 100%);
+  animation:glitchFlash 8s linear infinite;
+}
+@keyframes glitchFlash{
+  0%,99.9%,100%{opacity:0}
+  0.5%{opacity:0.3}1%{opacity:0}
+  50.5%{opacity:0.2}51%{opacity:0}
+}
+
+/* ── Progress bar (neon) ── */
+.neon-progress{
+  position:fixed;top:0;left:0;height:2px;z-index:100;
+  background:var(--cyan);
+  box-shadow:0 0 10px var(--cyan),0 0 20px var(--cyan);
+  transition:width .1s linear;
+}
+
+/* ── Sections ── */
+.section{
+  position:relative;z-index:1;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:80px 24px;
+}
+.section .inner{max-width:1000px;width:100%;}
+
+.section h2{
+  font-family:'Orbitron','Noto Sans SC',sans-serif;
+  font-size:clamp(22px,3.5vw,34px);font-weight:800;
+  letter-spacing:3px;margin-bottom:28px;
+  color:var(--cyan);
+  text-shadow:0 0 10px rgba(0,240,255,0.5),0 0 30px rgba(0,240,255,0.2);
+  text-transform:uppercase;
+}
+.section h2 .alt{color:var(--magenta);text-shadow:0 0 10px rgba(255,0,170,0.5);}
+
+/* ── Hero ── */
+.hero{text-align:center;}
+.hero .hex-grid{
+  display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:28px;
+}
+.hero .hex{
+  width:50px;height:56px;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;animation:hexPulse 2s ease-in-out infinite;
+}
+.hero .hex:nth-child(1){background:rgba(0,240,255,0.15);border:1px solid rgba(0,240,255,0.3);animation-delay:0s;}
+.hero .hex:nth-child(2){background:rgba(255,0,170,0.15);border:1px solid rgba(255,0,170,0.3);animation-delay:-0.5s;}
+.hero .hex:nth-child(3){background:rgba(0,255,136,0.15);border:1px solid rgba(0,255,136,0.3);animation-delay:-1s;}
+.hero .hex:nth-child(4){background:rgba(255,230,0,0.15);border:1px solid rgba(255,230,0,0.3);animation-delay:-1.5s;}
+@keyframes hexPulse{0%,100%{opacity:0.6;transform:translateY(0)}50%{opacity:1;transform:translateY(-8px)}}
+.hero .glitch-badge{
+  display:inline-block;padding:6px 20px;border:1px solid var(--cyan);
+  color:var(--cyan);font-family:'Orbitron',sans-serif;
+  font-size:10px;letter-spacing:4px;margin-bottom:20px;
+  text-shadow:0 0 8px var(--cyan);
+  position:relative;
+}
+.hero .glitch-badge::before{
+  content:'◆ SYS.ACTIVE ◆';position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--magenta);opacity:0;
+  animation:glitchText 4s linear infinite;
+}
+@keyframes glitchText{0%,99.9%,100%{opacity:0}0.3%{opacity:0.7}0.6%{opacity:0}}
+.hero h1{
+  font-family:'Orbitron','Noto Sans SC',sans-serif;
+  font-size:clamp(26px,5vw,44px);font-weight:900;
+  letter-spacing:4px;line-height:1.2;margin-bottom:14px;
+  color:var(--white);
+  text-shadow:0 0 20px rgba(0,240,255,0.3);
+  text-transform:uppercase;
+}
+.hero h1 .cyan{color:var(--cyan);text-shadow:0 0 15px var(--cyan);}
+.hero h1 .magenta{color:var(--magenta);text-shadow:0 0 15px var(--magenta);}
+.hero .sub{
+  font-size:14px;color:rgba(224,224,240,0.5);letter-spacing:2px;
+  font-family:'Share Tech Mono',monospace;
+}
+
+/* ── Cards ── */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:4px;padding:26px 24px;
+  position:relative;overflow:hidden;
+  transition:all .4s cubic-bezier(.22,.61,.36,1);
+  opacity:0;transform:translateY(40px);
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  opacity:0;transition:opacity .4s;
+}
+.card:hover::before{opacity:1;}
+.card::after{
+  content:'';position:absolute;top:0;left:0;width:1px;height:0;
+  background:var(--cyan);transition:height .5s ease;
+}
+.card:hover::after{height:100%;}
+.card.visible{opacity:1;transform:translateY(0);}
+.card:hover{
+  border-color:rgba(0,240,255,0.3);
+  transform:translateY(-6px)!important;
+  box-shadow:0 0 30px rgba(0,240,255,0.08),inset 0 0 30px rgba(0,240,255,0.02);
+}
+.card .c-tag{
+  display:inline-block;padding:3px 12px;border-radius:2px;
+  font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:2px;
+  margin-bottom:14px;
+}
+.card h3{
+  font-family:'Orbitron','Noto Sans SC',sans-serif;
+  font-size:16px;font-weight:700;letter-spacing:1px;
+  margin-bottom:8px;color:var(--white);
+}
+.card p,.card li{
+  font-size:13px;color:rgba(224,224,240,0.6);line-height:1.7;
+  font-family:'Share Tech Mono','Noto Sans SC',monospace;
+}
+.card ul{list-style:none;padding:0;}
+.card ul li{padding:4px 0;padding-left:14px;position:relative;}
+.card ul li::before{content:'>';position:absolute;left:0;color:var(--cyan);}
+
+/* ── Scenario Matrix ── */
+.matrix{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:2px;background:var(--border);
+  border:1px solid var(--border);border-radius:2px;overflow:hidden;
+}
+.mx-cell{
+  padding:16px 14px;background:var(--surface);text-align:center;
+  transition:all .35s ease;
+}
+.mx-cell:hover{background:rgba(0,240,255,0.04);}
+.mx-cell.head{
+  background:rgba(0,240,255,0.06);
+  font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2px;
+  color:var(--cyan);text-transform:uppercase;
+}
+.mx-cell .mx-icon{font-size:28px;margin-bottom:6px;}
+.mx-cell .mx-label{font-size:11px;color:var(--white);font-weight:700;margin-bottom:2px;}
+.mx-cell .mx-tool{font-size:10px;color:var(--cyan);opacity:0.7;}
+
+/* ── Neon data panel ── */
+.data-panel{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:1px;background:var(--border);
+  border:1px solid var(--border);
+}
+.dp-cell{
+  padding:20px 18px;background:var(--surface);
+  text-align:center;transition:all .35s ease;
+}
+.dp-cell:hover{background:rgba(0,240,255,0.03);}
+.dp-cell .dp-value{
+  font-family:'Orbitron',sans-serif;font-size:32px;font-weight:900;
+  letter-spacing:2px;
+}
+.dp-cell .dp-label{
+  font-size:10px;letter-spacing:2px;color:rgba(224,224,240,0.4);
+  margin-top:4px;text-transform:uppercase;
+}
+
+/* ── Terminal block ── */
+.term{
+  background:rgba(0,0,0,0.6);border:1px solid var(--border);
+  border-radius:2px;overflow:hidden;margin:20px 0;
+}
+.term .tbar{
+  background:rgba(0,240,255,0.04);padding:8px 14px;
+  display:flex;gap:8px;align-items:center;
+  border-bottom:1px solid var(--border);
+}
+.term .tbar .tdot{width:8px;height:8px;border-radius:50%;}
+.term .tbar .tdot.r{background:var(--magenta);}
+.term .tbar .tdot.y{background:var(--yellow);}
+.term .tbar .tdot.g{background:var(--green);}
+.term .tbar .tlabel{
+  margin-left:8px;font-size:10px;color:rgba(224,224,240,0.3);
+  font-family:'Share Tech Mono',monospace;letter-spacing:1px;
+}
+.term .tbody{
+  padding:18px 20px;font-family:'Share Tech Mono',monospace;
+  font-size:11px;line-height:2;
+}
+.term .tbody .t-prompt{color:var(--green);}
+.term .tbody .t-cmd{color:var(--white);}
+.term .tbody .t-out{color:rgba(224,224,240,0.5);}
+.term .tbody .t-cyan{color:var(--cyan);}
+.term .tbody .t-magenta{color:var(--magenta);}
+
+/* ── Quote ── */
+.quote{
+  padding:18px 24px;margin:20px 0;
+  border-left:2px solid var(--cyan);
+  background:rgba(0,240,255,0.03);
+  font-size:13px;color:rgba(224,224,240,0.55);
+  font-family:'Share Tech Mono',monospace;
+  line-height:1.8;
+}
+.quote strong{color:var(--cyan);}
+
+/* ── Footer ── */
+.footer{
+  position:relative;z-index:1;text-align:center;
+  padding:44px 24px;border-top:1px solid var(--border);
+  color:rgba(224,224,240,0.3);font-size:10px;
+  font-family:'Share Tech Mono',monospace;letter-spacing:2px;
+}
+
+@media(max-width:640px){
+  .section{padding:48px 16px;}
+  .grid2,.grid3{grid-template-columns:1fr;}
+  .matrix{grid-template-columns:repeat(3,1fr);}
+  .dp-cell .dp-value{font-size:22px;}
+}
+</style>
+</head>
+<body>
+
+<div class="scanlines"></div>
+<div class="grid-floor"></div>
+<div class="neon-particles" id="particles"></div>
+<div class="glitch-overlay"></div>
+<div class="neon-progress" id="progressBar"></div>
+
+<!-- ═══════ HERO ═══════ -->
+<section class="section hero">
+  <div class="inner">
+    <div class="hex-grid">
+      <div class="hex">🤖</div><div class="hex">💻</div><div class="hex">🎨</div><div class="hex">📊</div>
+    </div>
+    <div class="glitch-badge">◆ SYS.ACTIVE ◆</div>
+    <h1>
+      <span class="cyan">驾驭</span>各大<br>
+      AI <span class="magenta">场景</span><br>
+      实战落地
+    </h1>
+    <p class="sub">// 从一个场景到全场景 · 灵活切换 · 精准打击</p>
+  </div>
+</section>
+
+<!-- ═══════ MATRIX ═══════ -->
+<section class="section">
+  <div class="inner">
+    <h2>// <span class="alt">SCENARIO_MATRIX</span> · 场景矩阵</h2>
+    <p style="color:rgba(224,224,240,0.4);font-size:12px;margin-bottom:20px;letter-spacing:1px;">
+      &gt; 每个 AI 场景有自己独特的"打法"。学会在不同模式间切换，才算真正驾驭 AI。
+    </p>
+    <div class="matrix">
+      <div class="mx-cell head">场景</div><div class="mx-cell head">核心打法</div><div class="mx-cell head">关键工具</div><div class="mx-cell head">输出物</div>
+      <div class="mx-cell"><div class="mx-icon">💻</div><div class="mx-label">代码开发</div></div>
+      <div class="mx-cell"><div class="mx-label">SDD 规范驱动</div><div class="mx-tool">TDD + Review</div></div>
+      <div class="mx-cell"><div class="mx-tool">Claude Code<br>OpenSpec<br>Superpowers</div></div>
+      <div class="mx-cell"><div class="mx-tool">生产级代码<br>+ 测试 + 文档</div></div>
+      <div class="mx-cell"><div class="mx-icon">✍️</div><div class="mx-label">内容创作</div></div>
+      <div class="mx-cell"><div class="mx-label">七要素公式</div><div class="mx-tool">角色+任务+格式</div></div>
+      <div class="mx-cell"><div class="mx-tool">Claude<br>ChatGPT</div></div>
+      <div class="mx-cell"><div class="mx-tool">文案/脚本<br>/翻译/润色</div></div>
+      <div class="mx-cell"><div class="mx-icon">📊</div><div class="mx-label">数据分析</div></div>
+      <div class="mx-cell"><div class="mx-label">思维链推理</div><div class="mx-tool">分步分析+验证</div></div>
+      <div class="mx-cell"><div class="mx-tool">Claude<br>Python+AI</div></div>
+      <div class="mx-cell"><div class="mx-tool">洞察报告<br>+ 可视化</div></div>
+      <div class="mx-cell"><div class="mx-icon">🎨</div><div class="mx-label">UI/UX 设计</div></div>
+      <div class="mx-cell"><div class="mx-label">风格参考法</div><div class="mx-tool">示例 > 描述</div></div>
+      <div class="mx-cell"><div class="mx-tool">Claude<br>Figma AI</div></div>
+      <div class="mx-cell"><div class="mx-tool">设计稿<br>+ 原型 + CSS</div></div>
+      <div class="mx-cell"><div class="mx-icon">🔍</div><div class="mx-label">技术调研</div></div>
+      <div class="mx-cell"><div class="mx-label">对比分析法</div><div class="mx-tool">多维度评估</div></div>
+      <div class="mx-cell"><div class="mx-tool">Agent-Reach<br>Web Search</div></div>
+      <div class="mx-cell"><div class="mx-tool">选型报告<br>+ 对比表</div></div>
+      <div class="mx-cell"><div class="mx-icon">⚡</div><div class="mx-label">自动化</div></div>
+      <div class="mx-cell"><div class="mx-label">链式编排</div><div class="mx-tool">Workflow+Agent</div></div>
+      <div class="mx-cell"><div class="mx-tool">Harness<br>Cron+Agent</div></div>
+      <div class="mx-cell"><div class="mx-tool">自动化脚本<br>+ 定时任务</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 6 SCENARIOS DEEP DIVE ═══════ -->
+<section class="section">
+  <div class="inner">
+    <h2>// <span class="alt">SCENARIO_01</span> · 💻 代码开发场景</h2>
+    <div class="grid2">
+      <div class="card">
+        <div class="c-tag" style="background:rgba(0,240,255,0.1);color:var(--cyan);">MODE · ENGINEER</div>
+        <h3>📐 核心打法：SDD 规范驱动</h3>
+        <p>不要直接让 AI 写代码。先写规范文档（proposal + design + tasks），再让 AI 逐项实施。规范就是你和 AI 之间的"施工合同"。</p>
+        <ul>
+          <li>/brainstorming → 理清需求边界</li>
+          <li>/opsx:propose → 生成规范文档</li>
+          <li>/opsx:apply → AI 按 tasks 编码</li>
+          <li>/code-review → 质量审查</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="c-tag" style="background:rgba(0,255,136,0.1);color:var(--green);">ANTI-PATTERN</div>
+        <h3>⚠️ 常见翻车姿势</h3>
+        <ul>
+          <li>💬 "帮我写个登录功能" → AI 随机发挥</li>
+          <li>🔄 不满意就开新对话重来 → 恶性循环</li>
+          <li>📝 没有规范文档 → 一个月后看不懂</li>
+          <li>🐛 不写测试 → Bug 层出不穷</li>
+        </ul>
+        <p style="margin-top:12px;color:var(--magenta);">正确姿势：规范→TDD→实现→Review→验证</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="inner">
+    <h2>// <span class="alt">SCENARIO_02</span> · ✍️ 内容创作场景</h2>
+    <div class="grid2">
+      <div class="card">
+        <div class="c-tag" style="background:rgba(255,0,170,0.1);color:var(--magenta);">MODE · CREATOR</div>
+        <h3>🎯 核心打法：七要素公式</h3>
+        <p>角色 + 任务 + 格式 + 受众 + 语气 + 示例 + 约束。七个要素拉满，AI 输出质量直接翻 10 倍。</p>
+        <div class="term" style="margin-top:12px;">
+          <div class="tbody">
+            <span class="t-cyan">[角色]</span> <span class="t-out">你是一个小红书资深博主</span><br>
+            <span class="t-cyan">[任务]</span> <span class="t-out">写一篇露营装备种草文</span><br>
+            <span class="t-cyan">[格式]</span> <span class="t-out">标题+痛点+3装备+总结</span><br>
+            <span class="t-cyan">[受众]</span> <span class="t-out">25-35岁都市白领女性</span><br>
+            <span class="t-cyan">[语气]</span> <span class="t-out">闺蜜聊天风，多用emoji</span><br>
+            <span class="t-cyan">[约束]</span> <span class="t-out">500字以内，不要夸张</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="c-tag" style="background:rgba(255,230,0,0.1);color:var(--yellow);">PRO TIP</div>
+        <h3>💡 迭代 > 重写</h3>
+        <p>第一版永远不是最终版。不要重开对话——在同一对话中持续给反馈："第二段展开一下""换个更轻松的语气""加上数据支撑"。AI 是学徒，越调越好。</p>
+        <p style="margin-top:12px;color:var(--cyan);">// 好的内容 = 好框架 × 持续迭代</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="inner">
+    <h2>// <span class="alt">SCENARIO_03</span> · 📊 数据分析场景</h2>
+    <div class="grid2">
+      <div class="card">
+        <div class="c-tag" style="background:rgba(255,102,0,0.1);color:var(--orange);">MODE · ANALYST</div>
+        <h3>🧠 核心打法：思维链推理</h3>
+        <p>数据分析最怕 AI 直接给结论。让它"先分析，再判断"——强制展示推理过程：</p>
+        <ul>
+          <li>"请一步步分析这份数据"</li>
+          <li>"先描述你观察到的趋势"</li>
+          <li>"再给出可能的解释"</li>
+          <li>"最后给出建议"</li>
+          <li>"标注你不太确定的结论"</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="c-tag" style="background:rgba(179,102,255,0.1);color:var(--purple);">DATA PIPELINE</div>
+        <h3>📡 数据获取方式</h3>
+        <ul>
+          <li>📎 粘贴 CSV/JSON 原始数据</li>
+          <li>🔗 Agent-Reach 抓取网页数据</li>
+          <li>🐍 Python 脚本预处理后喂给 AI</li>
+          <li>📊 AI 直接生成可视化代码</li>
+        </ul>
+        <p style="margin-top:12px;color:var(--cyan);">// 数据 + AI = 超级分析师</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="inner">
+    <h2>// <span class="alt">SCENARIO_04</span> · ⚡ 自动化编排场景</h2>
+    <div class="grid2">
+      <div class="card">
+        <div class="c-tag" style="background:rgba(0,255,136,0.1);color:var(--green);">MODE · ORCHESTRATOR</div>
+        <h3>🔗 核心打法：链式编排</h3>
+        <p>单个 AI 任务是工具，多个 AI 任务串联是生产力。Harness 的 Workflow 让你像编排微服务一样编排 AI 任务：</p>
+        <ul>
+          <li>Agent → 独立执行子任务</li>
+          <li>Pipeline → 流水线串联处理</li>
+          <li>Parallel → 并行加速执行</li>
+          <li>Cron → 定时自动触发</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="c-tag" style="background:rgba(0,240,255,0.1);color:var(--cyan);">REAL CASE</div>
+        <h3>📋 实战：自动化日报生成</h3>
+        <div class="term" style="margin-top:12px;">
+          <div class="tbody">
+            <span class="t-prompt">$ </span><span class="t-cmd">cron.daily_report()</span><br>
+            <span class="t-out">09:00 → Agent_1 抓取各平台数据</span><br>
+            <span class="t-out">09:05 → Agent_2 分析数据趋势</span><br>
+            <span class="t-out">09:10 → Agent_3 生成日报文本</span><br>
+            <span class="t-out">09:12 → Agent_4 推送到企业微信</span><br>
+            <span class="t-green">[OK] 日报已自动发送</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SKILL SWITCHING ═══════ -->
+<section class="section">
+  <div class="inner">
+    <h2>// <span class="alt">SKILL_SWITCHING</span> · 场景切换能力</h2>
+    <p style="color:rgba(224,224,240,0.4);font-size:12px;margin-bottom:20px;">
+      &gt; 真正的高手不是擅长一个场景，而是能在不同场景间灵/活/切/换
+    </p>
+
+    <div class="data-panel">
+      <div class="dp-cell">
+        <div class="dp-value" style="color:var(--cyan);">6</div>
+        <div class="dp-label">核心场景数</div>
+      </div>
+      <div class="dp-cell">
+        <div class="dp-value" style="color:var(--magenta);">7</div>
+        <div class="dp-label">提词要素</div>
+      </div>
+      <div class="dp-cell">
+        <div class="dp-value" style="color:var(--green);">4</div>
+        <div class="dp-label">Workflow 模式</div>
+      </div>
+      <div class="dp-cell">
+        <div class="dp-value" style="color:var(--yellow);">14</div>
+        <div class="dp-label">Superpowers 技能</div>
+      </div>
+      <div class="dp-cell">
+        <div class="dp-value" style="color:var(--orange);">∞</div>
+        <div class="dp-label">组合可能性</div>
+      </div>
+    </div>
+
+    <div class="quote" style="margin-top:20px;">
+      <strong>// 核心心法：</strong>每个场景有自己独特的"输入格式"和"输出期望"。切换场景时，第一时间调整的是<strong>提示词的框架结构</strong>，而不是 AI 工具本身。工具是常量，框架是变量。
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ QUICK REFERENCE ═══════ -->
+<section class="section">
+  <div class="inner">
+    <h2>// <span class="alt">QUICK_REF</span> · 场景速查卡</h2>
+    <div class="grid3">
+      <div class="card" style="border-top:2px solid var(--cyan);">
+        <h3>💻 写代码</h3>
+        <p style="font-size:11px;">SDD 规范 / TDD / Code Review<br>
+        Claude Code / OpenSpec</p>
+        <p style="color:var(--cyan);font-size:10px;margin-top:6px;">// 规范是代码的DNA</p>
+      </div>
+      <div class="card" style="border-top:2px solid var(--magenta);">
+        <h3>✍️ 写内容</h3>
+        <p style="font-size:11px;">七要素公式 / 迭代打磨<br>
+        Claude / ChatGPT</p>
+        <p style="color:var(--magenta);font-size:10px;margin-top:6px;">// 精准输入=精准输出</p>
+      </div>
+      <div class="card" style="border-top:2px solid var(--green);">
+        <h3>📊 做分析</h3>
+        <p style="font-size:11px;">思维链推理 / 分步验证<br>
+        Claude + Python + Web</p>
+        <p style="color:var(--green);font-size:10px;margin-top:6px;">// 过程比结论更重要</p>
+      </div>
+      <div class="card" style="border-top:2px solid var(--yellow);">
+        <h3>🎨 做设计</h3>
+        <p style="font-size:11px;">风格参考法 / 示例驱动<br>
+        Claude + Figma AI</p>
+        <p style="color:var(--yellow);font-size:10px;margin-top:6px;">// 好的参考=成功一半</p>
+      </div>
+      <div class="card" style="border-top:2px solid var(--orange);">
+        <h3>🔍 做调研</h3>
+        <p style="font-size:11px;">多维对比 / 来源标注<br>
+        Agent-Reach / Web</p>
+        <p style="color:var(--orange);font-size:10px;margin-top:6px;">// 联网之眼+分析之脑</p>
+      </div>
+      <div class="card" style="border-top:2px solid var(--purple);">
+        <h3>⚡ 做自动化</h3>
+        <p style="font-size:11px;">链式编排 / 定时触发<br>
+        Workflow / Cron / Agent</p>
+        <p style="color:var(--purple);font-size:10px;margin-top:6px;">// 串联的AI=超能力</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ CLOSING ═══════ -->
+<section class="section">
+  <div class="inner" style="text-align:center;">
+    <div style="font-size:60px;margin-bottom:20px;filter:drop-shadow(0 0 20px rgba(0,240,255,0.5));">⚡</div>
+    <h2 style="text-align:center;display:block;">
+      <span class="alt">SYS.READY</span> · 驾驭开始
+    </h2>
+    <div class="term" style="max-width:550px;margin:24px auto 0;text-align:left;">
+      <div class="tbody">
+        <span class="t-prompt">root@ai-ops:~$ </span><span class="t-cmd">./deploy_all_scenarios.sh</span><br>
+        <span class="t-out">[LOADING] Scenario_01 · 代码开发 ........ <span class="t-green">READY</span></span><br>
+        <span class="t-out">[LOADING] Scenario_02 · 内容创作 ........ <span class="t-green">READY</span></span><br>
+        <span class="t-out">[LOADING] Scenario_03 · 数据分析 ........ <span class="t-green">READY</span></span><br>
+        <span class="t-out">[LOADING] Scenario_04 · UI/UX 设计 ...... <span class="t-green">READY</span></span><br>
+        <span class="t-out">[LOADING] Scenario_05 · 技术调研 ........ <span class="t-green">READY</span></span><br>
+        <span class="t-out">[LOADING] Scenario_06 · 自动化编排 ...... <span class="t-green">READY</span></span><br>
+        <span class="t-magenta">[SYSTEM] All scenarios loaded. You are now in control.</span><br>
+        <span class="t-prompt">root@ai-ops:~$ </span><span class="t-cmd" style="animation:blink 1s step-end infinite;">_</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>// SYS.ONLINE // 灵活驾驭各大 AI 场景实战落地 // 赛博实战手册 // v2.0.26</p>
+  <p style="margin-top:4px;">SCENARIO_MATRIX_LOADED · SKILL_SWITCHING_ENABLED · READY_FOR_DEPLOY</p>
+</footer>
+
+<script>
+// Particles
+const pc=document.getElementById('particles');
+for(let i=0;i<60;i++){
+  const p=document.createElement('div');p.className='np';
+  p.style.left=Math.random()*100+'%';p.style.top=(60+Math.random()*40)+'%';
+  p.style.animationDuration=(6+Math.random()*14)+'s';
+  p.style.animationDelay=-(Math.random()*10)+'s';
+  const colors=['var(--cyan)','var(--magenta)','var(--green)','var(--yellow)'];
+  p.style.background=colors[Math.floor(Math.random()*colors.length)];
+  p.style.boxShadow=`0 0 6px ${p.style.background}`;
+  pc.appendChild(p);
+}
+
+// Progress
+const sections=document.querySelectorAll('.section');
+const progressBar=document.getElementById('progressBar');
+window.addEventListener('scroll',()=>{
+  const pct=window.scrollY/(document.documentElement.scrollHeight-window.innerHeight);
+  progressBar.style.width=(Math.min(pct,1)*100)+'%';
+},{passive:true});
+
+// Intersection Observer
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.card').forEach((el,i)=>{
+        el.style.transitionDelay=(i*0.06)+'s';el.classList.add('visible');
+      });
+    }
+  });
+},{threshold:0.12});
+sections.forEach(s=>obs.observe(s));
+
+// Card glitch tilt
+document.querySelectorAll('.card').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    const rect=el.getBoundingClientRect();
+    const x=(e.clientX-rect.left)/rect.width-0.5;
+    const y=(e.clientY-rect.top)/rect.height-0.5;
+    if(el.classList.contains('visible'))
+      el.style.transform=`perspective(800px) rotateY(${x*6}deg) rotateX(${-y*6}deg) translateY(-6px)`;
+  });
+  el.addEventListener('mouseleave',()=>{
+    if(el.classList.contains('visible')) el.style.transform='translateY(0)';
+  });
+});
+</script>
+</body>
+</html>

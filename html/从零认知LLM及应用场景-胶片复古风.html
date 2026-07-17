@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>从零认知 LLM · 胶片放映厅</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600&family=Noto+Serif+SC:wght@300;400;500;600;700;900&family=Courier+Prime:wght@400;700&family=Abril+Fatface&display=swap');
+
+:root{
+  --bg:#1a1410;--film-bg:#231d16;--gold:#d4a853;--warm:#e8c87a;
+  --cream:#f5e6d0;--sepia-dark:#3d2b1a;--sepia-light:#8b7355;
+  --red:#c04040;--text:#e8dcc8;--muted:rgba(232,220,200,0.55);
+  --film-strip:rgba(212,168,83,0.12);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Noto Serif SC','Playfair Display',serif;
+  overflow-x:hidden;cursor:default;line-height:1.8;
+}
+
+/* ── Film grain ── */
+.film-grain{
+  position:fixed;inset:0;z-index:999;pointer-events:none;opacity:0.04;
+  background-image:url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='1'/%3E%3C/svg%3E");
+}
+
+/* ── Vignette ── */
+.vignette{
+  position:fixed;inset:0;z-index:998;pointer-events:none;
+  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,0.7) 100%);
+}
+
+/* ── Film strip borders ── */
+.film-strip-top,.film-strip-bottom{
+  position:fixed;left:0;right:0;height:32px;z-index:100;
+  background:var(--sepia-dark);
+  display:flex;align-items:center;justify-content:center;
+  gap:3px;overflow:hidden;
+}
+.film-strip-top{top:0;}
+.film-strip-bottom{bottom:0;}
+.film-hole{
+  width:14px;height:14px;border-radius:2px;
+  background:var(--bg);flex-shrink:0;
+}
+
+/* ── Progress ── */
+.progress-reel{
+  position:fixed;top:36px;left:0;height:3px;z-index:101;
+  background:linear-gradient(90deg,var(--gold),var(--warm),var(--red));
+  transition:width .1s linear;
+  box-shadow:0 0 8px rgba(212,168,83,0.5);
+}
+
+/* ── Sections ── */
+.section{
+  position:relative;z-index:1;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:100px 24px 80px;
+}
+.section .inner{max-width:860px;width:100%;}
+
+.section h2{
+  font-family:'Abril Fatface','Noto Serif SC',cursive;
+  font-size:clamp(24px,4vw,38px);font-weight:400;
+  letter-spacing:2px;margin-bottom:28px;
+  color:var(--warm);
+  text-shadow:0 0 30px rgba(212,168,83,0.2);
+  position:relative;display:inline-block;
+}
+.section h2::after{
+  content:'';position:absolute;bottom:-8px;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,var(--gold),transparent);
+}
+
+/* ── Hero ── */
+.hero{text-align:center;}
+.hero .marquee{
+  display:inline-block;padding:4px 28px;margin-bottom:28px;
+  border:2px solid var(--gold);border-radius:30px;
+  font-family:'Courier Prime',monospace;font-size:11px;
+  letter-spacing:4px;color:var(--gold);
+  text-transform:uppercase;
+  animation:marqueeGlow 2s ease-in-out infinite;
+}
+@keyframes marqueeGlow{0%,100%{box-shadow:0 0 8px rgba(212,168,83,0.2)}50%{box-shadow:0 0 20px rgba(212,168,83,0.4)}}
+.hero .projector{
+  font-size:70px;display:block;margin-bottom:20px;
+  animation:projectorShake 4s ease-in-out infinite;
+  filter:drop-shadow(0 0 30px rgba(212,168,83,0.3));
+}
+@keyframes projectorShake{
+  0%,100%{transform:translateX(0)}
+  0.5%{transform:translateX(-2px)}
+  1%{transform:translateX(2px)}
+  1.5%{transform:translateX(0)}
+}
+.hero h1{
+  font-family:'Abril Fatface','Noto Serif SC',cursive;
+  font-size:clamp(30px,6vw,52px);font-weight:400;
+  letter-spacing:3px;line-height:1.2;margin-bottom:14px;
+  color:var(--cream);
+  text-shadow:0 0 40px rgba(212,168,83,0.15);
+}
+.hero h1 .em{color:var(--warm);font-style:italic;}
+.hero .sub{
+  font-size:15px;color:var(--muted);letter-spacing:2px;
+  font-style:italic;
+}
+
+/* ── Countdown leader ── */
+.countdown{
+  display:flex;justify-content:center;gap:12px;margin:20px 0;
+}
+.cd-circle{
+  width:48px;height:48px;border-radius:50%;
+  border:2px solid var(--gold);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Courier Prime',monospace;
+  font-size:18px;font-weight:700;color:var(--gold);
+  animation:cdPulse 1.5s ease-in-out infinite;
+}
+.cd-circle:nth-child(1){animation-delay:0s}
+.cd-circle:nth-child(2){animation-delay:-0.5s}
+.cd-circle:nth-child(3){animation-delay:-1s}
+@keyframes cdPulse{0%,100%{opacity:0.4}50%{opacity:1}}
+
+/* ── Cards ── */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
+.card{
+  background:var(--film-bg);
+  border:1px solid rgba(212,168,83,0.12);
+  border-radius:3px;padding:28px 24px;
+  position:relative;overflow:hidden;
+  transition:all .45s cubic-bezier(.22,.61,.36,1);
+  opacity:0;transform:translateY(40px);
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  opacity:0;transition:opacity .5s;
+}
+.card:hover::before{opacity:1;}
+.card.visible{opacity:1;transform:translateY(0);}
+.card:hover{
+  border-color:rgba(212,168,83,0.3);
+  transform:translateY(-6px)!important;
+  box-shadow:0 8px 40px rgba(0,0,0,0.4),0 0 30px rgba(212,168,83,0.05);
+}
+.card .c-frame{
+  position:absolute;top:10px;right:10px;
+  font-size:10px;color:var(--gold);opacity:0.3;
+  font-family:'Courier Prime',monospace;
+}
+.card h3{
+  font-family:'Playfair Display','Noto Serif SC',serif;
+  font-size:18px;font-weight:700;color:var(--cream);
+  margin-bottom:8px;letter-spacing:1px;
+}
+.card p,.card li{
+  font-size:14px;color:var(--muted);line-height:1.7;
+}
+.card ul{list-style:none;padding:0;}
+.card ul li{padding:4px 0;padding-left:16px;position:relative;}
+.card ul li::before{content:'◆';position:absolute;left:0;color:var(--gold);opacity:0.5;font-size:8px;top:6px;}
+
+/* ── Ticket stub ── */
+.ticket-wrap{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;}
+.ticket{
+  display:flex;background:var(--film-bg);
+  border:1px dashed rgba(212,168,83,0.2);
+  border-radius:4px;overflow:hidden;
+  transition:all .35s ease;opacity:0;transform:translateY(30px);
+}
+.ticket.visible{opacity:1;transform:translateY(0);}
+.ticket:hover{transform:translateY(-6px)!important;box-shadow:0 10px 30px rgba(0,0,0,0.4);}
+.ticket .t-main{
+  padding:20px 22px;min-width:160px;
+  border-right:1px dashed rgba(212,168,83,0.15);
+}
+.ticket .t-main .t-name{
+  font-family:'Abril Fatface',cursive;
+  font-size:20px;color:var(--warm);margin-bottom:4px;
+}
+.ticket .t-main .t-desc{font-size:11px;color:var(--muted);}
+.ticket .t-stub{
+  padding:20px 16px;display:flex;align-items:center;
+  writing-mode:vertical-rl;
+  font-size:10px;letter-spacing:3px;color:var(--gold);
+  font-family:'Courier Prime',monospace;
+}
+
+/* ── Timeline ── */
+.timeline{position:relative;padding-left:40px;}
+.timeline::before{
+  content:'';position:absolute;left:12px;top:0;bottom:0;
+  width:2px;background:repeating-linear-gradient(0deg,var(--gold) 0px,var(--gold) 6px,transparent 6px,transparent 12px);
+}
+.tl-item{
+  position:relative;padding:14px 0 14px 20px;
+  opacity:0;transform:translateX(-20px);
+  transition:all .5s ease;
+}
+.tl-item.visible{opacity:1;transform:translateX(0);}
+.tl-item::before{
+  content:'';position:absolute;left:-34px;top:18px;
+  width:16px;height:16px;border-radius:50%;
+  border:2px solid var(--gold);background:var(--bg);
+}
+.tl-item h4{
+  font-family:'Playfair Display',serif;
+  font-size:16px;color:var(--cream);margin-bottom:2px;font-weight:600;
+}
+.tl-item p{font-size:13px;color:var(--muted);}
+
+/* ── Film cells ── */
+.film-cells{display:flex;gap:10px;overflow-x:auto;padding:10px 0;}
+.film-cell{
+  flex-shrink:0;width:160px;padding:18px 14px;
+  background:var(--film-bg);border:1px solid rgba(212,168,83,0.1);
+  border-radius:3px;text-align:center;
+  transition:all .3s ease;
+}
+.film-cell:hover{border-color:rgba(212,168,83,0.3);transform:translateY(-4px);}
+.film-cell .fc-icon{font-size:32px;margin-bottom:8px;}
+.film-cell .fc-name{font-family:'Abril Fatface',cursive;font-size:16px;color:var(--warm);}
+.film-cell .fc-detail{font-size:10px;color:var(--muted);margin-top:4px;}
+
+/* ── Quote ── */
+.quote{
+  padding:20px 28px;margin:20px 0;
+  border-left:2px solid var(--gold);
+  background:rgba(212,168,83,0.03);
+  font-style:italic;font-size:15px;color:var(--muted);
+  line-height:1.9;
+}
+.quote strong{color:var(--warm);font-style:normal;}
+
+/* ── Footer ── */
+.footer{
+  position:relative;z-index:1;text-align:center;
+  padding:44px 24px;border-top:1px solid rgba(212,168,83,0.1);
+  color:var(--muted);font-size:10px;letter-spacing:2px;
+}
+
+@media(max-width:640px){
+  .section{padding:80px 16px 60px;}
+  .film-strip-top,.film-strip-bottom{height:20px;}
+  .film-hole{width:10px;height:10px;}
+  .grid2,.grid3{grid-template-columns:1fr;}
+  .ticket .t-main{min-width:120px;}
+}
+</style>
+</head>
+<body>
+
+<div class="film-grain"></div>
+<div class="vignette"></div>
+<div class="film-strip-top" id="filmTop"></div>
+<div class="film-strip-bottom" id="filmBottom"></div>
+<div class="progress-reel" id="progressBar"></div>
+
+<!-- ═══════ HERO ═══════ -->
+<section class="section hero">
+  <div class="inner">
+    <div class="marquee">🎬 NOW SHOWING 🎬</div>
+    <div class="projector">🎥</div>
+    <h1>
+      从零开始<br>
+      快速认知<br>
+      <span class="em">大语言模型</span>
+    </h1>
+    <p class="sub">— LLM · 一部改变世界的放映机 —</p>
+    <div class="countdown">
+      <div class="cd-circle">3</div><div class="cd-circle">2</div><div class="cd-circle">1</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ WHAT IS LLM ═══════ -->
+<section class="section">
+  <div class="inner">
+    <h2>第一幕 · 什么是 LLM</h2>
+    <p style="color:var(--muted);margin-bottom:24px;font-style:italic;">"它不是魔法，是一部被喂了整座图书馆胶片的放映机。"</p>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="c-frame">FRAME 001</div>
+        <h3>🎞️ 一句话解释</h3>
+        <p>大语言模型（LLM）是一个<strong style="color:var(--warm);">读完了整个互联网的超级读者</strong>。它不会"思考"，但它读过足够多的文字，以至于能预测——在你说的这句话后面，最可能接什么。</p>
+      </div>
+      <div class="card">
+        <div class="c-frame">FRAME 002</div>
+        <h3>🧠 它和搜索引擎的区别</h3>
+        <ul>
+          <li>搜索引擎：从已有的网页里<strong style="color:var(--warm);">检索</strong></li>
+          <li>LLM：基于学到的模式<strong style="color:var(--warm);">生成</strong>新内容</li>
+          <li>搜索告诉你"哪里有答案"</li>
+          <li>LLM 直接给你"一个可能的答案"</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="quote" style="margin-top:22px;">
+      <strong>类比：</strong>LLM 就像看过 10 万部电影的影评人。你问他"这部电影怎么样"，他不是去查数据库——他是凭借看过的所有电影，直觉性地告诉你一个答案。
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ HOW IT WORKS ═══════ -->
+<section class="section">
+  <div class="inner">
+    <h2>第二幕 · 它是如何工作的</h2>
+    <p style="color:var(--muted);margin-bottom:24px;font-style:italic;">三个关键概念，像电影的三幕结构一样简单。</p>
+
+    <div class="timeline">
+      <div class="tl-item">
+        <h4>① 训练（Training）· 阅读阶段</h4>
+        <p>喂给它海量文本——书籍、网页、代码、论文。它从中学习语言模式、事实知识、逻辑关系。就像演员看了所有电影，学会了表演。</p>
+      </div>
+      <div class="tl-item">
+        <h4>② 推理（Inference）· 即兴表演</h4>
+        <p>你给它一个开头（Prompt），它基于训练时学到的模式，逐字逐句"预测"接下来应该说什么。不是复制粘贴，是<strong style="color:var(--warm);">概率性生成</strong>。</p>
+      </div>
+      <div class="tl-item">
+        <h4>③ 上下文窗口（Context Window）· 短期记忆</h4>
+        <p>LLM 能"记住"当前对话中的内容。上下文窗口越大，它能同时考虑的信息越多。Claude 支持 200K tokens——相当于一整本《三体》放进去都能记住。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ MAJOR LLMS ═══════ -->
+<section class="section">
+  <div class="inner">
+    <h2>第三幕 · 主要 LLM 家族</h2>
+    <p style="color:var(--muted);margin-bottom:20px;font-style:italic;">了解它们各自的特长，才能选对工具。</p>
+
+    <div class="film-cells">
+      <div class="film-cell">
+        <div class="fc-icon">🧠</div>
+        <div class="fc-name">Claude</div>
+        <div class="fc-detail">Anthropic<br>擅长深度推理<br>200K 上下文<br>代码/分析/创作</div>
+      </div>
+      <div class="film-cell">
+        <div class="fc-icon">🤖</div>
+        <div class="fc-name">GPT-4o</div>
+        <div class="fc-detail">OpenAI<br>多模态能力强<br>图像识别+生成<br>生态最丰富</div>
+      </div>
+      <div class="film-cell">
+        <div class="fc-icon">🔍</div>
+        <div class="fc-name">Gemini</div>
+        <div class="fc-detail">Google<br>搜索整合深<br>多模态原生<br>Google 生态</div>
+      </div>
+      <div class="film-cell">
+        <div class="fc-icon">🇨🇳</div>
+        <div class="fc-name">DeepSeek</div>
+        <div class="fc-detail">深度求索<br>中文能力强<br>开源可部署<br>性价比极高</div>
+      </div>
+      <div class="film-cell">
+        <div class="fc-icon">🦙</div>
+        <div class="fc-name">Llama</div>
+        <div class="fc-detail">Meta<br>开源标杆<br>可本地运行<br>社区生态活跃</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ CAPABILITIES ═══════ -->
+<section class="section">
+  <div class="inner">
+    <h2>第四幕 · LLM 能做什么</h2>
+
+    <div class="grid3">
+      <div class="card">
+        <h3>💬 对话与问答</h3>
+        <p>回答任意问题、解释复杂概念、充当各领域专家顾问。从"黑洞是什么"到"帮我理解这份合同"——都能做。</p>
+      </div>
+      <div class="card">
+        <h3>✍️ 内容创作</h3>
+        <p>写文章、写邮件、写代码、写诗、写剧本——只要你能描述清楚需求，它就能生成结构化的文本内容。</p>
+      </div>
+      <div class="card">
+        <h3>💻 编程辅助</h3>
+        <p>写代码、Debug、解释代码逻辑、代码翻译（Python→JS）、生成测试用例。AI 编程已经是软件工程标配。</p>
+      </div>
+      <div class="card">
+        <h3>📊 分析总结</h3>
+        <p>读长文档并总结、分析数据趋势、提取关键信息、多文档交叉对比。一分钟读完 100 页 PDF。</p>
+      </div>
+      <div class="card">
+        <h3>🌐 翻译与本地化</h3>
+        <p>高质量多语言翻译，保留语境和风格。不只是词对词，而是理解文化含义后的翻译。</p>
+      </div>
+      <div class="card">
+        <h3>🎨 创意与头脑风暴</h3>
+        <p>产品起名、营销 slogan、活动策划、剧情构思。AI 是永远不会累的创意伙伴。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ REAL SCENARIOS ═══════ -->
+<section class="section">
+  <div class="inner">
+    <h2>第五幕 · 真实应用场景</h2>
+    <p style="color:var(--muted);margin-bottom:20px;font-style:italic;">LLM 不是在实验室里的玩具——它正在每一个行业里创造价值。</p>
+
+    <div class="ticket-wrap">
+      <div class="ticket">
+        <div class="t-main">
+          <div class="t-name">🏥 医疗</div>
+          <div class="t-desc">辅助诊断分析<br>病历自动整理<br>医学文献检索</div>
+        </div>
+        <div class="t-stub">ADMIT ONE</div>
+      </div>
+      <div class="ticket">
+        <div class="t-main">
+          <div class="t-name">💰 金融</div>
+          <div class="t-desc">财报智能分析<br>风控报告生成<br>合规文档审查</div>
+        </div>
+        <div class="t-stub">ADMIT ONE</div>
+      </div>
+      <div class="ticket">
+        <div class="t-main">
+          <div class="t-name">📚 教育</div>
+          <div class="t-desc">个性化辅导<br>自动出题批改<br>知识图谱构建</div>
+        </div>
+        <div class="t-stub">ADMIT ONE</div>
+      </div>
+      <div class="ticket">
+        <div class="t-main">
+          <div class="t-name">🛒 电商</div>
+          <div class="t-desc">智能客服<br>商品描述生成<br>评论情感分析</div>
+        </div>
+        <div class="t-stub">ADMIT ONE</div>
+      </div>
+      <div class="ticket">
+        <div class="t-main">
+          <div class="t-name">⚖️ 法律</div>
+          <div class="t-desc">合同风险审查<br>判例检索分析<br>法律文书起草</div>
+        </div>
+        <div class="t-stub">ADMIT ONE</div>
+      </div>
+      <div class="ticket">
+        <div class="t-main">
+          <div class="t-name">💻 开发</div>
+          <div class="t-desc">AI 辅助编程<br>自动化测试<br>技术文档生成</div>
+        </div>
+        <div class="t-stub">ADMIT ONE</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ DO & DON'T ═══════ -->
+<section class="section">
+  <div class="inner">
+    <h2>第六幕 · 使用 LLM 的正确姿势</h2>
+
+    <div class="grid2">
+      <div class="card" style="border-left:3px solid var(--gold);">
+        <h3>🎬 导演思维 · 该做的</h3>
+        <ul>
+          <li>给明确的角色和场景设定</li>
+          <li>用示例告诉它你要什么风格</li>
+          <li>分步骤提问，不要一次问太多</li>
+          <li>对复杂问题说"一步步想"</li>
+          <li>不满意就让它"再来一版"</li>
+          <li>重要事实让它在回答后自我检查</li>
+          <li>把 AI 当作"实习生"——需要明确的指令和反馈</li>
+        </ul>
+      </div>
+      <div class="card" style="border-left:3px solid var(--red);">
+        <h3>🚫 场务禁忌 · 不该做的</h3>
+        <ul>
+          <li>不要问模糊的问题</li>
+          <li>不要把 AI 回答当绝对真理</li>
+          <li>不要在重要决策中跳过人工验证</li>
+          <li>不要输入隐私/敏感数据（除非企业私有部署）</li>
+          <li>不要期望一次就能得到完美结果</li>
+          <li>不要用 AI 替代专业判断（医疗/法律/金融决策需人工复核）</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ GETTING STARTED ═══════ -->
+<section class="section">
+  <div class="inner">
+    <h2>第七幕 · 三分钟上手</h2>
+
+    <div class="grid3">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:40px;margin-bottom:10px;">1️⃣</div>
+        <h3>选一个模型</h3>
+        <p style="font-size:13px;">从 Claude 或 ChatGPT 开始。<br>免费版足够体验 80% 的功能。<br>注册一个账号，打开对话界面。</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:40px;margin-bottom:10px;">2️⃣</div>
+        <h3>问第一个问题</h3>
+        <p style="font-size:13px;">"请用 200 字解释什么是大语言模型，<br>用生活中的比喻，<br>不要用专业术语。"</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:40px;margin-bottom:10px;">3️⃣</div>
+        <h3>迭代打磨</h3>
+        <p style="font-size:13px;">看完回答后，说：<br>"把比喻换成做菜的场景"<br>"再简洁一点，加上 emoji"<br>感受 AI 如何精准调整。</p>
+      </div>
+    </div>
+
+    <div class="quote" style="text-align:center;margin-top:28px;">
+      <strong>🎬 导演笔记：</strong>最好的学习方法就是——现在打开 Claude 或 ChatGPT，<br>把上面第一个问题复制进去。你会在 30 秒内直观理解 LLM 是什么。
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ CLOSING ═══════ -->
+<section class="section">
+  <div class="inner" style="text-align:center;">
+    <div style="font-size:50px;margin-bottom:20px;display:block;">🎬</div>
+    <h2 style="display:block;margin:0 auto 20px;text-align:center;">
+      END OF REEL
+    </h2>
+    <p style="color:var(--muted);font-style:italic;max-width:500px;margin:0 auto;line-height:2;">
+      LLM 不是魔法，它是人类知识的投影仪。<br>
+      你给它什么胶片，它就放出什么画面。<br>
+      学会和它对话，你就拥有了一整个图书馆的智慧。
+    </p>
+    <div class="countdown" style="margin-top:28px;">
+      <div class="cd-circle">F</div><div class="cd-circle">I</div><div class="cd-circle">N</div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>🎬 从零认知大语言模型（LLM）及应用场景 · 胶片放映厅 · REEL NO.001</p>
+  <p style="margin-top:4px;">THE PROJECTOR IS ON · NOW SHOWING · ADMIT ALL</p>
+</footer>
+
+<script>
+// Film strip holes
+function fillHoles(el,n){for(let i=0;i<n;i++){const h=document.createElement('div');h.className='film-hole';el.appendChild(h);}}
+fillHoles(document.getElementById('filmTop'),80);
+fillHoles(document.getElementById('filmBottom'),80);
+
+// Progress
+const sections=document.querySelectorAll('.section');
+const progressBar=document.getElementById('progressBar');
+window.addEventListener('scroll',()=>{
+  const pct=window.scrollY/(document.documentElement.scrollHeight-window.innerHeight);
+  progressBar.style.width=(Math.min(pct,1)*100)+'%';
+},{passive:true});
+
+// Intersection Observer
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.card,.ticket,.tl-item').forEach((el,i)=>{
+        el.style.transitionDelay=(i*0.06)+'s';el.classList.add('visible');
+      });
+    }
+  });
+},{threshold:0.12});
+sections.forEach(s=>obs.observe(s));
+
+// Card tilt
+document.querySelectorAll('.card,.ticket').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    const rect=el.getBoundingClientRect();
+    const x=(e.clientX-rect.left)/rect.width-0.5;
+    const y=(e.clientY-rect.top)/rect.height-0.5;
+    el.style.transform=`perspective(800px) rotateY(${x*5}deg) rotateX(${-y*5}deg) translateY(-6px)`;
+  });
+  el.addEventListener('mouseleave',()=>{el.style.transform='';});
+});
+</script>
+</body>
+</html>

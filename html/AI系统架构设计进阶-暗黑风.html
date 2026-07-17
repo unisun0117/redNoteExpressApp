@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 系统架构设计进阶 · 从使用者到设计者</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+:root{
+  --bg:#08080c;--surface:#111118;--surface2:#16161f;--surface3:#1c1c28;
+  --border:rgba(255,255,255,0.05);--border2:rgba(255,255,255,0.08);
+  --text:#e4e4ec;--muted:rgba(228,228,236,0.45);--dim:rgba(228,228,236,0.22);
+  --accent:#6c8cff;--accent2:#45d9c4;--warn:#f0a860;--danger:#f06080;
+  --grad1:linear-gradient(135deg,#6c8cff,#45d9c4);
+  --grad2:linear-gradient(135deg,#f0a860,#f06080);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter','Noto Sans SC','PingFang SC',sans-serif;
+  overflow-x:hidden;cursor:default;
+  font-weight:400;line-height:1.75;
+}
+
+/* ── Ambient light ── */
+.ambient{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 10%,rgba(108,140,255,0.04) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 60% at 80% 80%,rgba(69,217,196,0.03) 0%,transparent 60%);
+}
+
+/* ── Subtle grid ── */
+.grid-subtle{
+  position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.03;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px);
+  background-size:60px 60px;
+}
+
+/* ── Progress ── */
+.progress-line{
+  position:fixed;top:0;left:0;height:2px;z-index:100;
+  background:var(--grad1);transition:width .1s linear;
+}
+
+/* ── Sections ── */
+.section{
+  position:relative;z-index:1;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:80px 24px;
+}
+.section .inner{max-width:960px;width:100%;}
+
+.section h2{
+  font-family:'Inter','Noto Sans SC',sans-serif;
+  font-size:clamp(24px,4vw,38px);font-weight:800;
+  letter-spacing:-0.5px;margin-bottom:28px;
+  color:var(--text);
+}
+.section h2 .grad{background:var(--grad1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+
+/* ── Section label ── */
+.s-label{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:10px;font-weight:700;letter-spacing:3px;
+  color:var(--accent);text-transform:uppercase;
+  margin-bottom:16px;
+}
+.s-label::before{content:'';width:20px;height:1px;background:var(--accent);opacity:0.5;}
+
+/* ── Hero ── */
+.hero{text-align:center;}
+.hero .arch-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:90px;height:90px;border-radius:24px;
+  background:var(--surface2);border:1px solid var(--border2);
+  margin-bottom:28px;font-size:38px;
+  box-shadow:0 0 60px rgba(108,140,255,0.08);
+  animation:iconFloat 4s ease-in-out infinite;
+}
+@keyframes iconFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.hero h1{
+  font-size:clamp(30px,6vw,52px);font-weight:900;
+  letter-spacing:-1px;line-height:1.15;margin-bottom:14px;
+}
+.hero h1 .g1{background:var(--grad1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero .sub{font-size:15px;color:var(--muted);font-weight:400;max-width:480px;margin:0 auto;}
+
+/* ── Cards ── */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;padding:26px 24px;
+  transition:all .4s cubic-bezier(.22,.61,.36,1);
+  opacity:0;transform:translateY(40px);
+  position:relative;overflow:hidden;
+}
+.card.visible{opacity:1;transform:translateY(0);}
+.card:hover{
+  background:var(--surface2);border-color:var(--border2);
+  transform:translateY(-6px)!important;
+  box-shadow:0 16px 48px rgba(0,0,0,0.4);
+}
+.card .c-accent-bar{
+  position:absolute;top:0;left:0;width:100%;height:1px;
+  background:var(--grad1);opacity:0;transition:opacity .4s;
+}
+.card:hover .c-accent-bar{opacity:1;}
+.card .c-icon{
+  font-size:24px;margin-bottom:12px;
+  width:42px;height:42px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(108,140,255,0.06);border:1px solid rgba(108,140,255,0.08);
+}
+.card h3{
+  font-size:16px;font-weight:700;color:var(--text);
+  margin-bottom:6px;letter-spacing:-0.3px;
+}
+.card p,.card li{
+  font-size:13px;color:var(--muted);line-height:1.7;
+  font-weight:400;
+}
+.card ul{list-style:none;padding:0;}
+.card ul li{padding:3px 0;padding-left:14px;position:relative;}
+.card ul li::before{content:'—';position:absolute;left:0;color:var(--dim);}
+
+/* ── Architecture diagram block ── */
+.arch-block{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:32px 28px;overflow-x:auto;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;line-height:2.2;color:var(--dim);
+  white-space:pre;
+}
+.arch-block .a-accent{color:var(--accent);}
+.arch-block .a-teal{color:var(--accent2);}
+.arch-block .a-warn{color:var(--warn);}
+.arch-block .a-danger{color:var(--danger);}
+.arch-block .a-text{color:var(--muted);}
+.arch-block .a-bright{color:var(--text);}
+.arch-block .a-border{color:rgba(255,255,255,0.12);}
+
+/* ── Comparison ── */
+.compare-duo{
+  display:grid;grid-template-columns:1fr 1fr;gap:18px;
+}
+.compare-col{
+  padding:28px 26px;border-radius:14px;
+  border:1px solid var(--border);
+}
+.compare-col.left{background:var(--surface);}
+.compare-col.right{background:rgba(108,140,255,0.03);border-color:rgba(108,140,255,0.12);}
+.compare-col h3{font-size:17px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.compare-col ul{list-style:none;padding:0;}
+.compare-col li{
+  padding:7px 0;font-size:13px;color:var(--muted);
+  border-bottom:1px solid rgba(255,255,255,0.03);
+  display:flex;align-items:center;gap:8px;
+}
+
+/* ── Layer stack ── */
+.layer-stack{
+  display:flex;flex-direction:column;gap:10px;max-width:500px;margin:0 auto;
+}
+.layer{
+  padding:16px 20px;border-radius:10px;
+  text-align:center;font-weight:600;font-size:14px;
+  transition:all .35s ease;
+  border:1px solid transparent;
+}
+.layer:hover{transform:translateX(8px);}
+.layer.l1{background:rgba(108,140,255,0.06);border-color:rgba(108,140,255,0.15);color:var(--accent);}
+.layer.l2{background:rgba(69,217,196,0.06);border-color:rgba(69,217,196,0.15);color:var(--accent2);}
+.layer.l3{background:rgba(240,168,96,0.06);border-color:rgba(240,168,96,0.15);color:var(--warn);}
+.layer.l4{background:rgba(240,96,128,0.06);border-color:rgba(240,96,128,0.15);color:var(--danger);}
+.layer.l5{background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.06);color:var(--text);}
+
+/* ── Pattern card ── */
+.pattern-row{
+  display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:20px 0;
+}
+.pattern-chip{
+  padding:10px 18px;border-radius:8px;
+  border:1px solid var(--border);background:var(--surface);
+  font-size:12px;font-weight:600;color:var(--muted);
+  display:flex;align-items:center;gap:8px;
+  transition:all .3s ease;
+}
+.pattern-chip:hover{
+  border-color:var(--accent);color:var(--text);
+  background:var(--surface2);transform:translateY(-2px);
+}
+.pattern-chip .pc-dot{width:6px;height:6px;border-radius:50%;}
+.pattern-chip .pc-dot.c1{background:var(--accent);}
+.pattern-chip .pc-dot.c2{background:var(--accent2);}
+.pattern-chip .pc-dot.c3{background:var(--warn);}
+.pattern-chip .pc-dot.c4{background:var(--danger);}
+
+/* ── Terminal ── */
+.term{
+  background:#050510;border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;margin:20px 0;
+}
+.term .tbar{
+  background:rgba(255,255,255,0.02);padding:8px 14px;
+  display:flex;gap:7px;align-items:center;border-bottom:1px solid var(--border);
+}
+.term .tbar span{width:8px;height:8px;border-radius:50%;}
+.term .tbar .tr{background:var(--danger);}
+.term .tbar .ty{background:var(--warn);}
+.term .tbar .tg{background:var(--accent2);}
+.term .tbar .tl{font-size:10px;color:var(--dim);margin-left:8px;}
+.term .tbody{
+  padding:18px 20px;font-family:'JetBrains Mono',monospace;
+  font-size:11px;line-height:2;color:var(--dim);
+}
+
+/* ── Quote ── */
+.quote{
+  padding:18px 24px;margin:20px 0;
+  border-left:2px solid var(--accent);
+  background:rgba(108,140,255,0.03);
+  font-size:14px;color:var(--muted);line-height:1.8;
+}
+.quote strong{color:var(--text);font-weight:600;}
+
+/* ── Footer ── */
+.footer{
+  position:relative;z-index:1;text-align:center;
+  padding:44px 24px;border-top:1px solid var(--border);
+  color:var(--dim);font-size:10px;letter-spacing:1px;
+}
+
+@media(max-width:640px){
+  .section{padding:48px 16px;}
+  .grid2,.grid3{grid-template-columns:1fr;}
+  .compare-duo{grid-template-columns:1fr;}
+  .arch-block{font-size:9px;padding:20px 14px;}
+}
+</style>
+</head>
+<body>
+
+<div class="ambient"></div>
+<div class="grid-subtle"></div>
+<div class="progress-line" id="progressBar"></div>
+
+<!-- ═══════ HERO ═══════ -->
+<section class="section hero">
+  <div class="inner">
+    <div class="arch-icon">🏗️</div>
+    <h1>
+      不止<span class="g1">会用 AI</span><br>
+      更进阶<br>
+      <span class="g1">AI 系统架构设计</span>
+    </h1>
+    <p class="sub">从"提词人"到"架构师"——思考 AI 系统如何被设计和组合，而不仅仅是如何被使用。</p>
+  </div>
+</section>
+
+<!-- ═══════ USER vs ARCHITECT ═══════ -->
+<section class="section">
+  <div class="inner">
+    <div class="s-label">User vs Architect</div>
+    <h2><span class="grad">使用者</span> 与 <span class="grad">设计者</span></h2>
+    <p style="color:var(--muted);margin-bottom:24px;">有一条分水岭，区分了"会用 AI"和"会设计 AI 系统"两种完全不同的能力层级。</p>
+
+    <div class="compare-duo">
+      <div class="compare-col left">
+        <h3>👤 AI 使用者</h3>
+        <ul>
+          <li>💬 在聊天框里写 Prompt</li>
+          <li>📋 每次对话从零开始</li>
+          <li>🔧 手动在不同工具间切换</li>
+          <li>📄 产出以单次文本为主</li>
+          <li>🔄 重复性工作靠人工记忆</li>
+          <li>📊 无法衡量 AI 的实际效能</li>
+        </ul>
+      </div>
+      <div class="compare-col right">
+        <h3>🏗️ AI 系统设计者</h3>
+        <ul>
+          <li>🧩 设计 AI 组件间的协作关系</li>
+          <li>🧠 构建持久化的 Memory 和上下文体系</li>
+          <li>⚡ 编排多 Agent 并行工作流</li>
+          <li>🚀 产出可复用的 AI 管线（Pipeline）</li>
+          <li>⏰ 定时任务 + 事件驱动自动化</li>
+          <li>📈 有明确的系统效能指标和优化路径</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="quote" style="margin-top:18px;">
+      <strong>核心洞察：</strong>使用者和设计者的差异，不在于"会不会写 Prompt"，而在于——<strong>是否将 AI 视为一个可以被架构、被编排、被优化的系统组件</strong>，而不仅仅是一个对话工具。
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ ARCHITECTURE LAYERS ═══════ -->
+<section class="section">
+  <div class="inner">
+    <div class="s-label">Architecture Layers</div>
+    <h2>AI 系统的<span class="grad">五层架构</span></h2>
+    <p style="color:var(--muted);margin-bottom:28px;">一个生产级 AI 系统，从底层到顶层有清晰的架构分层。每一层解决不同的问题。</p>
+
+    <div class="layer-stack">
+      <div class="layer l1">🔌 L1 · 协议层 — MCP、A2A、HTTP/SSE 标准化通信协议</div>
+      <div class="layer l2">🧠 L2 · 模型层 — LLM 选择、路由、Fallback、多模型策略</div>
+      <div class="layer l3">🛠️ L3 · 工具层 — Tool System、Skill、Function Calling 工具集</div>
+      <div class="layer l4">🤖 L4 · 智能体层 — Agent、Workflow、Pipeline、Parallel 编排</div>
+      <div class="layer l5">📦 L5 · 应用层 — 业务逻辑、用户界面、集成与部署</div>
+    </div>
+
+    <p style="text-align:center;margin-top:20px;font-size:11px;color:var(--dim);">↑ 每往上一层，离业务价值越近；每往下一层，离技术基础设施越近。</p>
+  </div>
+</section>
+
+<!-- ═══════ MCP ARCHITECTURE ═══════ -->
+<section class="section">
+  <div class="inner">
+    <div class="s-label">Protocol Layer</div>
+    <h2>L1 · <span class="grad">MCP</span> 模型上下文协议</h2>
+    <p style="color:var(--muted);margin-bottom:20px;">MCP 是 AI 系统的"USB 接口"——让任何 AI 客户端（Host）通过统一协议连接任何工具服务器（Server）。</p>
+
+    <div class="arch-block">
+<span class="a-border">┌──────────────────────────────────────────────────────────────┐</span>
+<span class="a-border">│</span>                    <span class="a-bright">MCP Architecture</span>                              <span class="a-border">│</span>
+<span class="a-border">├──────────────────────────────────────────────────────────────┤</span>
+<span class="a-border">│</span>                                                              <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-accent">┌─────────────┐</span>                                    <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-accent">│  AI Host    │</span>  ← Claude Code / Cursor / Cline        <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-accent">│  (Client)   │</span>    用户交互界面                         <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-accent">└──────┬──────┘</span>                                    <span class="a-border">│</span>
+<span class="a-border">│</span>         │ <span class="a-teal">MCP Protocol (JSON-RPC over stdio/SSE)</span>      <span class="a-border">│</span>
+<span class="a-border">│</span>         │                                              <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-teal">┌──────┴──────┐</span>  <span class="a-teal">┌──────────┐</span>  <span class="a-teal">┌──────────┐</span>      <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-teal">│ File Sys   │</span>  <span class="a-teal">│ Database │</span>  <span class="a-teal">│ Web API  │</span>  ... <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-teal">│ Server     │</span>  <span class="a-teal">│ Server   │</span>  <span class="a-teal">│ Server   │</span>      <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-teal">└────────────┘</span>  <span class="a-teal">└──────────┘</span>  <span class="a-teal">└──────────┘</span>      <span class="a-border">│</span>
+<span class="a-border">│</span>                                                              <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-warn">MCP 核心概念：</span>                                            <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-text">├─ Tools：AI 可调用的函数（如 read_file, search_web）</span>      <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-text">├─ Resources：AI 可读取的数据源（如文档、数据库记录）</span>      <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-text">├─ Prompts：预定义的提示词模板</span>                            <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-text">└─ Sampling：Server 请求 LLM 完成推理</span>                   <span class="a-border">│</span>
+<span class="a-border">│</span>                                                              <span class="a-border">│</span>
+<span class="a-border">└──────────────────────────────────────────────────────────────┘</span>
+  </div>
+  </div>
+</section>
+
+<!-- ═══════ AGENT PATTERNS ═══════ -->
+<section class="section">
+  <div class="inner">
+    <div class="s-label">Agent Patterns</div>
+    <h2>L4 · <span class="grad">智能体编排</span>四大模式</h2>
+
+    <div class="pattern-row">
+      <span class="pattern-chip"><span class="pc-dot c1"></span> Chain 链式</span>
+      <span class="pattern-chip"><span class="pc-dot c2"></span> Router 路由</span>
+      <span class="pattern-chip"><span class="pc-dot c3"></span> Parallel 并行</span>
+      <span class="pattern-chip"><span class="pc-dot c4"></span> Orchestrator 编排</span>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="c-icon">🔗</div>
+        <h3>Chain · 链式模式</h3>
+        <p>A → B → C → D。输出依次传递，每步处理一个环节。适合：数据清洗→分析→报告生成的线性流程。</p>
+        <p style="color:var(--accent);font-size:11px;margin-top:6px;">Pipeline(items, stage1, stage2, stage3)</p>
+      </div>
+      <div class="card">
+        <div class="c-icon">🔀</div>
+        <h3>Router · 路由模式</h3>
+        <p>根据输入特征，将任务分发到最合适的处理器。适合：客服系统根据问题类型路由到不同专家 Agent。</p>
+        <p style="color:var(--accent2);font-size:11px;margin-top:6px;">if(input.type == 'code') → agent_coder</p>
+      </div>
+      <div class="card">
+        <div class="c-icon">⚡</div>
+        <h3>Parallel · 并行模式</h3>
+        <p>多个 Agent 同时执行，结果汇总。适合：多维度代码审查、多源数据采集、多语言翻译。</p>
+        <p style="color:var(--warn);font-size:11px;margin-top:6px;">Parallel([agent1, agent2, agent3])</p>
+      </div>
+      <div class="card">
+        <div class="c-icon">🎯</div>
+        <h3>Orchestrator · 编排模式</h3>
+        <p>主控 Agent 动态决策下一步做什么、调用哪个子 Agent。适合：复杂多步骤任务，如全栈项目开发。</p>
+        <p style="color:var(--danger);font-size:11px;margin-top:6px;">Workflow(script) → phase1 → phase2 → phase3</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ MEMORY SYSTEM ═══════ -->
+<section class="section">
+  <div class="inner">
+    <div class="s-label">Memory & Context</div>
+    <h2><span class="grad">记忆系统</span> · AI 的长期大脑</h2>
+    <p style="color:var(--muted);margin-bottom:20px;">无记忆的 AI 每次对话都是"初次见面"。系统级 Memory 让 AI 跨越会话积累知识。</p>
+
+    <div class="arch-block">
+<span class="a-border">┌──────────────────────────────────────────┐</span>
+<span class="a-border">│</span>          <span class="a-bright">Memory Architecture</span>                <span class="a-border">│</span>
+<span class="a-border">├──────────────────────────────────────────┤</span>
+<span class="a-border">│</span>                                          <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-accent">┌──────────────────────────────────┐</span>   <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-accent">│ Session Context (当期上下文)       │</span>   <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-accent">│ ↑ 本次对话中可直接引用            │</span>   <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-accent">└──────────────────────────────────┘</span>   <span class="a-border">│</span>
+<span class="a-border">│</span>                                          <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-teal">┌──────────────────────────────────┐</span>   <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-teal">│ Memory Files (.claude/memory/)    │</span>   <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-teal">│ ↑ 跨会话持久化知识               │</span>   <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-teal">│ user · feedback · project · ref   │</span>   <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-teal">└──────────────────────────────────┘</span>   <span class="a-border">│</span>
+<span class="a-border">│</span>                                          <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-warn">┌──────────────────────────────────┐</span>   <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-warn">│ External Knowledge (外部知识库)   │</span>   <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-warn">│ ↑ RAG / Vector DB / API / MCP    │</span>   <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-warn">└──────────────────────────────────┘</span>   <span class="a-border">│</span>
+<span class="a-border">│</span>                                          <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-text">Design principle:</span>                       <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-text">Hot → Session Context (即时可用)</span>        <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-text">Warm → Memory Files (按需加载)</span>          <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-text">Cold → External Knowledge (检索获取)</span>    <span class="a-border">│</span>
+<span class="a-border">│</span>                                          <span class="a-border">│</span>
+<span class="a-border">└──────────────────────────────────────────┘</span>
+  </div>
+  </div>
+</section>
+
+<!-- ═══════ TOOL SYSTEM ═══════ -->
+<section class="section">
+  <div class="inner">
+    <div class="s-label">Tool System Design</div>
+    <h2>L3 · <span class="grad">工具系统</span>设计原则</h2>
+
+    <div class="grid3">
+      <div class="card">
+        <h3>🔧 原子性</h3>
+        <p>每个工具只做一件事。read_file 只读文件，不负责解析。原子工具组合起来比一个大而全的工具更灵活。</p>
+      </div>
+      <div class="card">
+        <h3>📝 自描述</h3>
+        <p>工具的描述、参数名、返回值要足够清晰，让 AI 无需额外解释就能理解如何使用。好的 tool description = AI 的自助文档。</p>
+      </div>
+      <div class="card">
+        <h3>⚠️ 错误透明</h3>
+        <p>工具执行失败时，返回明确的错误信息而非空值。AI 需要知道"为什么失败"才能调整策略，而不是茫然重试。</p>
+      </div>
+    </div>
+
+    <div class="term" style="margin-top:20px;">
+      <div class="tbar"><span class="tr"></span><span class="ty"></span><span class="tg"></span><span class="tl">Tool Definition Example</span></div>
+      <div class="tbody">
+{<br>
+  "name": <span style="color:var(--accent2);">"search_codebase"</span>,<br>
+  "description": <span style="color:var(--muted);">"Search the codebase using regex patterns.</span><br>
+<span style="color:var(--muted);">   Returns matching file paths and line numbers.</span><br>
+<span style="color:var(--muted);">   Prefer this over grep for multi-file searches."</span>,<br>
+  "parameters": {<br>
+    "pattern": { "type": "string",<br>
+      "description": <span style="color:var(--muted);">"Ripgrep-compatible regex pattern"</span> },<br>
+    "path": { "type": "string",<br>
+      "description": <span style="color:var(--muted);">"Directory or file to search in"</span> }<br>
+  }<br>
+}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ RAG PATTERN ═══════ -->
+<section class="section">
+  <div class="inner">
+    <div class="s-label">Advanced Pattern</div>
+    <h2><span class="grad">RAG</span> · 检索增强生成</h2>
+    <p style="color:var(--muted);margin-bottom:20px;">让 LLM 在回答前先"查资料"，是消除幻觉、引入专业领域知识的核心模式。</p>
+
+    <div class="arch-block">
+<span class="a-border">┌──────────────────────────────────────────────────────┐</span>
+<span class="a-border">│</span>                 <span class="a-bright">RAG Pipeline</span>                          <span class="a-border">│</span>
+<span class="a-border">├──────────────────────────────────────────────────────┤</span>
+<span class="a-border">│</span>                                                      <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-warn">① 文档摄入</span>                                          <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-text"> PDF/网页/Markdown → 文本提取 → 分块(Chunking)</span>    <span class="a-border">│</span>
+<span class="a-border">│</span>                        ↓                             <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-warn">② 向量化 (Embedding)</span>                               <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-text"> 文本块 → Embedding Model → 向量</span>                   <span class="a-border">│</span>
+<span class="a-border">│</span>                        ↓                             <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-warn">③ 存储 (Vector Store)</span>                              <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-text"> 向量 → Pinecone / pgvector / ChromaDB</span>            <span class="a-border">│</span>
+<span class="a-border">│</span>                        ↓                             <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-warn">④ 查询时检索</span>                                        <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-text"> 用户Query → Embedding → 向量相似度搜索 → Top-K块</span>   <span class="a-border">│</span>
+<span class="a-border">│</span>                        ↓                             <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-warn">⑤ 增强生成</span>                                          <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-text"> Prompt + 检索到的上下文块 → LLM → 有据可查的回答</span>   <span class="a-border">│</span>
+<span class="a-border">│</span>                                                      <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-accent">关键设计决策：</span>                                       <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-text">• Chunk Size：太大→检索不精确, 太小→上下文断裂</span>      <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-text">• Embedding Model：选对模型 = 检索质量的天花板</span>      <span class="a-border">│</span>
+<span class="a-border">│</span>  <span class="a-text">• Rerank：粗排 + 精排，提升 Top-K 相关性</span>            <span class="a-border">│</span>
+<span class="a-border">│</span>                                                      <span class="a-border">│</span>
+<span class="a-border">└──────────────────────────────────────────────────────┘</span>
+  </div>
+  </div>
+</section>
+
+<!-- ═══════ DEPLOYMENT ═══════ -->
+<section class="section">
+  <div class="inner">
+    <div class="s-label">Production</div>
+    <h2><span class="grad">生产级</span> AI 系统的关键要素</h2>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="c-icon">📊</div>
+        <h3>可观测性</h3>
+        <p>Token 用量、延迟分布、错误率、成本追踪。不能度量的系统无法优化。每个 Agent 调用都应留下日志。</p>
+      </div>
+      <div class="card">
+        <div class="c-icon">🔄</div>
+        <h3>Fallback 策略</h3>
+        <p>主模型挂了怎么办？降级到备用模型。Tool 调用失败怎么办？重试或跳过。每一条链路都要有 Plan B。</p>
+      </div>
+      <div class="card">
+        <div class="c-icon">🔐</div>
+        <h3>安全边界</h3>
+        <p>AI 能访问什么数据？能执行什么操作？Sandbox 隔离、权限最小化、审计日志。不要让 AI 有"删库"的权限。</p>
+      </div>
+      <div class="card">
+        <div class="c-icon">📈</div>
+        <h3>持续优化</h3>
+        <p>收集真实用户反馈 → 分析 Bad Case → 优化 Prompt/工具/RAG 策略 → A/B 测试 → 上线。AI 系统永远在进化。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ CLOSING ═══════ -->
+<section class="section">
+  <div class="inner" style="text-align:center;">
+    <div style="font-size:48px;margin-bottom:20px;display:block;">🏗️</div>
+    <h2 style="text-align:center;display:block;margin:0 auto 20px;">
+      从 <span class="grad">使用者</span><br>到 <span class="grad">架构师</span>
+    </h2>
+    <p style="color:var(--muted);max-width:500px;margin:0 auto 28px;line-height:1.9;">
+      真正的进阶，不是你多会写 Prompt——<br>
+      而是你开始思考：<br>
+      这个 AI 系统应该如何被<strong style="color:var(--text);">设计</strong>？<br>
+      组件之间如何<strong style="color:var(--text);">协作</strong>？<br>
+      数据和上下文如何<strong style="color:var(--text);">流转</strong>？<br>
+      故障时如何<strong style="color:var(--text);">优雅降级</strong>？
+    </p>
+    <div style="display:inline-flex;align-items:center;gap:8px;padding:11px 28px;border-radius:8px;background:rgba(108,140,255,0.08);border:1px solid rgba(108,140,255,0.15);font-size:13px;font-weight:600;color:var(--accent);">
+      🏗️ 开始以架构师的视角思考 AI
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>AI System Architecture Design · From User to Architect</p>
+  <p style="margin-top:4px;">MCP · Agent Patterns · Memory · RAG · Tool System · Production</p>
+</footer>
+
+<script>
+const sections=document.querySelectorAll('.section');
+const progressBar=document.getElementById('progressBar');
+window.addEventListener('scroll',()=>{
+  progressBar.style.width=(Math.min(window.scrollY/(document.documentElement.scrollHeight-window.innerHeight),1)*100)+'%';
+},{passive:true});
+
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.card,.layer,.ticket,.tl-item,.pattern-chip').forEach((el,i)=>{
+        el.style.transitionDelay=(i*0.06)+'s';el.classList.add('visible');
+      });
+    }
+  });
+},{threshold:0.12});
+sections.forEach(s=>obs.observe(s));
+
+document.querySelectorAll('.card').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    const rect=el.getBoundingClientRect();
+    const x=(e.clientX-rect.left)/rect.width-0.5;
+    const y=(e.clientY-rect.top)/rect.height-0.5;
+    if(el.classList.contains('visible'))
+      el.style.transform=`perspective(800px) rotateY(${x*4}deg) rotateX(${-y*4}deg) translateY(-6px)`;
+  });
+  el.addEventListener('mouseleave',()=>{if(el.classList.contains('visible'))el.style.transform='translateY(0)';});
+});
+</script>
+</body>
+</html>
