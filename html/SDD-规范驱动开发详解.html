@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SDD · 规范驱动开发 · 交互式深度解析</title>
+<style>
+  :root {
+    --bg:#060612; --card:rgba(14,14,36,0.9); --border:rgba(255,255,255,0.07);
+    --text:#e2e2f0; --muted:rgba(255,255,255,0.5);
+    --accent:#8b5cf6; --cyan:#06b6d4; --green:#10b981; --warn:#f59e0b; --red:#ef4444;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:'PingFang SC','Microsoft YaHei','Noto Sans SC',system-ui,sans-serif;
+    overflow-x:hidden;
+    cursor:default;
+  }
+
+  /* ── 3D Canvas BG ── */
+  #bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+  /* ── Scroll Progress ── */
+  .progress-bar{
+    position:fixed;top:0;left:0;height:3px;
+    background:linear-gradient(90deg,var(--accent),var(--cyan),var(--green));
+    z-index:100;transition:width .1s linear;
+  }
+  .progress-dot{
+    position:fixed;right:20px;top:50%;transform:translateY(-50%);
+    z-index:100;display:flex;flex-direction:column;gap:8px;
+  }
+  .progress-dot .dot{
+    width:10px;height:10px;border-radius:50%;
+    background:rgba(255,255,255,0.2);transition:all .4s;
+    cursor:pointer;pointer-events:auto;
+  }
+  .progress-dot .dot.active{background:var(--accent);box-shadow:0 0 14px var(--accent);transform:scale(1.5);}
+
+  /* ── Sections ── */
+  .section{
+    position:relative;z-index:1;
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    padding:80px 24px;
+  }
+  .section .inner{max-width:960px;width:100%;}
+  .section h2{
+    font-size:clamp(28px,5vw,48px);font-weight:900;
+    margin-bottom:32px;line-height:1.2;
+    background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.7) 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  }
+  .section h2 .hl{background:linear-gradient(135deg,var(--accent),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+
+  /* ── Hero ── */
+  .hero{text-align:center;}
+  .hero .logo{
+    width:120px;height:120px;margin:0 auto 28px;
+    border-radius:30px;
+    background:linear-gradient(135deg,var(--accent),var(--cyan));
+    display:flex;align-items:center;justify-content:center;
+    font-size:56px;
+    box-shadow:0 0 80px rgba(139,92,246,0.4),0 0 160px rgba(6,182,212,0.2);
+    animation:logoFloat 4s ease-in-out infinite;
+  }
+  @keyframes logoFloat{
+    0%,100%{transform:translateY(0)}
+    50%{transform:translateY(-14px)}
+  }
+  .hero .tag{
+    display:inline-block;padding:6px 20px;border-radius:20px;
+    border:1px solid rgba(139,92,246,0.3);background:rgba(139,92,246,0.08);
+    color:var(--accent);font-size:12px;letter-spacing:3px;margin-bottom:20px;
+  }
+  .hero .sub{font-size:18px;color:var(--muted);max-width:500px;margin:8px auto 0;}
+
+  /* ── Cards ── */
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
+  .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
+  .card{
+    background:var(--card);border:1px solid var(--border);
+    border-radius:20px;padding:28px 24px;
+    backdrop-filter:blur(20px);
+    transition:all .4s cubic-bezier(.22,.61,.36,1);
+    opacity:0;transform:translateY(40px);
+  }
+  .card.visible{opacity:1;transform:translateY(0);}
+  .card:hover{
+    border-color:rgba(255,255,255,0.18);
+    transform:translateY(-6px) !important;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.05) inset;
+  }
+  .card .ci{
+    font-size:38px;margin-bottom:14px;
+    width:56px;height:56px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .card h3{font-size:18px;margin-bottom:8px;color:#fff;}
+  .card p,.card li{font-size:14px;color:var(--muted);line-height:1.7;}
+  .card ul{padding-left:18px;margin-top:6px;}
+  .card ul li{margin-bottom:4px;}
+
+  /* ── VS Slider ── */
+  .vs-container{position:relative;border-radius:20px;overflow:hidden;background:var(--card);border:1px solid var(--border);}
+  .vs-inner{display:flex;transition:transform .5s cubic-bezier(.22,.61,.36,1);}
+  .vs-pane{flex:0 0 100%;padding:36px 32px;text-align:center;}
+  .vs-pane.bad{border-right:1px solid var(--border);}
+  .vs-pane h3{font-size:22px;margin-bottom:20px;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .vs-pane ul{list-style:none;text-align:left;max-width:380px;margin:0 auto;}
+  .vs-pane li{padding:10px 0;font-size:14px;color:var(--muted);border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:center;gap:10px;}
+  .vs-pane li .dot-icon{font-size:18px;}
+  .vs-toggle{
+    display:flex;justify-content:center;gap:0;
+    background:rgba(255,255,255,0.03);border-top:1px solid var(--border);
+  }
+  .vs-toggle button{
+    flex:1;padding:14px;border:none;background:transparent;
+    color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;
+    transition:all .3s;letter-spacing:1px;
+  }
+  .vs-toggle button.active{color:#fff;background:rgba(255,255,255,0.04);}
+  .vs-toggle button:first-child.active{box-shadow:inset 0 -3px 0 var(--red);}
+  .vs-toggle button:last-child.active{box-shadow:inset 0 -3px 0 var(--green);}
+
+  /* ── 6 Elements interactive ── */
+  .six-interactive{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;}
+  .six-chip{
+    padding:14px 22px;border-radius:30px;
+    border:1px solid var(--border);background:rgba(255,255,255,0.02);
+    cursor:pointer;transition:all .35s ease;
+    font-size:14px;color:var(--muted);position:relative;
+  }
+  .six-chip:hover,.six-chip.active{
+    border-color:var(--accent);background:rgba(139,92,246,0.1);
+    color:#fff;transform:translateY(-3px);
+    box-shadow:0 10px 30px rgba(139,92,246,0.2);
+  }
+  .six-chip .num{
+    display:inline-block;width:22px;height:22px;border-radius:50%;
+    background:rgba(139,92,246,0.2);font-size:11px;font-weight:700;
+    line-height:22px;text-align:center;margin-right:8px;
+    color:var(--accent);
+  }
+  .six-detail{
+    margin-top:24px;padding:28px 32px;
+    background:var(--card);border:1px solid var(--border);
+    border-radius:16px;min-height:120px;
+    transition:all .35s ease;
+  }
+  .six-detail h4{font-size:20px;color:#fff;margin-bottom:8px;}
+  .six-detail p{font-size:14px;color:var(--muted);line-height:1.7;}
+
+  /* ── Phase Timeline ── */
+  .timeline{position:relative;padding-left:40px;}
+  .timeline::before{
+    content:'';position:absolute;left:15px;top:0;bottom:0;
+    width:2px;background:linear-gradient(180deg,var(--accent),var(--cyan),var(--green),var(--warn));
+  }
+  .tl-step{
+    position:relative;margin-bottom:32px;
+    opacity:0;transform:translateX(-30px);
+    transition:all .6s cubic-bezier(.22,.61,.36,1);
+  }
+  .tl-step.visible{opacity:1;transform:translateX(0);}
+  .tl-step::before{
+    content:'';position:absolute;left:-33px;top:4px;
+    width:14px;height:14px;border-radius:50%;
+    background:var(--accent);border:3px solid var(--bg);
+    box-shadow:0 0 14px rgba(139,92,246,0.6);
+  }
+  .tl-step:nth-child(2)::before{background:var(--cyan);box-shadow:0 0 14px rgba(6,182,212,0.6);}
+  .tl-step:nth-child(3)::before{background:var(--green);box-shadow:0 0 14px rgba(16,185,129,0.6);}
+  .tl-step:nth-child(4)::before{background:var(--warn);box-shadow:0 0 14px rgba(245,158,11,0.6);}
+  .tl-step h4{font-size:18px;color:#fff;margin-bottom:4px;}
+  .tl-step p{font-size:14px;color:var(--muted);line-height:1.6;}
+
+  /* ── Terminal simulator ── */
+  .terminal{
+    background:#0a0a14;border:1px solid rgba(255,255,255,0.1);
+    border-radius:16px;overflow:hidden;margin-top:24px;
+    box-shadow:0 30px 80px rgba(0,0,0,0.6);
+  }
+  .terminal .tbar{
+    background:rgba(255,255,255,0.04);padding:10px 16px;
+    display:flex;gap:8px;align-items:center;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+  }
+  .terminal .tbar .tbtn{width:10px;height:10px;border-radius:50%;}
+  .terminal .tbar .tbtn.r{background:#ef4444;}
+  .terminal .tbar .tbtn.y{background:#f59e0b;}
+  .terminal .tbar .tbtn.g{background:#10b981;}
+  .terminal .tbar .ttitle{font-size:11px;color:var(--muted);margin-left:8px;}
+  .terminal .tbody{padding:20px 24px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;line-height:2;min-height:200px;}
+  .terminal .tbody .t-prompt{color:var(--green);}
+  .terminal .tbody .t-cmd{color:#fff;}
+  .terminal .tbody .t-out{color:var(--muted);}
+  .terminal .tbody .t-hl{color:var(--accent);}
+  .terminal .tbody .t-cyan{color:var(--cyan);}
+  .terminal .cursor{display:inline-block;width:8px;height:16px;background:var(--green);animation:blink 1s step-end infinite;vertical-align:text-bottom;}
+  @keyframes blink{50%{opacity:0}}
+
+  /* ── Spec builder ── */
+  .spec-builder{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px;}
+  .spec-builder .field{margin-bottom:16px;}
+  .spec-builder label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;}
+  .spec-builder input,.spec-builder textarea{
+    width:100%;padding:12px 16px;border-radius:10px;
+    border:1px solid var(--border);background:rgba(0,0,0,0.3);
+    color:#fff;font-size:14px;font-family:inherit;
+    transition:border-color .3s;resize:vertical;
+  }
+  .spec-builder input:focus,.spec-builder textarea:focus{
+    outline:none;border-color:var(--accent);
+    box-shadow:0 0 20px rgba(139,92,246,0.15);
+  }
+  .spec-builder .btn{
+    padding:12px 28px;border-radius:12px;border:none;
+    background:linear-gradient(135deg,var(--accent),var(--cyan));
+    color:#fff;font-size:15px;font-weight:700;cursor:pointer;
+    transition:all .3s;letter-spacing:1px;
+  }
+  .spec-builder .btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(139,92,246,0.3);}
+  .spec-output{
+    margin-top:20px;padding:20px 24px;border-radius:12px;
+    background:rgba(0,0,0,0.4);border:1px solid rgba(139,92,246,0.2);
+    font-family:'SF Mono',monospace;font-size:12px;line-height:1.9;
+    color:var(--muted);white-space:pre-wrap;display:none;
+  }
+  .spec-output.show{display:block;animation:fadeIn .5s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+  /* ── Parallax tilt ── */
+  .tilt{transition:transform .1s ease-out;}
+
+  /* ── Footer ── */
+  .footer{
+    position:relative;z-index:1;text-align:center;
+    padding:48px 24px;border-top:1px solid var(--border);
+    color:var(--muted);font-size:12px;
+  }
+  .footer a{color:var(--accent);text-decoration:none;}
+
+  @media(max-width:640px){
+    .section{padding:50px 16px;}
+    .progress-dot{right:6px;gap:6px;}
+    .progress-dot .dot{width:7px;height:7px;}
+    .vs-pane{padding:24px 18px;}
+    .terminal .tbody{font-size:10px;padding:14px 16px;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="progress-bar" id="progressBar"></div>
+<div class="progress-dot" id="progressDots"></div>
+
+<!-- ═══════ HERO ═══════ -->
+<section class="section hero" data-section="0">
+  <div class="inner">
+    <div class="logo">📐</div>
+    <div class="tag">AI 时代的新型开发范式</div>
+    <h2><span class="hl">SDD</span><br>规范驱动开发</h2>
+    <p class="sub">Specification-Driven Development — 先写规范，再写代码。让 AI 从"猜你想要什么"变成"精确实现"。</p>
+  </div>
+</section>
+
+<!-- ═══════ WHAT IS SDD ═══════ -->
+<section class="section" data-section="1">
+  <div class="inner">
+    <h2>📋 什么是 <span class="hl">规范驱动开发</span>？</h2>
+    <div class="grid2">
+      <div class="card tilt">
+        <div class="ci" style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);">🎯</div>
+        <h3>核心思想</h3>
+        <p>在写代码之前，先用<strong style="color:var(--accent);">结构化的规范文档</strong>定义清楚"要做什么"。规范就是你和 AI 之间的<strong style="color:var(--cyan);">合同</strong>——AI 照章办事，不瞎猜。</p>
+      </div>
+      <div class="card tilt">
+        <div class="ci" style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.2);">🤖</div>
+        <h3>为什么 AI 时代需要它</h3>
+        <p>AI 写代码很强，但<strong style="color:var(--warn);">理解模糊需求很弱</strong>。你说"做个登录"，它能给你 10 种完全不同的结果。SDD 消除歧义，让 AI 一击即中。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ VS SLIDER ═══════ -->
+<section class="section" data-section="2">
+  <div class="inner">
+    <h2>🎸 Vibe Coding <span style="font-size:24px;color:var(--muted);">VS</span> <span class="hl">SDD</span></h2>
+    <div class="vs-container" id="vsContainer">
+      <div class="vs-inner" id="vsInner">
+        <div class="vs-pane bad">
+          <h3>🎸 Vibe Coding（感觉编程）</h3>
+          <ul>
+            <li><span class="dot-icon">💬</span> "帮我做一个登录页面"</li>
+            <li><span class="dot-icon">🎲</span> AI 随机发挥，结果不可控</li>
+            <li><span class="dot-icon">🔄</span> 改来改去，30 轮对话还没好</li>
+            <li><span class="dot-icon">😤</span> 越改越烦，最后放弃</li>
+            <li><span class="dot-icon">📄</span> 没有文档，一个月后看不懂</li>
+            <li><span class="dot-icon">🐛</span> Bug 层出不穷，改一个坏三个</li>
+          </ul>
+        </div>
+        <div class="vs-pane good">
+          <h3>📐 SDD（规范驱动开发）</h3>
+          <ul>
+            <li><span class="dot-icon">📋</span> 先写 6 要素功能规范文档</li>
+            <li><span class="dot-icon">🎯</span> AI 按规范精确实现，零歧义</li>
+            <li><span class="dot-icon">✅</span> 1-2 轮即可验收通过</li>
+            <li><span class="dot-icon">📦</span> 规范文档 = 天然的项目文档</li>
+            <li><span class="dot-icon">🧪</span> 验收标准内置，自动验证</li>
+            <li><span class="dot-icon">🔁</span> 规范可复用，团队共享</li>
+          </ul>
+        </div>
+      </div>
+      <div class="vs-toggle">
+        <button class="active" onclick="switchVS(0)">🎸 Vibe Coding</button>
+        <button onclick="switchVS(1)">📐 SDD 规范驱动</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 6 ELEMENTS ═══════ -->
+<section class="section" data-section="3">
+  <div class="inner">
+    <h2>📝 规范的 <span class="hl">六要素</span></h2>
+    <p style="color:var(--muted);margin-bottom:20px;">一份合格的 SDD 规范长什么样？点击每个要素查看详情 👇</p>
+    <div class="six-interactive" id="sixChips">
+      <div class="six-chip active" data-idx="0"><span class="num">1</span>📖 背景与动机</div>
+      <div class="six-chip" data-idx="1"><span class="num">2</span>🎯 目标与范围</div>
+      <div class="six-chip" data-idx="2"><span class="num">3</span>📝 功能需求</div>
+      <div class="six-chip" data-idx="3"><span class="num">4</span>🏗️ 技术设计</div>
+      <div class="six-chip" data-idx="4"><span class="num">5</span>📋 任务清单</div>
+      <div class="six-chip" data-idx="5"><span class="num">6</span>✅ 验收标准</div>
+    </div>
+    <div class="six-detail" id="sixDetail">
+      <h4>📖 背景与动机（Background）</h4>
+      <p>为什么要做这个功能？解决什么用户痛点？当前系统的局限在哪？给 AI 提供充分的上下文，让它理解"为什么"，而不只是"做什么"。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ WORKFLOW TIMELINE ═══════ -->
+<section class="section" data-section="4">
+  <div class="inner">
+    <h2>🔄 <span class="hl">四阶段</span>工作流</h2>
+    <div class="timeline">
+      <div class="tl-step">
+        <h4>🔍 Phase 1 · Clarify 澄清</h4>
+        <p>AI 主动提问，像一位资深 BA 做需求访谈。把模糊的想法变成清晰的需求描述。绝不跳过任何歧义点。</p>
+      </div>
+      <div class="tl-step">
+        <h4>📐 Phase 2 · Plan 规划</h4>
+        <p>基于澄清后的需求，自动生成完整的 6 要素规范文档 + 技术方案 + 任务拆解。产出可评审、可版本管理的 Spec 文件。</p>
+      </div>
+      <div class="tl-step">
+        <h4>⚡ Phase 3 · Implement 实施</h4>
+        <p>AI 按规范文档逐个任务实现代码。每完成一个任务自动对照验收标准自检，不合规自动修正。</p>
+      </div>
+      <div class="tl-step">
+        <h4>✅ Phase 4 · Verify 验证</h4>
+        <p>逐条检查验收标准。跑测试、Code Review，确保实现和规范 100% 一致。不通过则自动回到 Phase 3 修复。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ TERMINAL DEMO ═══════ -->
+<section class="section" data-section="5">
+  <div class="inner">
+    <h2>💻 实战演示：<span class="hl">SDD 工作流全记录</span></h2>
+    <div class="terminal">
+      <div class="tbar">
+        <span class="tbtn r"></span><span class="tbtn y"></span><span class="tbtn g"></span>
+        <span class="ttitle">SDD Workflow — 用户积分系统</span>
+      </div>
+      <div class="tbody" id="terminalBody">
+        <div><span class="t-prompt">$ </span><span class="t-cmd">启动 SDD 工作流...</span></div>
+        <div style="margin-top:8px;"><span class="t-hl">━━━ Phase 1: Clarify ━━━</span></div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:16px;">
+      <button class="spec-builder .btn" style="padding:10px 24px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:#fff;cursor:pointer;font-size:13px;transition:all .3s;"
+        onclick="runTerminalDemo()" id="termBtn">
+        ▶ 运行演示
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SPEC BUILDER ═══════ -->
+<section class="section" data-section="6">
+  <div class="inner">
+    <h2>🛠️ 动手试试：<span class="hl">生成你的第一份 Spec</span></h2>
+    <div class="spec-builder">
+      <div class="field">
+        <label>🎯 功能名称</label>
+        <input type="text" id="specName" placeholder="例如：用户签到积分系统">
+      </div>
+      <div class="field">
+        <label>📖 一句话描述</label>
+        <input type="text" id="specDesc" placeholder="用户每天签到获得积分，连续签到有额外奖励">
+      </div>
+      <div class="field">
+        <label>📝 核心需求（每行一个）</label>
+        <textarea id="specReqs" rows="3" placeholder="每日签到 +5 积分&#10;连续签到 7 天额外 +20&#10;积分可在商城兑换商品"></textarea>
+      </div>
+      <button class="btn" onclick="generateSpec()">✨ 生成规范文档</button>
+      <div class="spec-output" id="specOutput"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ ECOSYSTEM ═══════ -->
+<section class="section" data-section="7">
+  <div class="inner">
+    <h2>🛠️ <span class="hl">工具链</span> & 生态系统</h2>
+    <div class="grid3">
+      <div class="card tilt">
+        <div class="ci" style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);">📦</div>
+        <h3>GitHub Spec-Kit</h3>
+        <p>GitHub 官方 SDD 工具包。Claude Code 内置集成，提供完整四阶段工作流。</p>
+        <p style="margin-top:8px;font-size:12px;color:var(--accent);">⭐ 最推荐</p>
+      </div>
+      <div class="card tilt">
+        <div class="ci" style="background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.2);">📐</div>
+        <h3>OpenSpec</h3>
+        <p>轻量级规范管理，支持 delta spec 增量规范。红薯快写在用，适合现有项目渐进式采用。</p>
+        <p style="margin-top:8px;font-size:12px;color:var(--cyan);">🔧 轻量之选</p>
+      </div>
+      <div class="card tilt">
+        <div class="ci" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);">🏢</div>
+        <h3>Kiro / Tessl</h3>
+        <p>企业级 SDD 平台。多人协作、规范版本管理、CI/CD 深度集成。适合 10+ 人团队。</p>
+        <p style="margin-top:8px;font-size:12px;color:var(--green);">🏢 企业级</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>📐 SDD · Specification-Driven Development · 先写规范，再写代码</p>
+  <p style="margin-top:6px;"><a href="https://github.com/github/spec-kit" target="_blank">GitHub Spec-Kit</a> · 让 AI 从"猜"变成"精准执行" 🎯</p>
+</footer>
+
+<!-- ═══════ SCRIPTS ═══════ -->
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+// ── 3D Background ──
+const canvas=document.getElementById('bg-canvas');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth,window.innerHeight);
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.5,40);
+camera.position.set(0,0,10);
+
+// Particles
+const geo=new THREE.BufferGeometry();
+const N=600;
+const pos=new Float32Array(N*3);
+const colors=new Float32Array(N*3);
+for(let i=0;i<N;i++){
+  pos[i*3]=(Math.random()-0.5)*16;
+  pos[i*3+1]=(Math.random()-0.5)*10;
+  pos[i*3+2]=(Math.random()-0.5)*4;
+  const c=new THREE.Color().setHSL(0.65+Math.random()*0.2,0.6,0.5+Math.random()*0.4);
+  colors[i*3]=c.r;colors[i*3+1]=c.g;colors[i*3+2]=c.b;
+}
+geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+geo.setAttribute('color',new THREE.BufferAttribute(colors,3));
+const mat=new THREE.PointsMaterial({
+  size:0.04,vertexColors:true,blending:THREE.AdditiveBlending,
+  depthWrite:false,transparent:true,opacity:0.7,
+});
+const pts=new THREE.Points(geo,mat);
+scene.add(pts);
+
+// Central glowing wireframe
+const torusGeo=new THREE.TorusKnotGeometry(1.8,0.4,100,16);
+const torusMat=new THREE.MeshBasicMaterial({color:0x8b5cf6,wireframe:true,transparent:true,opacity:0.08,depthWrite:false});
+const torus=new THREE.Mesh(torusGeo,torusMat);
+scene.add(torus);
+
+let mouseX=0,mouseY=0,targetX=0,targetY=0;
+window.addEventListener('mousemove',e=>{
+  targetX=(e.clientX/window.innerWidth)*2-1;
+  targetY=-(e.clientY/window.innerHeight)*2+1;
+});
+
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const t=clock.getElapsedTime();
+  const dt=Math.min(clock.getDelta(),0.1);
+
+  mouseX+=(targetX-mouseX)*0.05;
+  mouseY+=(targetY-mouseY)*0.05;
+
+  pts.rotation.y+=dt*0.06;
+  pts.rotation.x+=dt*0.03;
+  torus.rotation.x+=dt*0.1;
+  torus.rotation.y+=dt*0.15;
+  camera.position.x+=(mouseX*1.5-camera.position.x)*0.03;
+  camera.position.y+=(mouseY*0.8-camera.position.y)*0.03;
+  camera.lookAt(0,0,0);
+
+  renderer.render(scene,camera);
+}
+animate();
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+</script>
+
+<script>
+// ── Scroll Progress ──
+const sections=document.querySelectorAll('.section');
+const progressBar=document.getElementById('progressBar');
+const progressDots=document.getElementById('progressDots');
+
+sections.forEach((_,i)=>{
+  const dot=document.createElement('div');
+  dot.className='dot';
+  dot.title='跳转到第'+(i+1)+'部分';
+  dot.addEventListener('click',()=>sections[i].scrollIntoView({behavior:'smooth'}));
+  progressDots.appendChild(dot);
+});
+const dots=progressDots.querySelectorAll('.dot');
+
+function updateProgress(){
+  const scrollTop=window.scrollY;
+  const docH=document.documentElement.scrollHeight-window.innerHeight;
+  const pct=Math.min(scrollTop/docH,1);
+  progressBar.style.width=(pct*100)+'%';
+
+  let active=-1;
+  sections.forEach((s,i)=>{
+    const rect=s.getBoundingClientRect();
+    if(rect.top<window.innerHeight*0.5) active=i;
+  });
+  dots.forEach((d,i)=>d.classList.toggle('active',i===active));
+}
+window.addEventListener('scroll',updateProgress,{passive:true});
+
+// ── Intersection Observer ──
+const observer=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.card,.tl-step').forEach(el=>{
+        el.style.transitionDelay=(Array.from(el.parentNode.children).indexOf(el)*0.08)+'s';
+        el.classList.add('visible');
+      });
+    }
+  });
+},{threshold:0.15});
+sections.forEach(s=>observer.observe(s));
+
+// ── Tilt effect ──
+document.querySelectorAll('.tilt').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    const rect=el.getBoundingClientRect();
+    const x=(e.clientX-rect.left)/rect.width-0.5;
+    const y=(e.clientY-rect.top)/rect.height-0.5;
+    el.style.transform=`perspective(800px) rotateY(${x*8}deg) rotateX(${-y*8}deg) translateY(-6px)`;
+  });
+  el.addEventListener('mouseleave',()=>{
+    el.style.transform='perspective(800px) rotateY(0) rotateX(0) translateY(0)';
+  });
+});
+
+// ── VS Slider ──
+window.switchVS=function(idx){
+  document.getElementById('vsInner').style.transform=`translateX(-${idx*100}%)`;
+  document.querySelectorAll('.vs-toggle button').forEach((b,i)=>b.classList.toggle('active',i===idx));
+};
+
+// ── 6 Elements Interactive ──
+const sixData=[
+  {title:'📖 背景与动机（Background）',desc:'为什么要做这个功能？解决什么用户痛点？当前系统的局限在哪？给 AI 提供充分的上下文，让它理解"为什么"，而不只是"做什么"。好的背景描述能让 AI 做出更符合业务逻辑的设计决策。'},
+  {title:'🎯 目标与范围（Goals）',desc:'这个功能要达成什么效果？明确的成功指标是什么？边界在哪里——什么做、什么明确不做？清晰的目标防止 AI 过度发挥、无限扩展范围，保持功能聚焦。'},
+  {title:'📝 功能需求（Requirements）',desc:'具体的功能点列表。推荐用"用户故事"或"Given-When-Then"格式描述。每一条需求都应该是可验证的——你能够明确判断它是否被实现了。越具体，AI 的实现偏差越小。'},
+  {title:'🏗️ 技术设计（Design）',desc:'架构方案、数据模型、API 接口签名、组件树、路由设计。给 AI 画好施工蓝图。如果已有代码库，标注哪些是新增、哪些是修改、哪些需要兼容。'},
+  {title:'📋 任务清单（Tasks）',desc:'将需求拆解为独立可执行的子任务，按依赖关系排序。每个任务有明确的输入、输出和完成标准。好的任务拆解让 AI 可以逐个击破，避免"一口吃成胖子"导致的质量失控。'},
+  {title:'✅ 验收标准（Acceptance）',desc:'什么情况下算"做完了"？用可测试的方式定义：Given（前置条件）- When（操作）- Then（预期结果）。验收标准是规范中最重要的部分，它是 AI 自检的标尺，也是你最终确认的依据。'},
+];
+document.getElementById('sixChips').addEventListener('click',e=>{
+  const chip=e.target.closest('.six-chip');
+  if(!chip)return;
+  document.querySelectorAll('.six-chip').forEach(c=>c.classList.remove('active'));
+  chip.classList.add('active');
+  const idx=parseInt(chip.dataset.idx);
+  const d=sixData[idx];
+  document.getElementById('sixDetail').innerHTML=`<h4>${d.title}</h4><p>${d.desc}</p>`;
+});
+
+// ── Terminal Demo ──
+window.runTerminalDemo=function(){
+  const tb=document.getElementById('terminalBody');
+  const btn=document.getElementById('termBtn');
+  btn.disabled=true;btn.textContent='⏳ 运行中...';
+  const lines=[
+    '<div><span class="t-prompt">$ </span><span class="t-cmd">启动 SDD 工作流...</span></div>',
+    '<div style="margin-top:8px;"><span class="t-hl">━━━ Phase 1: Clarify ━━━</span></div>',
+    '<div><span class="t-cyan">AI:</span> <span class="t-out">积分如何获得？签到、发布内容、还是邀请好友？</span></div>',
+    '<div><span class="t-prompt">You:</span> <span class="t-cmd">以上三种都要，签到 +5，发内容 +10，邀请 +50</span></div>',
+    '<div><span class="t-cyan">AI:</span> <span class="t-out">积分有过期时间吗？</span></div>',
+    '<div><span class="t-prompt">You:</span> <span class="t-cmd">365 天过期</span></div>',
+    '<div style="margin-top:8px;"><span class="t-hl">━━━ Phase 2: Plan ━━━</span></div>',
+    '<div><span class="t-out">📄 已生成规范文档：points-system-spec.md</span></div>',
+    '<div><span class="t-out">   ├─ 1. Background ✓</span></div>',
+    '<div><span class="t-out">   ├─ 2. Goals ✓</span></div>',
+    '<div><span class="t-out">   ├─ 3. Requirements (6 条) ✓</span></div>',
+    '<div><span class="t-out">   ├─ 4. Technical Design ✓</span></div>',
+    '<div><span class="t-out">   ├─ 5. Tasks (8 个子任务) ✓</span></div>',
+    '<div><span class="t-out">   └─ 6. Acceptance Criteria (12 条) ✓</span></div>',
+    '<div style="margin-top:8px;"><span class="t-hl">━━━ Phase 3: Implement ━━━</span></div>',
+    '<div><span class="t-out">⏳ T1: 创建 points 数据模型... <span style="color:#10b981;">完成</span></span></div>',
+    '<div><span class="t-out">⏳ T2: 实现签到 API... <span style="color:#10b981;">完成</span></span></div>',
+    '<div><span class="t-out">⏳ T3-T8: 依次实现... <span style="color:#10b981;">全部完成</span></span></div>',
+    '<div style="margin-top:8px;"><span class="t-hl">━━━ Phase 4: Verify ━━━</span></div>',
+    '<div><span class="t-out">🔍 逐条检查 12 项验收标准...</span></div>',
+    '<div><span class="t-out" style="color:#10b981;">✅ 12/12 全部通过！</span></div>',
+    '<div style="margin-top:8px;"><span class="t-prompt">$ </span><span class="t-cmd" style="color:#10b981;">SDD 工作流完成 🎉</span><span class="cursor"></span></div>',
+  ];
+  tb.innerHTML=lines[0];
+  let i=1;
+  const iv=setInterval(()=>{
+    if(i<lines.length){tb.innerHTML+=lines[i];i++;tb.scrollTop=tb.scrollHeight;}
+    else{clearInterval(iv);btn.disabled=false;btn.textContent='🔄 重新运行';}
+  },400);
+};
+
+// ── Spec Builder ──
+window.generateSpec=function(){
+  const name=document.getElementById('specName').value||'未命名功能';
+  const desc=document.getElementById('specDesc').value||'待补充描述';
+  const reqs=document.getElementById('specReqs').value||'待补充需求';
+  const reqList=reqs.split('\n').filter(r=>r.trim()).map((r,i)=>`R${i+1}: ${r.trim()}`).join('\n');
+
+  const out=document.getElementById('specOutput');
+  out.textContent=`# Feature Spec: ${name}
+
+## 1. 背景与动机（Background）
+${desc}
+
+## 2. 目标与范围（Goals）
+- 实现 ${name} 的完整功能
+- 确保用户体验流畅、数据处理准确
+
+## 3. 功能需求（Requirements）
+${reqList}
+
+## 4. 技术设计（Design）
+- 数据模型：待根据具体需求设计
+- API 接口：待定义
+- 前端组件：待拆解
+
+## 5. 任务清单（Tasks）
+T1: 需求确认与技术方案评审
+T2: 数据模型设计与数据库迁移
+T3: 后端 API 开发
+T4: 前端页面与组件开发
+T5: 联调测试与验收
+
+## 6. 验收标准（Acceptance Criteria）
+AC1: Given 用户已登录, When 执行核心操作, Then 功能正常响应
+AC2: Given 异常输入, When 提交, Then 有友好的错误提示
+AC3: Given 正常流程, When 完成所有步骤, Then 数据正确存储`;
+  out.classList.add('show');
+};
+
+// Init
+updateProgress();
+</script>
+</body>
+</html>
