@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>上下文压缩 · 手绘解析手册</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap');
+
+:root{
+  --paper:#fdfaf2;--ink:#2c2c2c;--red:#e85d3a;--blue:#3a7abd;
+  --green:#4a9c5d;--yellow:#f5c242;--purple:#8b5cf6;--orange:#f09050;
+  --sticky-pink:rgba(255,182,193,0.5);--sticky-yellow:rgba(255,248,180,0.7);
+  --sticky-blue:rgba(180,210,240,0.5);--sticky-green:rgba(180,230,200,0.5);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:'Noto Sans SC','PingFang SC',sans-serif;
+  overflow-x:hidden;cursor:default;line-height:1.8;
+}
+.notebook-lines{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.06;
+  background:repeating-linear-gradient(0deg,transparent,transparent 31px,var(--ink) 31px,var(--ink) 32px);}
+.notebook-margin{position:fixed;left:60px;top:0;bottom:0;width:1px;background:rgba(232,93,58,0.12);z-index:0;pointer-events:none;}
+.doodles{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.doodle{position:absolute;opacity:0.07;font-family:'Gloria Hallelujah',cursive;font-size:24px;animation:dFloat 8s ease-in-out infinite;}
+@keyframes dFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-15px) rotate(5deg)}}
+.doodle:nth-child(1){top:12%;left:8%;font-size:30px;animation-delay:0s;}
+.doodle:nth-child(2){top:25%;right:6%;font-size:20px;animation-delay:-2s;}
+.doodle:nth-child(3){top:55%;left:3%;font-size:26px;animation-delay:-4s;}
+.doodle:nth-child(4){top:72%;right:10%;font-size:28px;animation-delay:-6s;}
+.doodle:nth-child(5){top:80%;left:50%;font-size:22px;animation-delay:-3s;}
+.progress-pencil{position:fixed;top:0;left:0;height:3px;z-index:100;background:var(--red);transition:width .1s linear;}
+
+/* Side TOC */
+.side-toc{position:fixed;right:16px;top:50%;transform:translateY(-50%);z-index:90;display:flex;flex-direction:column;gap:4px;
+  background:rgba(253,250,242,0.9);padding:12px 8px;border-radius:14px;border:1.5px dashed rgba(0,0,0,0.1);
+  backdrop-filter:blur(6px);box-shadow:2px 3px 12px rgba(0,0,0,0.04);max-height:70vh;overflow-y:auto;}
+.side-toc a{display:flex;align-items:center;gap:5px;text-decoration:none;font-size:11px;color:rgba(44,44,44,0.4);padding:3px 7px;
+  border-radius:6px;transition:all .3s ease;white-space:nowrap;font-weight:500;}
+.side-toc a:hover{color:var(--ink);background:rgba(0,0,0,0.03);}
+.side-toc a.active{color:var(--red);background:rgba(232,93,58,0.06);font-weight:700;}
+.side-toc a .toc-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;}
+
+/* Sections */
+.section{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:80px 24px;}
+.section .inner{max-width:920px;width:100%;}
+.section h2{font-family:'Gloria Hallelujah',cursive,'Noto Sans SC',sans-serif;font-size:clamp(22px,3.5vw,34px);
+  letter-spacing:1px;margin-bottom:24px;color:var(--ink);display:inline-block;position:relative;}
+.section h2::after{content:'';position:absolute;bottom:-4px;left:0;right:-10px;height:3px;
+  background:var(--yellow);opacity:0.7;border-radius:2px;transform:rotate(-0.5deg);}
+.hero{text-align:center;}
+.hero .hero-icon{font-size:72px;display:block;margin-bottom:20px;animation:iconSqueeze 2.5s ease-in-out infinite;}
+@keyframes iconSqueeze{0%,100%{transform:scaleX(1)}50%{transform:scaleX(0.7)}}
+.hero h1{font-family:'Gloria Hallelujah',cursive,'Noto Sans SC',sans-serif;
+  font-size:clamp(26px,5vw,44px);line-height:1.3;margin-bottom:10px;}
+.hero .sub{font-size:14px;color:rgba(44,44,44,0.5);}
+
+/* Sticky notes */
+.sticky-wall{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin:20px 0;}
+.sticky{padding:20px 22px;width:210px;min-height:130px;font-size:15px;line-height:1.8;
+  box-shadow:2px 3px 8px rgba(0,0,0,0.06);font-family:'Gloria Hallelujah',cursive,'Noto Sans SC',sans-serif;
+  transform:rotate(-1deg);transition:all .35s ease;}
+.sticky:nth-child(even){transform:rotate(1.5deg)}
+.sticky:nth-child(3n){transform:rotate(-2deg)}
+.sticky:hover{transform:rotate(0deg) translateY(-6px)!important;box-shadow:4px 8px 20px rgba(0,0,0,0.1);z-index:2;}
+.sticky strong{font-size:17px;display:block;margin-bottom:4px;}
+.sticky::before{content:'';position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:30px;height:6px;background:rgba(0,0,0,0.06);border-radius:2px;}
+.sticky.s-pink{background:var(--sticky-pink);}
+.sticky.s-yellow{background:var(--sticky-yellow);}
+.sticky.s-blue{background:var(--sticky-blue);}
+.sticky.s-green{background:var(--sticky-green);}
+
+/* Cards */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+.card{background:var(--paper);border:2px solid var(--ink);border-radius:8px 24px 8px 24px;padding:26px 22px;
+  position:relative;transition:all .4s cubic-bezier(.22,.61,.36,1);overflow:hidden;
+  opacity:0;transform:translateY(40px) rotate(-0.5deg);box-shadow:3px 4px 0 rgba(0,0,0,0.06);}
+.card:nth-child(even){border-radius:24px 8px 24px 8px;transform:translateY(40px) rotate(0.5deg)}
+.card.visible{opacity:1;transform:translateY(0) rotate(0)!important}
+.card:hover{transform:translateY(-6px)!important;box-shadow:6px 8px 0 rgba(0,0,0,0.08)}
+.card h3{font-family:'Gloria Hallelujah',cursive;font-size:18px;margin-bottom:8px;color:var(--ink)}
+.card p,.card li{font-size:14px;color:rgba(44,44,44,0.7);line-height:1.8}
+.card ul{list-style:none;padding:0}
+.card ul li{padding:4px 0;padding-left:16px;position:relative}
+.card ul li::before{content:'→';position:absolute;left:0;color:var(--red)}
+
+/* Quote */
+.quote{padding:18px 24px;margin:20px 0;border:2px dashed var(--ink);border-radius:0 14px 0 14px;
+  font-size:14px;color:rgba(44,44,44,0.6);line-height:1.9;position:relative;}
+.quote::before{content:'"';position:absolute;top:-16px;left:14px;font-size:40px;color:var(--red);opacity:0.3;font-family:serif}
+
+/* ── 压缩流程 pipeline ── */
+.pipeline{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin:24px 0;}
+.pipe-box{padding:16px 20px;border:2px solid var(--ink);border-radius:10px 20px 10px 20px;text-align:center;
+  font-size:13px;font-weight:700;transition:all .3s ease;background:var(--paper);}
+.pipe-box:nth-child(odd){border-radius:20px 10px 20px 10px;}
+.pipe-box:hover{transform:translateY(-4px);box-shadow:3px 4px 0 rgba(0,0,0,0.06);}
+.pipe-box.p1{border-color:var(--red);background:rgba(232,93,58,0.04);}
+.pipe-box.p2{border-color:var(--blue);background:rgba(58,122,189,0.04);}
+.pipe-box.p3{border-color:var(--green);background:rgba(74,156,93,0.04);}
+.pipe-box.p4{border-color:var(--purple);background:rgba(139,92,246,0.04);}
+.pipe-box.p5{border-color:var(--orange);background:rgba(240,144,80,0.04);}
+.pipe-arrow{font-size:22px;color:var(--red);font-family:'Gloria Hallelujah',cursive;}
+
+/* ── Before/After ── */
+.ba-duo{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.ba-box{padding:22px 20px;border-radius:12px;font-size:13px;line-height:1.8;position:relative;}
+.ba-box.before{border:2px solid rgba(232,93,58,0.3);background:rgba(232,93,58,0.04);}
+.ba-box.after{border:2px solid rgba(74,156,93,0.3);background:rgba(74,156,93,0.04);}
+.ba-box .ba-label{font-family:'Gloria Hallelujah',cursive;font-size:15px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.ba-box .ba-content{font-size:13px;color:rgba(44,44,44,0.6);}
+.ba-box .ba-stats{display:flex;gap:12px;margin-top:10px;font-size:11px;font-weight:700;font-family:'Gloria Hallelujah',cursive;}
+
+/* ── Method cards ── */
+.method-row{display:flex;flex-direction:column;gap:16px;max-width:700px;margin:0 auto;}
+.method-item{display:flex;align-items:flex-start;gap:16px;padding:20px 22px;border:2px solid var(--ink);
+  border-radius:8px 20px 8px 20px;transition:all .35s ease;background:var(--paper);
+  opacity:0;transform:translateX(-20px);}
+.method-item:nth-child(even){border-radius:20px 8px 20px 8px;transform:translateX(20px);}
+.method-item.visible{opacity:1;transform:translateX(0)!important;}
+.method-item:hover{transform:translateY(-4px)!important;box-shadow:6px 8px 0 rgba(0,0,0,0.06);}
+.method-item .m-num{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-family:'Gloria Hallelujah',cursive;font-size:18px;font-weight:900;color:#fff;margin-top:2px;}
+.method-item .m-num.m1{background:var(--red);}
+.method-item .m-num.m2{background:var(--blue);}
+.method-item .m-num.m3{background:var(--green);}
+.method-item .m-num.m4{background:var(--purple);}
+.method-item .m-num.m5{background:var(--orange);}
+
+/* ── Compression ratio bar ── */
+.ratio-bar{max-width:400px;margin:0 auto;}
+.ratio-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;}
+.ratio-row .r-label{width:100px;text-align:right;font-weight:600;flex-shrink:0;}
+.ratio-row .r-track{flex:1;height:22px;background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.06);border-radius:4px;overflow:hidden;}
+.ratio-row .r-fill{height:100%;border-radius:3px;display:flex;align-items:center;padding-left:8px;font-size:10px;font-weight:700;color:#fff;font-family:'Gloria Hallelujah',cursive;}
+
+/* Footer */
+.footer{position:relative;z-index:1;text-align:center;padding:44px 24px;border-top:2px dashed rgba(0,0,0,0.1);
+  color:rgba(44,44,44,0.35);font-size:11px;}
+.footer .footer-doodle{font-size:36px;display:block;margin-bottom:6px}
+
+@media(max-width:900px){.side-toc{display:none;}}
+@media(max-width:640px){
+  .section{padding:48px 16px}
+  .sticky{width:170px;min-height:110px;font-size:14px}
+  .notebook-margin{left:28px}
+  .ba-duo{grid-template-columns:1fr;}
+  .pipeline{flex-direction:column;}.pipe-arrow{transform:rotate(90deg);}
+}
+</style>
+</head>
+<body>
+
+<div class="notebook-lines"></div>
+<div class="notebook-margin"></div>
+<nav class="side-toc" id="sideToc">
+  <a href="#sec0"><span class="toc-dot"></span>封面</a>
+  <a href="#sec1"><span class="toc-dot"></span>是什么</a>
+  <a href="#sec2"><span class="toc-dot"></span>为什么</a>
+  <a href="#sec3"><span class="toc-dot"></span>五步流程</a>
+  <a href="#sec4"><span class="toc-dot"></span>五大方法</a>
+  <a href="#sec5"><span class="toc-dot"></span>实际效果</a>
+  <a href="#sec6"><span class="toc-dot"></span>应用场景</a>
+  <a href="#sec7"><span class="toc-dot"></span>总结</a>
+</nav>
+<div class="doodles">
+  <span class="doodle">🗜️</span><span class="doodle">📦</span><span class="doodle">✂️</span>
+  <span class="doodle">🧠</span><span class="doodle">💡</span>
+</div>
+<div class="progress-pencil" id="progressBar"></div>
+
+<!-- ═══════ HERO ═══════ -->
+<section class="section hero" id="sec0">
+  <div class="inner">
+    <div class="hero-icon">🗜️</div>
+    <h1>上下文压缩<br>是怎么做的？</h1>
+    <p class="sub">— 把 10 万字的对话塞进 2 万字的窗口，还不丢重点 —</p>
+  </div>
+</section>
+
+<!-- ═══════ WHAT ═══════ -->
+<section class="section" id="sec1">
+  <div class="inner">
+    <h2>🤔 什么是上下文压缩？</h2>
+    <div class="sticky-wall">
+      <div class="sticky s-yellow">
+        <strong>📦 一个类比</strong>
+        你要搬家，书架上 500 本书，但新家书架只能放 100 本。你不可能扔掉 400 本——你需要<strong>挑出最重要的 100 本</strong>。
+      </div>
+      <div class="sticky s-blue">
+        <strong>🧠 技术定义</strong>
+        上下文压缩就是把一段<strong>很长的对话/文档</strong>，精简成一段<strong>更短的摘要</strong>，同时保留关键信息不丢失。
+      </div>
+      <div class="sticky s-green">
+        <strong>🎯 核心目标</strong>
+        <strong>信息密度最大化</strong>——删掉废话、保留精华。用更少的 token 传递同样的信息量。
+      </div>
+      <div class="sticky s-pink">
+        <strong>⚠️ 关键挑战</strong>
+        压缩太狠 → 丢重要信息<br>
+        压缩太松 → 省不了多少 token<br>
+        <strong>平衡是艺术</strong>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ WHY ═══════ -->
+<section class="section" id="sec2">
+  <div class="inner">
+    <h2>💰 为什么需要压缩？</h2>
+    <div class="grid2">
+      <div class="card" style="border-left:4px solid var(--red);">
+        <h3>💸 Token 就是钱</h3>
+        <p>每次 AI 调用，输入输出的每个 token 都要计费。长对话跑一轮可能烧掉几块钱——压缩后成本降 50-80%。<br><br>
+        <strong style="color:var(--red);">100K tokens → 20K tokens = 省 80% 费用</strong></p>
+      </div>
+      <div class="card" style="border-left:4px solid var(--blue);">
+        <h3>🪟 窗口有上限</h3>
+        <p>每个模型有上下文窗口限制。Claude 支持 200K，但很多模型只有 8K-32K。<br><br>
+        如果对话 + 文档超过窗口，<strong>最前面的内容会被截断</strong>——压缩让你在有限窗口里塞进更多有效信息。</p>
+      </div>
+      <div class="card" style="border-left:4px solid var(--green);">
+        <h3>⚡ 速度翻倍</h3>
+        <p>token 越少，AI 处理越快。压缩到原来的 1/5，响应速度能快 2-3 倍。对于实时交互场景（客服、对话机器人），这至关重要。</p>
+      </div>
+      <div class="card" style="border-left:4px solid var(--purple);">
+        <h3>🧠 注意力聚焦</h3>
+        <p>长上下文中，AI 的"注意力"会被大量无关信息分散。压缩 = 帮 AI 聚焦在真正重要的内容上，减少幻觉和答非所问。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ PIPELINE ═══════ -->
+<section class="section" id="sec3">
+  <div class="inner">
+    <h2>🔄 压缩的五步流程</h2>
+    <p style="color:rgba(44,44,44,0.6);margin-bottom:20px;">从原始对话到压缩后的精华，经过这五道工序：</p>
+
+    <div class="pipeline">
+      <div class="pipe-box p1">📄 原始文本<br><span style="font-size:10px;opacity:0.6;">10 万 token</span></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-box p2">🔍 信息分级<br><span style="font-size:10px;opacity:0.6;">标出重要/次要/可删</span></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-box p3">✂️ 冗余剔除<br><span style="font-size:10px;opacity:0.6;">去重、去废话、去问候语</span></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-box p4">🧠 语义压缩<br><span style="font-size:10px;opacity:0.6;">改写为更精炼的表达</span></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-box p5">✅ 压缩输出<br><span style="font-size:10px;opacity:0.6;">2 万 token</span></div>
+    </div>
+
+    <div class="quote" style="margin-top:24px;">
+      <strong>一句话总结：</strong>分级 → 剔除 → 改写。不是简单删减，而是<strong>把原来的意思用更少的字说清楚</strong>。
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 5 METHODS ═══════ -->
+<section class="section" id="sec4">
+  <div class="inner">
+    <h2>🔧 五大压缩方法</h2>
+    <div class="method-row">
+      <div class="method-item">
+        <div class="m-num m1">1</div>
+        <div style="flex:1;">
+          <h3 style="font-family:'Gloria Hallelujah',cursive;font-size:17px;">✂️ LLMLingua · 轻量级压缩</h3>
+          <p style="font-size:14px;color:rgba(44,44,44,0.65);line-height:1.7;margin-top:4px;">
+            <strong>原理：</strong>用一个<strong>小模型</strong>（如 GPT-2 Small 或 LLaMA-7B）快速扫描文本，计算每个 token 的"信息密度"——哪些词是关键信息，哪些词是可有可无的。然后直接<strong>删掉低信息密度的 token</strong>。<br><br>
+            <strong>优势：</strong>极快、成本极低、不需要大模型参与。<br>
+            <strong>劣势：</strong>只能做 token 级别的删减，不够"聪明"。
+          </p>
+        </div>
+      </div>
+      <div class="method-item">
+        <div class="m-num m2">2</div>
+        <div style="flex:1;">
+          <h3 style="font-family:'Gloria Hallelujah',cursive;font-size:17px;">🤖 LLM 重写压缩</h3>
+          <p style="font-size:14px;color:rgba(44,44,44,0.65);line-height:1.7;margin-top:4px;">
+            <strong>原理：</strong>把长文本交给大模型，给一个 prompt："<strong>请把以下内容压缩到 1/5，保留所有关键事实和结论。</strong>" 让 AI 自己做语义级别的精炼和重写。<br><br>
+            <strong>优势：</strong>效果最好、能真正"理解"后再压缩。<br>
+            <strong>劣势：</strong>需要消耗一次 LLM 调用的费用。
+          </p>
+        </div>
+      </div>
+      <div class="method-item">
+        <div class="m-num m3">3</div>
+        <div style="flex:1;">
+          <h3 style="font-family:'Gloria Hallelujah',cursive;font-size:17px;">📊 滑动窗口 + 摘要</h3>
+          <p style="font-size:14px;color:rgba(44,44,44,0.65);line-height:1.7;margin-top:4px;">
+            <strong>原理：</strong>把长文本切成多段，每段分别生成<strong>一句话摘要</strong>。然后把所有摘要串起来，形成一份"精华版"上下文。<br><br>
+            <strong>优势：</strong>适合超长文档（10 万 token+），分段处理不爆窗口。<br>
+            <strong>劣势：</strong>段落之间的逻辑关联可能丢失。
+          </p>
+        </div>
+      </div>
+      <div class="method-item">
+        <div class="m-num m4">4</div>
+        <div style="flex:1;">
+          <h3 style="font-family:'Gloria Hallelujah',cursive;font-size:17px;">🧲 Embedding 检索式压缩</h3>
+          <p style="font-size:14px;color:rgba(44,44,44,0.65);line-height:1.7;margin-top:4px;">
+            <strong>原理：</strong>把历史对话转成向量（Embedding）。当新问题来的时候，不是把整段历史塞进去，而是用<strong>语义搜索</strong>从历史中拉回<strong>最相关的几条</strong>，只把这几条加入上下文。<br><br>
+            <strong>优势：</strong>巨量历史中精准检索、随用随取。<br>
+            <strong>劣势：</strong>需要维护向量数据库。
+          </p>
+        </div>
+      </div>
+      <div class="method-item">
+        <div class="m-num m5">5</div>
+        <div style="flex:1;">
+          <h3 style="font-family:'Gloria Hallelujah',cursive;font-size:17px;">📝 结构化 Schema 压缩</h3>
+          <p style="font-size:14px;color:rgba(44,44,44,0.65);line-height:1.7;margin-top:4px;">
+            <strong>原理：</strong>把对话中的关键信息提取成<strong>结构化 JSON</strong>——"用户问什么、AI 给什么方案、哪些决策已确认"——扔掉原始对话，只保留结构化记录。<br><br>
+            <strong>优势：</strong>极度紧凑、机器可读、便于后续自动化处理。<br>
+            <strong>劣势：</strong>会丢失对话的语气和上下文细节。
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ EFFECT ═══════ -->
+<section class="section" id="sec5">
+  <div class="inner">
+    <h2>📊 实际压缩效果对比</h2>
+    <p style="color:rgba(44,44,44,0.6);margin-bottom:20px;">不同方法的压缩率与质量权衡：</p>
+
+    <div class="ratio-bar">
+      <div class="ratio-row"><span class="r-label">LLMLingua</span><span class="r-track"><span class="r-fill" style="width:75%;background:var(--red);">压缩到 25%</span></span></div>
+      <div class="ratio-row"><span class="r-label">LLM 重写</span><span class="r-track"><span class="r-fill" style="width:50%;background:var(--blue);">压缩到 50%</span></span></div>
+      <div class="ratio-row"><span class="r-label">滑动窗口+摘要</span><span class="r-track"><span class="r-fill" style="width:40%;background:var(--green);">压缩到 60%</span></span></div>
+      <div class="ratio-row"><span class="r-label">Embedding检索</span><span class="r-track"><span class="r-fill" style="width:30%;background:var(--purple);">压缩到 70%</span></span></div>
+      <div class="ratio-row"><span class="r-label">结构化Schema</span><span class="r-track"><span class="r-fill" style="width:90%;background:var(--orange);">压缩到 10%</span></span></div>
+    </div>
+
+    <div class="ba-duo" style="margin-top:28px;">
+      <div class="ba-box before">
+        <div class="ba-label">📄 压缩前</div>
+        <div class="ba-content">
+          "你好！我今天想了解一下关于上下文压缩的技术。我之前用过一个叫 Claude 的 AI 助手，它好像能记住很长的对话。然后我就在想，它到底是怎么做到的呢？是不是把之前说的话都压缩了？我特别好奇这个技术，你能帮我解释一下吗？对了，我是一个后端工程师，技术细节可以讲深一点。"
+        </div>
+        <div class="ba-stats"><span style="color:var(--red);">📏 178 字 / ~230 tokens</span></div>
+      </div>
+      <div class="ba-box after">
+        <div class="ba-label">✅ 压缩后</div>
+        <div class="ba-content">
+          用户（后端工程师）想了解 AI 上下文压缩的技术原理，要求技术深度。
+        </div>
+        <div class="ba-stats"><span style="color:var(--green);">📏 20 字 / ~35 tokens · 压缩率 85%</span></div>
+      </div>
+    </div>
+
+    <div class="quote" style="margin-top:18px;">
+      <strong>压缩率 ≠ 质量。</strong>85% 的压缩率很漂亮，但不能为了压而压——关键是要确保"用户是后端工程师"这个信息没丢。丢了它，AI 的回答深度就错了。
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SCENARIOS ═══════ -->
+<section class="section" id="sec6">
+  <div class="inner">
+    <h2>🎯 实际应用场景</h2>
+    <div class="grid3">
+      <div class="card">
+        <h3>💬 长对话管理</h3>
+        <p>Agent 和用户持续对话 30 轮后，自动压缩前 20 轮为一段摘要。后续对话只需携带"摘要 + 最近 10 轮"，保持上下文在窗口内。</p>
+      </div>
+      <div class="card">
+        <h3>📚 RAG 知识库</h3>
+        <p>检索到的文档段落可能很长——先压缩再喂给 LLM。用 Embedding 检索 + LLM 重写的组合拳，让 RAG 既精准又省 token。</p>
+      </div>
+      <div class="card">
+        <h3>🔄 多 Agent 通信</h3>
+        <p>Agent A 的处理结果可能很长——传给 Agent B 之前先压缩成结构化摘要。减少 Agent 间的通信开销，让 Pipeline 跑得更快。</p>
+      </div>
+      <div class="card">
+        <h3>📝 代码审查</h3>
+        <p>审查一个几千行的 PR——先把 diff 压缩成"改了哪些模块、核心逻辑是什么"，AI 先看摘要再看细节，审查效率翻倍。</p>
+      </div>
+      <div class="card">
+        <h3>🧠 Memory 持久化</h3>
+        <p>每次对话结束后，自动生成一份"本次对话要点"存入 Memory。下次新会话开始时，直接加载要点而不是完整历史。</p>
+      </div>
+      <div class="card">
+        <h3>📊 日志分析</h3>
+        <p>应用日志动辄几万行——用滑动窗口 + 摘要法，每 100 行生成一句摘要。最终得到一份"日志精要"，AI 一眼看懂发生了什么。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ CLOSING ═══════ -->
+<section class="section" id="sec7">
+  <div class="inner" style="text-align:center;">
+    <div style="font-size:56px;margin-bottom:16px;">🗜️</div>
+    <h2 style="display:block;margin:0 auto 16px;text-align:center;">压缩的艺术</h2>
+    <div class="quote" style="max-width:500px;margin:0 auto;text-align:left;">
+      上下文压缩不是简单的"删减文字"。<br>
+      它是<strong>信息的蒸馏</strong>——<br>
+      像把一锅汤熬成半锅，<br>
+      水分蒸发，<strong>味道更浓</strong>。<br><br>
+      五种方法各有所长：<br>
+      🟡 追求极致速度 → LLMLingua<br>
+      🔵 追求最佳质量 → LLM 重写<br>
+      🟢 处理超长文本 → 滑动窗口 + 摘要<br>
+      🟣 海量历史检索 → Embedding 检索<br>
+      🟠 机器自动化 → 结构化 Schema<br><br>
+      <strong>真正的技巧是——</strong><br>
+      在不同场景下组合使用它们。
+    </div>
+    <div style="margin-top:28px;font-family:'Gloria Hallelujah',cursive;font-size:14px;color:var(--red);">
+      ✏️ 压缩不是删信息，是把信息的密度提到最高。
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <span class="footer-doodle">🗜️</span>
+  <p>上下文压缩 · 手绘解析手册 · 2026</p>
+  <p style="margin-top:2px;">Less tokens, same wisdom.</p>
+</footer>
+
+<script>
+const sections=document.querySelectorAll('.section');
+const progressBar=document.getElementById('progressBar');
+window.addEventListener('scroll',()=>{
+  progressBar.style.width=(Math.min(window.scrollY/(document.documentElement.scrollHeight-window.innerHeight),1)*100)+'%';
+},{passive:true});
+
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting)e.target.querySelectorAll('.card,.sticky,.method-item').forEach((el,i)=>{
+      el.style.transitionDelay=(i*0.06)+'s';el.classList.add('visible');
+    });
+  });
+},{threshold:0.1});
+sections.forEach(s=>obs.observe(s));
+
+document.querySelectorAll('.card,.sticky,.method-item,.pipe-box,.ba-box').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    const rect=el.getBoundingClientRect();
+    el.style.transform=`perspective(800px) rotateY(${((e.clientX-rect.left)/rect.width-0.5)*5}deg) rotateX(${-((e.clientY-rect.top)/rect.height-0.5)*5}deg) translateY(-6px)`;
+  });
+  el.addEventListener('mouseleave',()=>{el.style.transform='';});
+});
+
+const tocLinks=document.querySelectorAll('.side-toc a');
+const allSections=document.querySelectorAll('[id^="sec"]');
+window.addEventListener('scroll',()=>{
+  let current='';
+  allSections.forEach(s=>{if(s.getBoundingClientRect().top<150)current=s.id;});
+  tocLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+current));
+},{passive:true});
+</script>
+</body>
+</html>
