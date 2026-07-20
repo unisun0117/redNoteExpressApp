@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>从 0 到 1 设计 Agent · 手绘指南</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap');
+
+:root{
+  --paper:#fdfaf2;--ink:#2c2c2c;--red:#e85d3a;--blue:#3a7abd;
+  --green:#4a9c5d;--yellow:#f5c242;--purple:#8b5cf6;--orange:#f09050;
+  --teal:#14b8a6;--pink:#ec4899;--slate:#64748b;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:'Noto Sans SC','PingFang SC',sans-serif;
+  overflow-x:hidden;cursor:default;line-height:1.8;
+}
+.notebook-lines{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.06;
+  background:repeating-linear-gradient(0deg,transparent,transparent 31px,var(--ink) 31px,var(--ink) 32px);}
+.notebook-margin{position:fixed;left:60px;top:0;bottom:0;width:1px;background:rgba(232,93,58,0.12);z-index:0;pointer-events:none;}
+.doodles{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.doodle{position:absolute;opacity:0.05;font-size:28px;animation:dFloat 8s ease-in-out infinite;}
+@keyframes dFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-15px) rotate(5deg)}}
+.doodle:nth-child(1){top:8%;left:5%;font-size:34px;animation-delay:0s;}
+.doodle:nth-child(2){top:22%;right:4%;font-size:26px;animation-delay:-2s;}
+.doodle:nth-child(3){top:48%;left:3%;font-size:30px;animation-delay:-4s;}
+.doodle:nth-child(4){top:65%;right:8%;font-size:24px;animation-delay:-6s;}
+.doodle:nth-child(5){top:78%;left:45%;font-size:22px;animation-delay:-3s;}
+.doodle:nth-child(6){top:32%;left:68%;font-size:28px;animation-delay:-5s;}
+.doodle:nth-child(7){top:90%;right:12%;font-size:26px;animation-delay:-7s;}
+.progress-pencil{position:fixed;top:0;left:0;height:3px;z-index:100;background:var(--red);transition:width .1s linear;}
+
+.side-toc{position:fixed;right:16px;top:50%;transform:translateY(-50%);z-index:90;display:flex;flex-direction:column;gap:3px;
+  background:rgba(253,250,242,0.9);padding:12px 8px;border-radius:14px;border:1.5px dashed rgba(0,0,0,0.1);
+  backdrop-filter:blur(6px);box-shadow:2px 3px 12px rgba(0,0,0,0.04);max-height:70vh;overflow-y:auto;}
+.side-toc a{display:flex;align-items:center;gap:5px;text-decoration:none;font-size:11px;color:rgba(44,44,44,0.4);padding:3px 7px;
+  border-radius:6px;transition:all .3s;white-space:nowrap;font-weight:500;}
+.side-toc a:hover{color:var(--ink);background:rgba(0,0,0,0.03);}
+.side-toc a.active{color:var(--red);background:rgba(232,93,58,0.06);font-weight:700;}
+.side-toc a .toc-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;}
+
+.section{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:80px 24px;}
+.section .inner{max-width:1000px;width:100%;}
+.section h2{font-family:'Gloria Hallelujah',cursive,'Noto Sans SC',sans-serif;font-size:clamp(22px,3.5vw,34px);
+  letter-spacing:1px;margin-bottom:24px;color:var(--ink);display:inline-block;position:relative;}
+.section h2::after{content:'';position:absolute;bottom:-4px;left:0;right:-10px;height:3px;
+  background:var(--yellow);opacity:0.7;border-radius:2px;transform:rotate(-0.5deg);}
+
+.hero{text-align:center;}
+.hero .icon-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:28px;flex-wrap:wrap;}
+.hero .icon-row .ir{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:28px;border:3px solid var(--ink);animation:irBounce 3s ease-in-out infinite;background:var(--paper);}
+.hero .icon-row .ir:nth-child(1){animation-delay:0s;border-color:var(--pink);}
+.hero .icon-row .ir:nth-child(3){animation-delay:-0.6s;border-color:var(--purple);}
+.hero .icon-row .ir:nth-child(5){animation-delay:-1.2s;border-color:var(--blue);}
+.hero .icon-row .ir:nth-child(7){animation-delay:-1.8s;border-color:var(--green);}
+.hero .icon-row .plus{font-size:18px;font-weight:900;font-family:'Gloria Hallelujah',cursive;color:var(--red);}
+@keyframes irBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.hero h1{font-family:'Gloria Hallelujah',cursive,'Noto Sans SC',sans-serif;
+  font-size:clamp(22px,4.5vw,42px);line-height:1.35;margin-bottom:12px;}
+.hero .sub{font-size:15px;color:rgba(44,44,44,0.5);max-width:560px;margin:0 auto;}
+
+/* Sticky notes */
+.sticky-wall{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin:20px 0;}
+.sticky{padding:20px 22px;width:220px;min-height:130px;font-size:15px;line-height:1.8;
+  box-shadow:2px 3px 8px rgba(0,0,0,0.06);font-family:'Gloria Hallelujah',cursive,'Noto Sans SC',sans-serif;
+  transform:rotate(-1deg);transition:all .35s ease;position:relative;}
+.sticky:nth-child(even){transform:rotate(1.5deg)}
+.sticky:nth-child(3n){transform:rotate(-2deg)}
+.sticky:hover{transform:rotate(0deg) translateY(-6px)!important;box-shadow:4px 8px 20px rgba(0,0,0,0.1);z-index:2;}
+.sticky strong{font-size:17px;display:block;margin-bottom:4px;}
+.sticky::before{content:'';position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:30px;height:6px;background:rgba(0,0,0,0.06);border-radius:2px;}
+.sticky.s-yellow{background:rgba(255,248,180,0.7);}
+.sticky.s-blue{background:rgba(180,210,240,0.5);}
+.sticky.s-green{background:rgba(180,230,200,0.5);}
+.sticky.s-pink{background:rgba(255,182,193,0.5);}
+
+/* Cards */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;}
+.card{background:var(--paper);border:2px solid var(--ink);border-radius:8px 24px 8px 24px;padding:26px 22px;
+  position:relative;transition:all .4s cubic-bezier(.22,.61,.36,1);overflow:hidden;
+  opacity:0;transform:translateY(40px) rotate(-0.5deg);box-shadow:3px 4px 0 rgba(0,0,0,0.06);}
+.card:nth-child(even){border-radius:24px 8px 24px 8px;transform:translateY(40px) rotate(0.5deg)}
+.card.visible{opacity:1;transform:translateY(0) rotate(0)!important}
+.card:hover{transform:translateY(-6px)!important;box-shadow:6px 8px 0 rgba(0,0,0,0.08)}
+.card h3{font-family:'Gloria Hallelujah',cursive;font-size:18px;margin-bottom:8px;color:var(--ink)}
+.card p,.card li{font-size:14px;color:rgba(44,44,44,0.7);line-height:1.8}
+.card ul{list-style:none;padding:0}
+.card ul li{padding:4px 0;padding-left:16px;position:relative}
+.card ul li::before{content:'→';position:absolute;left:0;color:var(--red)}
+
+/* Quote */
+.quote{padding:18px 24px;margin:20px 0;border:2px dashed var(--ink);border-radius:0 14px 0 14px;
+  font-size:14px;color:rgba(44,44,44,0.6);line-height:1.9;position:relative;}
+.quote::before{content:'"';position:absolute;top:-16px;left:14px;font-size:40px;color:var(--red);opacity:0.3;font-family:serif}
+
+/* Step timeline */
+.step-timeline{display:flex;flex-direction:column;gap:0;max-width:760px;margin:0 auto;position:relative;padding:10px 0;}
+.step-timeline::before{content:'';position:absolute;left:56px;top:0;bottom:0;width:4px;
+  background:linear-gradient(180deg,var(--pink),var(--purple),var(--blue),var(--teal),var(--green),var(--orange),var(--red));
+  border-radius:2px;opacity:0.3;}
+.tl-step{position:relative;padding:22px 0 22px 90px;margin-bottom:2px;transition:all .4s ease;
+  opacity:0;transform:translateX(-20px);}
+.tl-step.visible{opacity:1;transform:translateX(0);}
+.tl-step::before{content:'';position:absolute;left:42px;top:28px;width:30px;height:30px;border-radius:50%;
+  border:4px solid var(--paper);z-index:1;display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:900;color:#fff;}
+.tl-step.ts1::before{background:var(--pink);box-shadow:0 0 0 4px var(--pink);}
+.tl-step.ts2::before{background:var(--purple);box-shadow:0 0 0 4px var(--purple);}
+.tl-step.ts3::before{background:var(--blue);box-shadow:0 0 0 4px var(--blue);}
+.tl-step.ts4::before{background:var(--teal);box-shadow:0 0 0 4px var(--teal);}
+.tl-step.ts5::before{background:var(--green);box-shadow:0 0 0 4px var(--green);}
+.tl-step.ts6::before{background:var(--orange);box-shadow:0 0 0 4px var(--orange);}
+.tl-step.ts7::before{background:var(--red);box-shadow:0 0 0 4px var(--red);}
+.tl-step h3{font-family:'Gloria Hallelujah',cursive;font-size:20px;margin-bottom:4px;}
+.tl-step p{font-size:14px;color:rgba(44,44,44,0.6);line-height:1.7;}
+.tl-step .tl-badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:700;
+  margin-bottom:6px;color:#fff;}
+.tl-step.ts1 .tl-badge{background:var(--pink);}
+.tl-step.ts2 .tl-badge{background:var(--purple);}
+.tl-step.ts3 .tl-badge{background:var(--blue);}
+.tl-step.ts4 .tl-badge{background:var(--teal);}
+.tl-step.ts5 .tl-badge{background:var(--green);}
+.tl-step.ts6 .tl-badge{background:var(--orange);}
+.tl-step.ts7 .tl-badge{background:var(--red);}
+
+/* Deep cards */
+.deep-card{border-radius:18px;overflow:hidden;transition:all .4s ease;opacity:0;transform:translateY(30px);
+  border:2px solid;margin-bottom:20px;}
+.deep-card.visible{opacity:1;transform:translateY(0);}
+.deep-card:hover{transform:translateY(-6px)!important;box-shadow:0 12px 40px rgba(0,0,0,0.08);}
+.deep-card .d-head{padding:22px 26px 14px;display:flex;align-items:center;gap:12px;}
+.deep-card .d-head .d-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:20px;color:#fff;flex-shrink:0;}
+.deep-card .d-head h3{font-family:'Gloria Hallelujah',cursive;font-size:20px;margin:0;color:var(--ink);}
+.deep-card .d-body{padding:6px 26px 24px;}
+.deep-card .d-body p{font-size:14px;color:rgba(44,44,44,0.65);line-height:1.8;}
+.deep-card .d-body .d-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+.deep-card .d-body .d-tag{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid;}
+
+.dc1{border-color:var(--pink);}.dc1 .d-head{background:rgba(236,72,153,0.05);border-bottom:1px solid rgba(236,72,153,0.1);}
+.dc1 .d-icon{background:var(--pink);}.dc1 .d-tag{color:var(--pink);background:rgba(236,72,153,0.06);border-color:rgba(236,72,153,0.15);}
+.dc2{border-color:var(--purple);}.dc2 .d-head{background:rgba(139,92,246,0.05);border-bottom:1px solid rgba(139,92,246,0.1);}
+.dc2 .d-icon{background:var(--purple);}.dc2 .d-tag{color:var(--purple);background:rgba(139,92,246,0.06);border-color:rgba(139,92,246,0.15);}
+.dc3{border-color:var(--blue);}.dc3 .d-head{background:rgba(58,122,189,0.05);border-bottom:1px solid rgba(58,122,189,0.1);}
+.dc3 .d-icon{background:var(--blue);}.dc3 .d-tag{color:var(--blue);background:rgba(58,122,189,0.06);border-color:rgba(58,122,189,0.15);}
+.dc4{border-color:var(--teal);}.dc4 .d-head{background:rgba(20,184,166,0.05);border-bottom:1px solid rgba(20,184,166,0.1);}
+.dc4 .d-icon{background:var(--teal);}.dc4 .d-tag{color:var(--teal);background:rgba(20,184,166,0.06);border-color:rgba(20,184,166,0.15);}
+.dc5{border-color:var(--green);}.dc5 .d-head{background:rgba(74,156,93,0.05);border-bottom:1px solid rgba(74,156,93,0.1);}
+.dc5 .d-icon{background:var(--green);}.dc5 .d-tag{color:var(--green);background:rgba(74,156,93,0.06);border-color:rgba(74,156,93,0.15);}
+
+/* Anatomy diagram */
+.anatomy{display:flex;flex-direction:column;gap:10px;max-width:650px;margin:20px auto;}
+.anatomy-row{display:flex;align-items:stretch;gap:10px;}
+.anatomy-box{flex:1;padding:16px 14px;border-radius:12px;text-align:center;font-size:13px;font-weight:600;
+  border:2px solid;transition:all .3s;line-height:1.6;}
+.anatomy-box:hover{transform:scale(1.04);}
+.anatomy-box .ab-emoji{font-size:24px;display:block;margin-bottom:4px;}
+.anatomy-box.core{border-color:var(--red);background:rgba(232,93,58,0.06);flex:2;}
+.anatomy-box.side{border-color:var(--blue);background:rgba(58,122,189,0.05);}
+
+/* Code block */
+.code-block{background:rgba(0,0,0,0.03);border:1px dashed rgba(0,0,0,0.1);border-radius:10px;padding:16px 20px;
+  font-family:'Courier New',monospace;font-size:12px;line-height:1.8;overflow-x:auto;margin:10px 0;
+  white-space:pre-wrap;color:rgba(44,44,44,0.7);}
+
+/* Patterns grid */
+.pattern-card{border:2px dashed;border-radius:14px;padding:20px;transition:all .3s;text-align:center;
+  opacity:0;transform:translateY(30px);}
+.pattern-card.visible{opacity:1;transform:translateY(0);}
+.pattern-card:hover{transform:translateY(-4px)!important;box-shadow:0 8px 24px rgba(0,0,0,0.06);}
+.pattern-card .pc-icon{font-size:36px;margin-bottom:8px;}
+.pattern-card h4{font-family:'Gloria Hallelujah',cursive;font-size:17px;margin-bottom:6px;}
+.pattern-card p{font-size:13px;color:rgba(44,44,44,0.6);line-height:1.7;}
+.pc-rea{border-color:var(--blue);background:rgba(58,122,189,0.04);}
+.pc-pe{border-color:var(--green);background:rgba(74,156,93,0.04);}
+.pc-multi{border-color:var(--purple);background:rgba(139,92,246,0.04);}
+.pc-loop{border-color:var(--orange);background:rgba(240,144,80,0.04);}
+
+/* Level meter */
+.level-meter{display:flex;align-items:flex-end;gap:8px;justify-content:center;height:160px;margin:24px 0;}
+.level-bar{width:60px;border-radius:8px 8px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  padding-bottom:10px;font-size:11px;font-weight:700;color:#fff;transition:all .4s ease;cursor:pointer;
+  writing-mode:vertical-rl;text-orientation:mixed;letter-spacing:2px;}
+.level-bar:hover{filter:brightness(1.15);transform:scaleY(1.05);}
+.level-bar.l1{height:50px;background:var(--pink);}
+.level-bar.l2{height:75px;background:var(--purple);}
+.level-bar.l3{height:100px;background:var(--blue);}
+.level-bar.l4{height:130px;background:var(--teal);}
+.level-bar.l5{height:160px;background:var(--green);}
+
+/* Footer */
+.footer{position:relative;z-index:1;text-align:center;padding:44px 24px;border-top:2px dashed rgba(0,0,0,0.1);
+  color:rgba(44,44,44,0.35);font-size:11px;}
+.footer .footer-doodle{font-size:36px;display:block;margin-bottom:6px}
+
+@media(max-width:900px){.side-toc{display:none;}}
+@media(max-width:640px){
+  .section{padding:48px 16px}
+  .sticky{width:170px;min-height:110px;font-size:14px}
+  .notebook-margin{left:28px}
+  .tl-step{padding-left:72px;}.step-timeline::before{left:40px;}.tl-step::before{left:26px;width:26px;height:26px;}
+  .anatomy-row{flex-direction:column;}
+  .level-bar{width:44px;font-size:10px;}
+}
+</style>
+</head>
+<body>
+
+<div class="notebook-lines"></div>
+<div class="notebook-margin"></div>
+<nav class="side-toc" id="sideToc">
+  <a href="#sec0"><span class="toc-dot"></span>开篇</a>
+  <a href="#sec1"><span class="toc-dot"></span>什么是 Agent</a>
+  <a href="#sec2"><span class="toc-dot"></span>设计七步法</a>
+  <a href="#sec3"><span class="toc-dot"></span>① 定义边界</a>
+  <a href="#sec4"><span class="toc-dot"></span>② 人格系统</a>
+  <a href="#sec5"><span class="toc-dot"></span>③ 工具设计</a>
+  <a href="#sec6"><span class="toc-dot"></span>④ 上下文管理</a>
+  <a href="#sec7"><span class="toc-dot"></span>⑤ 控制流</a>
+  <a href="#sec8"><span class="toc-dot"></span>⑥ 异常处理</a>
+  <a href="#sec9"><span class="toc-dot"></span>⑦ 测试迭代</a>
+  <a href="#sec10"><span class="toc-dot"></span>模式对比</a>
+  <a href="#sec11"><span class="toc-dot"></span>结尾</a>
+</nav>
+<div class="doodles">
+  <span class="doodle">🤖</span><span class="doodle">🎨</span><span class="doodle">🔧</span>
+  <span class="doodle">📐</span><span class="doodle">🧪</span><span class="doodle">💡</span>
+  <span class="doodle">🚀</span>
+</div>
+<div class="progress-pencil" id="progressBar"></div>
+
+<!-- ═══════ HERO ═══════ -->
+<section class="section hero" id="sec0">
+  <div class="inner">
+    <div class="icon-row">
+      <div class="ir">🎯</div><span class="plus">+</span>
+      <div class="ir">🧬</div><span class="plus">+</span>
+      <div class="ir">⚙️</div><span class="plus">+</span>
+      <div class="ir">🚀</div>
+    </div>
+    <h1>从 0 到 1<br>设计一个 Agent</h1>
+    <p class="sub">— 不是调 API，不是写 Prompt，是设计一个能自主行动的 AI 系统 —</p>
+    <div class="quote" style="max-width:560px;margin:28px auto;text-align:left;">
+      <strong>你可能是这样想的：</strong>"Agent 不就是让 AI 多调几个工具吗？"<br>
+      <strong style="color:var(--red);">大错特错。</strong>设计 Agent 和写 Prompt 的差距，<br>就像<strong>搭积木和设计一座城市</strong>——完全不是一个量级的事。
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ WHAT IS AGENT ═══════ -->
+<section class="section" id="sec1">
+  <div class="inner">
+    <h2>🤖 到底什么是 Agent？</h2>
+    <p style="color:rgba(44,44,44,0.6);margin-bottom:24px;">先对齐概念——不然聊半天发现你说的 Agent 和我说的不是一个东西。</p>
+
+    <!-- Anatomy -->
+    <div class="anatomy">
+      <div class="anatomy-row">
+        <div class="anatomy-box core">
+          <span class="ab-emoji">🧠</span>
+          <strong>推理引擎</strong><br>
+          <span style="font-size:11px;font-weight:400;">LLM — 负责"想"</span>
+        </div>
+      </div>
+      <div class="anatomy-row">
+        <div class="anatomy-box side">
+          <span class="ab-emoji">👁️</span>
+          <strong>感知层</strong><br>
+          <span style="font-size:11px;font-weight:400;">读文件 · 搜代码 · 调 API · 查数据库</span>
+        </div>
+        <div class="anatomy-box side">
+          <span class="ab-emoji">✋</span>
+          <strong>行动层</strong><br>
+          <span style="font-size:11px;font-weight:400;">写文件 · 执行命令 · 发请求 · 调工具</span>
+        </div>
+        <div class="anatomy-box side">
+          <span class="ab-emoji">🧭</span>
+          <strong>记忆层</strong><br>
+          <span style="font-size:11px;font-weight:400;">上下文 · 向量库 · 文件记忆 · 对话历史</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:24px;">
+      <div class="card" style="border-left:3px solid var(--red);">
+        <h3>❌ Agent 不是</h3>
+        <ul>
+          <li>一个写得更长的 Prompt</li>
+          <li>一个只会一问一答的聊天机器人</li>
+          <li>一个固定的自动化脚本</li>
+          <li>调几次 API 就算 Agent</li>
+        </ul>
+      </div>
+      <div class="card" style="border-left:3px solid var(--green);">
+        <h3>✅ Agent 是</h3>
+        <ul>
+          <li>能<strong>自主感知</strong>环境状态</li>
+          <li>能<strong>独立决策</strong>下一步做什么</li>
+          <li>能<strong>主动调用工具</strong>改变环境</li>
+          <li>能从<strong>反馈中学习</strong>和调整</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sticky-wall" style="margin-top:20px;">
+      <div class="sticky s-yellow"><strong>🔑 核心区别</strong>Chatbot 等你说完才动<br>Agent 自己决定什么时候动、动什么</div>
+      <div class="sticky s-blue"><strong>🎭 一句话定义</strong>Agent = LLM + Tools + Memory + Control Loop</div>
+      <div class="sticky s-green"><strong>📐 工程本质</strong>你设计的是"决策框架"<br>不是"对话模板"</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ DESIGN METHODOLOGY ═══════ -->
+<section class="section" id="sec2">
+  <div class="inner">
+    <h2>📐 设计 Agent 的七步法</h2>
+    <p style="color:rgba(44,44,44,0.6);margin-bottom:20px;">这不是教科书上的理论——这是<strong>实战踩坑后总结的设计框架</strong>。每一步都有明确的交付物。</p>
+
+    <div class="step-timeline">
+      <div class="tl-step ts1">
+        <span class="tl-badge">Step 1</span>
+        <h3 style="color:var(--pink);">🎯 定义边界</h3>
+        <p>Agent 要解决什么问题？不解决什么问题？输入什么、输出什么？成功的标准是什么？</p>
+      </div>
+      <div class="tl-step ts2">
+        <span class="tl-badge">Step 2</span>
+        <h3 style="color:var(--purple);">🧬 设计人格与系统提示词</h3>
+        <p>Agent 的"性格"是什么？它遵循什么行为准则？它的知识边界在哪？遇到不知道的事怎么办？</p>
+      </div>
+      <div class="tl-step ts3">
+        <span class="tl-badge">Step 3</span>
+        <h3 style="color:var(--blue);">🔧 设计工具矩阵</h3>
+        <p>Agent 需要哪些"手"和"眼"？每个工具的输入输出是什么？权限边界怎么划定？</p>
+      </div>
+      <div class="tl-step ts4">
+        <span class="tl-badge">Step 4</span>
+        <h3 style="color:var(--teal);">📚 设计上下文策略</h3>
+        <p>每次调用 Agent 时它能看到什么？长对话怎么压缩？哪些信息持久化、哪些用完就丢？</p>
+      </div>
+      <div class="tl-step ts5">
+        <span class="tl-badge">Step 5</span>
+        <h3 style="color:var(--green);">🔄 设计控制流</h3>
+        <p>Agent 的执行模式是什么？ReAct 循环？Plan-then-Execute？多 Agent 协作？单步还是多步？</p>
+      </div>
+      <div class="tl-step ts6">
+        <span class="tl-badge">Step 6</span>
+        <h3 style="color:var(--orange);">🛡️ 设计异常与边界</h3>
+        <p>工具调用失败了怎么办？Token 超了怎么办？死循环了谁来喊停？用户中断怎么优雅退出？</p>
+      </div>
+      <div class="tl-step ts7">
+        <span class="tl-badge">Step 7</span>
+        <h3 style="color:var(--red);">🧪 测试与迭代</h3>
+        <p>怎么验证 Agent 的行为符合预期？回归测试怎么做？如何系统化地评估 Agent 质量？</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 1. DEFINE BOUNDARY ═══════ -->
+<section class="section" id="sec3">
+  <div class="inner">
+    <h2>🎯 第一步：定义边界</h2>
+    <div class="deep-card dc1">
+      <div class="d-head"><div class="d-icon">1</div><h3>最难的不是"做什么"，是"不做什么"</h3></div>
+      <div class="d-body">
+        <p><strong>新手常犯的错误：</strong>想让 Agent 什么都能干。结果是——<strong>什么都能干 = 什么都干不好</strong>。</p>
+        <p>好的 Agent 设计从一个清晰的<strong>边界声明</strong>开始。问自己四个问题：</p>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:18px;">
+      <div class="card">
+        <h3>1. 它解决什么问题？</h3>
+        <p>用一句话说清楚。比如："自动将 Figma 设计稿转成 React 组件代码"</p>
+      </div>
+      <div class="card">
+        <h3>2. 它不解决什么？</h3>
+        <p>明确拒绝范围。比如："不管设计评审、不管后端 API 生成、不管部署"</p>
+      </div>
+      <div class="card">
+        <h3>3. 输入输出是什么？</h3>
+        <p>输入：Figma 链接 + 组件库选择<br>输出：可运行的 .tsx + .css 文件</p>
+      </div>
+      <div class="card">
+        <h3>4. 成功的标准？</h3>
+        <p>可量化。比如："生成的代码 ESLint 0 error，视觉还原度 > 90%"</p>
+      </div>
+    </div>
+    <div class="quote" style="margin-top:18px;">
+      <strong>经验之谈：</strong>边界越清晰，Agent 越可靠。模糊的边界 = 模糊的行为 = 不可预测的结果。宁可先做小做精，也不要一上来就做大而全。
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 2. PERSONA ═══════ -->
+<section class="section" id="sec4">
+  <div class="inner">
+    <h2>🧬 第二步：设计人格与系统提示词</h2>
+    <div class="deep-card dc2">
+      <div class="d-head"><div class="d-icon">2</div><h3>System Prompt 是 Agent 的"宪法"</h3></div>
+      <div class="d-body">
+        <p><strong>它决定了 Agent 的所有行为底色。</strong>不是写一段"你是一个 helpful assistant"就完事了——那等于没设计。</p>
+      </div>
+    </div>
+    <div class="grid3" style="margin-top:18px;">
+      <div class="card" style="border-left:3px solid var(--purple);">
+        <h3>🎭 角色定义</h3>
+        <p>"你是谁"——不是泛泛的"助手"，而是具体的角色。比如"你是一个拥有 10 年 React 经验的资深前端工程师"</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--purple);">
+        <h3>📏 行为准则</h3>
+        <p>"你怎么做事"——遇到不确定的事先问还是先做？代码风格是什么？注释写到什么程度？</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--purple);">
+        <h3>🚫 硬约束</h3>
+        <p>"你绝对不能做什么"——不能删除文件、不能 push 代码、不能修改配置文件。这是安全底线。</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--purple);">
+        <h3>📐 质量标准</h3>
+        <p>"做到什么程度才算好"——测试必须过、Lint 零报错、代码风格匹配项目、改动要解释原因。</p>
+      </div>
+    </div>
+    <div class="code-block" style="margin-top:18px;">
+<span style="color:rgba(44,44,44,0.4);">// 好的 System Prompt 结构（简化示意）</span>
+## 你是谁
+你是一个专门做 React 组件重构的 Agent。
+
+## 你怎么工作
+1. 先读完整文件，理解现有逻辑
+2. 拆解重构步骤，列出改动清单
+3. 逐个文件修改，每次改完检查 lint
+4. 全部改完跑一遍测试
+
+## 你不能做什么
+- 不能改后端 API 接口
+- 不能删掉还在用的代码（先确认引用）
+- 改动超过 5 个文件先出方案让用户确认
+
+## 质量标准
+- ESLint 0 error 0 warning
+- 每个组件必须有 PropTypes / TypeScript 类型
+- 改动说明写在 commit message 里
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 3. TOOLS ═══════ -->
+<section class="section" id="sec5">
+  <div class="inner">
+    <h2>🔧 第三步：设计工具矩阵</h2>
+    <div class="deep-card dc3">
+      <div class="d-head"><div class="d-icon">3</div><h3>工具 = Agent 的能力边界</h3></div>
+      <div class="d-body">
+        <p><strong>给 Agent 什么工具，它就能做什么事。</strong>工具设计有三个核心问题：选哪些工具、怎么描述工具、权限怎么控。</p>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:18px;">
+      <div class="card" style="border-left:3px solid var(--blue);">
+        <h3>🛠️ 工具选择原则</h3>
+        <ul>
+          <li><strong>最小充分：</strong>够用就好，别堆砌</li>
+          <li><strong>原子化：</strong>一个工具只做一件事</li>
+          <li><strong>可组合：</strong>工具之间能串联协作</li>
+          <li><strong>有反馈：</strong>每次调用返回明确结果</li>
+          <li><strong>可降级：</strong>出错时有 fallback 策略</li>
+        </ul>
+      </div>
+      <div class="card" style="border-left:3px solid var(--blue);">
+        <h3>📝 工具描述（Function Schema）</h3>
+        <ul>
+          <li><strong>name：</strong>动词+名词，如 search_files</li>
+          <li><strong>description：</strong>一句话说清功能 + 使用时机</li>
+          <li><strong>parameters：</strong>类型、必填/可选、默认值</li>
+          <li><strong>返回格式：</strong>让 Agent 知道调用完会拿到什么</li>
+        </ul>
+      </div>
+    </div>
+    <div class="sticky-wall" style="margin-top:16px;">
+      <div class="sticky s-yellow"><strong>⚠️ 常见坑</strong>工具描述写得太模糊<br>Agent 不知道该什么时候用<br>→ 要么不用，要么乱用</div>
+      <div class="sticky s-blue"><strong>💡 最佳实践</strong>每个工具的 description 里写上"when to use"——给 Agent 明确的触发条件</div>
+      <div class="sticky s-pink"><strong>🔒 安全要点</strong>危险工具加确认机制<br>delete / force push / drop table<br>必须先过用户这关</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 4. CONTEXT ═══════ -->
+<section class="section" id="sec6">
+  <div class="inner">
+    <h2>📚 第四步：设计上下文策略</h2>
+    <div class="deep-card dc4">
+      <div class="d-head"><div class="d-icon">4</div><h3>上下文是 Agent 的"视野"和"记忆"</h3></div>
+      <div class="d-body">
+        <p><strong>Agent 每做一次决策，能看到的全部信息 = 上下文。</strong>视野太窄 → 瞎猜。视野太宽 → 被无关信息干扰。记忆太短 → 金鱼脑。记忆太长 → Token 爆炸。</p>
+      </div>
+    </div>
+    <div class="grid3" style="margin-top:18px;">
+      <div class="card" style="border-left:3px solid var(--teal);">
+        <h3>📋 静态上下文</h3>
+        <p>每次调用都带的"底座"</p>
+        <ul>
+          <li>System Prompt（人格 & 规则）</li>
+          <li>CLAUDE.md（项目规范）</li>
+          <li>工具定义（可用能力）</li>
+          <li>Memory 文件（持久偏好）</li>
+        </ul>
+      </div>
+      <div class="card" style="border-left:3px solid var(--teal);">
+        <h3>🔄 动态上下文</h3>
+        <p>根据当前任务注入</p>
+        <ul>
+          <li>相关文件内容（Read 结果）</li>
+          <li>搜索结果（Grep/Glob）</li>
+          <li>Git 状态（当前分支 & diff）</li>
+          <li>环境信息（OS / Shell）</li>
+        </ul>
+      </div>
+      <div class="card" style="border-left:3px solid var(--teal);">
+        <h3>🗜️ 压缩策略</h3>
+        <p>长对话不爆 Token 的关键</p>
+        <ul>
+          <li>对话摘要（总结旧消息）</li>
+          <li>语义去重（删重复信息）</li>
+          <li>滑动窗口（只保留最近 N 轮）</li>
+          <li>分级存储（热/温/冷数据）</li>
+        </ul>
+      </div>
+    </div>
+    <div class="token-bar" style="display:flex;height:28px;border-radius:14px;overflow:hidden;margin:18px 0;border:2px solid rgba(0,0,0,0.08);">
+      <div style="background:var(--slate);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;width:18%;">System 18%</div>
+      <div style="background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;width:12%;">Memory 12%</div>
+      <div style="background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;width:15%;">Tools 15%</div>
+      <div style="background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;width:20%;">Files 20%</div>
+      <div style="background:var(--orange);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;width:35%;">History 35%</div>
+    </div>
+    <p style="text-align:center;font-size:11px;color:rgba(44,44,44,0.35);">▲ 典型 Agent 调用的 Token 分配 | 历史对话往往占大头，压缩策略直接影响成本</p>
+  </div>
+</section>
+
+<!-- ═══════ 5. CONTROL FLOW ═══════ -->
+<section class="section" id="sec7">
+  <div class="inner">
+    <h2>🔄 第五步：设计控制流</h2>
+    <div class="deep-card dc5">
+      <div class="d-head"><div class="d-icon">5</div><h3>Agent 怎么"跑"起来——四种经典模式</h3></div>
+      <div class="d-body">
+        <p><strong>控制流决定了 Agent 的执行节奏。</strong>选错模式，要么效率极低（来回问），要么失控（改飞了）。</p>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:18px;">
+      <div class="pattern-card pc-rea">
+        <div class="pc-icon">🔁</div>
+        <h4>ReAct 模式</h4>
+        <p><strong>Thought → Action → Observation → 循环</strong></p>
+        <p>每走一步都"先想、再做、再看结果"。最经典、最稳定。适合需要动态调整方向的任务。</p>
+        <p style="font-size:12px;color:var(--blue);margin-top:6px;">适用：代码修改、Debug、探索性任务</p>
+      </div>
+      <div class="pattern-card pc-pe">
+        <div class="pc-icon">📋</div>
+        <h4>Plan-then-Execute</h4>
+        <p><strong>先出完整计划 → 用户确认 → 一口气执行</strong></p>
+        <p>降低不确定性。用户看到完整方案后再动手，避免"改到一半发现方向错了"。</p>
+        <p style="font-size:12px;color:var(--green);margin-top:6px;">适用：重构、多文件改动、架构级变更</p>
+      </div>
+      <div class="pattern-card pc-multi">
+        <div class="pc-icon">👥</div>
+        <h4>Multi-Agent 协作</h4>
+        <p><strong>多个 Agent 分工协作，各司其职</strong></p>
+        <p>一个负责分析、一个负责编码、一个负责审查。Pipeline 或 Parallel 方式组织。</p>
+        <p style="font-size:12px;color:var(--purple);margin-top:6px;">适用：大型项目、跨领域任务、需要多重验证</p>
+      </div>
+      <div class="pattern-card pc-loop">
+        <div class="pc-icon">🔁</div>
+        <h4>自主循环模式</h4>
+        <p><strong>Agent 自己决定什么时候停</strong></p>
+        <p>设定结束条件（如"测试全部通过"或"连续3轮无新发现"），Agent 自己循环直到满足。</p>
+        <p style="font-size:12px;color:var(--orange);margin-top:6px;">适用：批量处理、持续优化、自动化审计</p>
+      </div>
+    </div>
+    <div class="quote" style="margin-top:18px;">
+      <strong>选型建议：</strong>80% 的场景用 <strong>ReAct</strong> 就够了。复杂任务加上 <strong>Plan Mode</strong> 作为前置步骤。等你熟练了，再考虑 Multi-Agent 和自主循环。<strong style="color:var(--red);">不要一上来就追求复杂的控制流——简单的模式跑通了，复杂的自然水到渠成。</strong>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 6. ERROR HANDLING ═══════ -->
+<section class="section" id="sec8">
+  <div class="inner">
+    <h2>🛡️ 第六步：设计异常与边界</h2>
+    <div class="quote" style="text-align:center;font-size:16px;margin-bottom:24px;">
+      <strong style="color:var(--red);">Agent 不出错的概率是 0%。</strong><br>
+      区分好 Agent 和差 Agent 的不是"会不会出错"，而是<strong>"出错了之后怎么办"</strong>。
+    </div>
+    <div class="grid2">
+      <div class="card" style="border-left:3px solid var(--red);">
+        <h3>🚨 常见异常场景</h3>
+        <ul>
+          <li>工具调用失败（文件不存在、权限不够）</li>
+          <li>Token 超限（对话太长，塞不下了）</li>
+          <li>死循环（Agent 反复做同一件失败的事）</li>
+          <li>幻觉（生成了不存在的 API/函数名）</li>
+          <li>用户中断（中途想换个方向）</li>
+          <li>超时（一个工具调用卡住太久）</li>
+        </ul>
+      </div>
+      <div class="card" style="border-left:3px solid var(--green);">
+        <h3>✅ 应对策略</h3>
+        <ul>
+          <li><strong>自动重试：</strong>工具失败 → 换个参数再试一次</li>
+          <li><strong>优雅降级：</strong>做不到完美 → 做到 80% 然后标记</li>
+          <li><strong>熔断机制：</strong>连续失败 3 次 → 停下来问用户</li>
+          <li><strong>状态检查点：</strong>每 N 步检查一次"方向对吗"</li>
+          <li><strong>超时控制：</strong>每个工具调设置 timeout</li>
+          <li><strong>可恢复：</strong>中断后能接着之前的状态继续</li>
+        </ul>
+      </div>
+    </div>
+    <div class="sticky-wall" style="margin-top:18px;">
+      <div class="sticky s-pink"><strong>🔑 黄金法则</strong>宁可停下来问用户<br>也不要自己瞎猜着改</div>
+      <div class="sticky s-yellow"><strong>⏱️ 超时设计</strong>每个工具调用都要有<br>合理的 timeout<br>别让 Agent 卡住不动</div>
+      <div class="sticky s-blue"><strong>🔄 重试智慧</strong>重试不是机械重复<br>要带着新信息重试<br>（换个参数 / 换个策略）</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 7. TESTING ═══════ -->
+<section class="section" id="sec9">
+  <div class="inner">
+    <h2>🧪 第七步：测试与迭代</h2>
+    <div class="deep-card dc1">
+      <div class="d-head"><div class="d-icon">7</div><h3>Agent 的测试比传统软件难一个数量级</h3></div>
+      <div class="d-body">
+        <p><strong>传统软件：</strong>输入 A → 断言输出 B。确定性的。</p>
+        <p><strong>Agent：</strong>同一个输入可能产生不同的决策路径。因为 LLM 本质上是<strong>概率性的</strong>。</p>
+      </div>
+    </div>
+    <div class="grid3" style="margin-top:18px;">
+      <div class="card" style="border-left:3px solid var(--pink);">
+        <h3>🧪 单元级</h3>
+        <p>单个工具调用是否返回正确格式？Schema 校验是否通过？权限控制是否生效？</p>
+        <p style="font-size:12px;color:rgba(44,44,44,0.4);margin-top:4px;">这部分可以自动化——传统测试方法完全适用</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--pink);">
+        <h3>🔗 集成级</h3>
+        <p>多步工具调用串联是否顺畅？上下文传递是否完整？中间步骤失败时恢复是否正常？</p>
+        <p style="font-size:12px;color:rgba(44,44,44,0.4);margin-top:4px;">需要 mock 工具，模拟真实场景</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--pink);">
+        <h3>🎯 行为级</h3>
+        <p>Agent 的行为是否符合预期？面对模糊指令是否会主动澄清？边界情况处理是否合理？</p>
+        <p style="font-size:12px;color:rgba(44,44,44,0.4);margin-top:4px;">最难的层级——需要人工评估或 LLM-as-Judge</p>
+      </div>
+    </div>
+    <div class="level-meter">
+      <div class="level-bar l1">单元</div>
+      <div class="level-bar l2">集成</div>
+      <div class="level-bar l3">行为</div>
+      <div class="level-bar l4">回归</div>
+      <div class="level-bar l5">持续</div>
+    </div>
+    <p style="text-align:center;font-size:13px;color:rgba(44,44,44,0.5);">测试金字塔：从底层确定性测试到顶层行为评估</p>
+    <div class="sticky-wall" style="margin-top:16px;">
+      <div class="sticky s-green"><strong>💡 Eval 套件</strong>建一个"测试用例库"<br>每次改 Agent 都跑一遍<br>看有没有行为退化</div>
+      <div class="sticky s-blue"><strong>🔍 LLM-as-Judge</strong>用一个更强的模型<br>来评估你的 Agent 的<br>输出质量</div>
+      <div class="sticky s-yellow"><strong>📊 指标建议</strong>任务完成率、工具调用正确率<br>平均步数、用户干预频率<br>Token 效率</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ PATTERNS ═══════ -->
+<section class="section" id="sec10">
+  <div class="inner">
+    <h2>📊 设计决策速查表</h2>
+    <p style="color:rgba(44,44,44,0.6);margin-bottom:20px;">七步走完，最后对照这张表验证你的设计是否完整。</p>
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin:16px 0;">
+      <thead>
+        <tr><th style="padding:12px 14px;text-align:left;font-weight:700;font-family:'Gloria Hallelujah',cursive;font-size:14px;border-bottom:2px dashed rgba(0,0,0,0.1);">设计维度</th><th style="padding:12px 14px;text-align:left;font-weight:700;font-family:'Gloria Hallelujah',cursive;font-size:14px;border-bottom:2px dashed rgba(0,0,0,0.1);">关键问题</th><th style="padding:12px 14px;text-align:left;font-weight:700;font-family:'Gloria Hallelujah',cursive;font-size:14px;border-bottom:2px dashed rgba(0,0,0,0.1);">新手易犯错误</th></tr>
+      </thead>
+      <tbody>
+        <tr><td style="padding:12px 14px;color:var(--pink);font-weight:700;border-bottom:1px solid rgba(0,0,0,0.04);">边界</td><td style="padding:12px 14px;color:rgba(44,44,44,0.65);border-bottom:1px solid rgba(0,0,0,0.04);">Agent 该拒绝什么？</td><td style="padding:12px 14px;color:rgba(44,44,44,0.65);border-bottom:1px solid rgba(0,0,0,0.04);">没有明确定义"不做的事"</td></tr>
+        <tr><td style="padding:12px 14px;color:var(--purple);font-weight:700;border-bottom:1px solid rgba(0,0,0,0.04);">人格</td><td style="padding:12px 14px;color:rgba(44,44,44,0.65);border-bottom:1px solid rgba(0,0,0,0.04);">System Prompt 能指导所有行为吗？</td><td style="padding:12px 14px;color:rgba(44,44,44,0.65);border-bottom:1px solid rgba(0,0,0,0.04);">只写了角色，没写行为准则</td></tr>
+        <tr><td style="padding:12px 14px;color:var(--blue);font-weight:700;border-bottom:1px solid rgba(0,0,0,0.04);">工具</td><td style="padding:12px 14px;color:rgba(44,44,44,0.65);border-bottom:1px solid rgba(0,0,0,0.04);">工具够用吗？会不会太多？</td><td style="padding:12px 14px;color:rgba(44,44,44,0.65);border-bottom:1px solid rgba(0,0,0,0.04);">工具描述太模糊，Agent 不知道怎么用</td></tr>
+        <tr><td style="padding:12px 14px;color:var(--teal);font-weight:700;border-bottom:1px solid rgba(0,0,0,0.04);">上下文</td><td style="padding:12px 14px;color:rgba(44,44,44,0.65);border-bottom:1px solid rgba(0,0,0,0.04);">信息够精炼吗？会爆 Token 吗？</td><td style="padding:12px 14px;color:rgba(44,44,44,0.65);border-bottom:1px solid rgba(0,0,0,0.04);">没有压缩策略，长对话直接溢出</td></tr>
+        <tr><td style="padding:12px 14px;color:var(--green);font-weight:700;border-bottom:1px solid rgba(0,0,0,0.04);">控制流</td><td style="padding:12px 14px;color:rgba(44,44,44,0.65);border-bottom:1px solid rgba(0,0,0,0.04);">执行节奏对吗？效率够高吗？</td><td style="padding:12px 14px;color:rgba(44,44,44,0.65);border-bottom:1px solid rgba(0,0,0,0.04);">简单任务用了过于复杂的控制流</td></tr>
+        <tr><td style="padding:12px 14px;color:var(--orange);font-weight:700;border-bottom:1px solid rgba(0,0,0,0.04);">异常</td><td style="padding:12px 14px;color:rgba(44,44,44,0.65);border-bottom:1px solid rgba(0,0,0,0.04);">每个异常路径都有处理吗？</td><td style="padding:12px 14px;color:rgba(44,44,44,0.65);border-bottom:1px solid rgba(0,0,0,0.04);">只设计了 happy path</td></tr>
+        <tr><td style="padding:12px 14px;color:var(--red);font-weight:700;border-bottom:1px solid rgba(0,0,0,0.04);">测试</td><td style="padding:12px 14px;color:rgba(44,44,44,0.65);border-bottom:1px solid rgba(0,0,0,0.04);">怎么知道 Agent 变好了还是变差了？</td><td style="padding:12px 14px;color:rgba(44,44,44,0.65);border-bottom:1px solid rgba(0,0,0,0.04);">靠感觉判断，没有量化指标</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ CLOSING ═══════ -->
+<section class="section" id="sec11">
+  <div class="inner" style="text-align:center;">
+    <div style="font-size:56px;margin-bottom:16px;">🏗️</div>
+    <h2 style="display:block;margin:0 auto 16px;text-align:center;">设计 Agent，<br>本质上是设计一个"决策系统"</h2>
+    <div class="quote" style="max-width:560px;margin:0 auto 24px;text-align:left;">
+      <p style="margin-bottom:12px;">回到最开始那句话：</p>
+      <p style="font-size:18px;font-weight:700;color:var(--ink);text-align:center;">
+        Agent = LLM + Tools + Memory + Control Loop
+      </p>
+      <p style="margin-top:12px;">
+        这四个要素，<strong style="color:var(--red);">LLM 是最容易换的</strong>——今天用 Claude，明天换 GPT，后天用开源模型。<br><br>
+        但 <strong style="color:var(--blue);">Tools 的设计</strong>、<strong style="color:var(--purple);">Memory 的策略</strong>、<strong style="color:var(--green);">Control Loop 的架构</strong>——这些才是你真正的护城河。<br><br>
+        <strong>不要只做一个"会写 Prompt 的人"。</strong><br>
+        <strong style="color:var(--red);">做一个会设计 Agent 系统的工程师。</strong>
+      </p>
+    </div>
+    <div style="font-family:'Gloria Hallelujah',cursive;font-size:16px;color:var(--red);margin-top:20px;">
+      ✏️ 优秀的 Agent 不是"调"出来的——是"设计"出来的
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <span class="footer-doodle">🤖</span>
+  <p>从 0 到 1 设计 Agent · 七步法实战指南</p>
+  <p style="margin-top:2px;">边界 → 人格 → 工具 → 上下文 → 控制流 → 异常 → 测试</p>
+</footer>
+
+<script>
+const sections=document.querySelectorAll('.section');
+const progressBar=document.getElementById('progressBar');
+window.addEventListener('scroll',()=>{
+  progressBar.style.width=(Math.min(window.scrollY/(document.documentElement.scrollHeight-window.innerHeight),1)*100)+'%';
+},{passive:true});
+
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting)e.target.querySelectorAll('.card,.sticky,.tl-step,.deep-card,.pattern-card,.level-bar').forEach((el,i)=>{
+      el.style.transitionDelay=(i*0.06)+'s';el.classList.add('visible');
+    });
+  });
+},{threshold:0.1});
+sections.forEach(s=>obs.observe(s));
+
+document.querySelectorAll('.card,.sticky,.deep-card,.tl-step,.pattern-card,.anatomy-box,.level-bar').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    const rect=el.getBoundingClientRect();
+    el.style.transform=`perspective(800px) rotateY(${((e.clientX-rect.left)/rect.width-0.5)*5}deg) rotateX(${-((e.clientY-rect.top)/rect.height-0.5)*5}deg) translateY(-6px)`;
+  });
+  el.addEventListener('mouseleave',()=>{el.style.transform='';});
+});
+
+const tocLinks=document.querySelectorAll('.side-toc a');
+const allSections=document.querySelectorAll('[id^="sec"]');
+window.addEventListener('scroll',()=>{
+  let current='';
+  allSections.forEach(s=>{if(s.getBoundingClientRect().top<150)current=s.id;});
+  tocLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+current));
+},{passive:true});
+</script>
+</body>
+</html>
