@@ -210,6 +210,8 @@
   body.list-mode .card-top { flex-shrink:0; min-width:160px; max-width:200px; margin-bottom:0; }
   body.list-mode .card-desc { flex:1; margin-bottom:0; min-width:200px; }
   body.list-mode .card-trigger { flex:1; margin-bottom:0; max-width:380px; }
+  body.list-mode .card-author { flex-shrink:0; align-self:center; margin-bottom:0; }
+  body.list-mode .card-link { flex-shrink:0; align-self:center; }
   body.list-mode .card-meta { flex-shrink:0; align-self:center; }
 
   /* ===== CARD ===== */
@@ -226,7 +228,22 @@
   .card-title-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .card-icon { font-size:1.35rem; line-height:1; flex-shrink:0; margin-top:2px; }
   .card-name { font-weight:700; font-size:1.02rem; flex:1; min-width:0; line-height:1.35; }
-  .card-desc { color:var(--g7); font-size:0.9rem; margin-bottom:12px; line-height:1.55; flex:1; }
+  .card-desc { color:var(--g7); font-size:0.9rem; margin-bottom:8px; line-height:1.55; flex:1; }
+  .card-author {
+    display:inline-flex; align-items:center; gap:5px;
+    background:linear-gradient(135deg, #fef3c7, #fde68a);
+    color:#92400e; font-size:0.72rem; font-weight:700;
+    padding:3px 10px; border-radius:12px;
+    margin-bottom:10px; border:1px solid #fcd34d;
+    width:fit-content;
+  }
+  .card-link {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:6px 14px; background:var(--purple); color:#fff;
+    border-radius:8px; text-decoration:none; font-size:0.78rem;
+    font-weight:600; width:fit-content; transition:all .15s;
+  }
+  .card-link:hover { background:#7c3aed; transform:translateY(-1px); }
   .card-trigger {
     background:var(--g1); border:1px solid var(--g2); border-radius:var(--r-sm);
     padding:10px 30px 10px 12px; font-size:0.84rem; color:var(--g7);
@@ -666,6 +683,8 @@ const skills = [
   { n:"代码审查专家", i:"🔍", d:"可能用于深度代码审查。目录存在但无 SKILL.md。", t:"—", f:"code-review-expert", c:"empty", s:"empty" },
   { n:"Sigma", i:"Σ", d:"用途未知。目录存在但无 SKILL.md。", t:"—", f:"sigma", c:"empty", s:"empty" },
   { n:"Skill Forge + Review", i:"🔨", d:"技能锻造和审查工具。两个目录都存在但无 SKILL.md。", t:"—", f:"skill-forge · skill-review", c:"empty", s:"empty" },
+  { n:"HTML 截图工具", i:"📸", d:"拖拽 HTML 文件 → Playwright 真渲染 → 完美截图。整页长图/分段导出，保留字体和设计。", t:'"HTML截图" · "网页截图" · "导出长图" · "网页转图片"', f:"html-screenshot", c:"tools", s:"active", a:"阿珊", url:"http://localhost:8765" },
+  { n:"HTML 转换工具", i:"🔄", d:"一键将 HTML 文件转成 Markdown 或 PowerPoint。支持单文件/批量/目录递归，light/dark 主题。", t:'"HTML转MD" · "HTML转PPT" · "网页转Markdown" · "导出PPT"', f:"html-tools", c:"tools", s:"active", a:"阿珊", url:"tools/converter.html" },
 ];
 
 // ===== FAVORITES (localStorage) =====
@@ -739,7 +758,7 @@ function renderCards() {
   }
   if (query) {
     filtered = filtered.filter(s => {
-      const txt = (s.n + s.d + s.t + s.f).toLowerCase();
+      const txt = (s.n + s.d + s.t + s.f + (s.a||'')).toLowerCase();
       return txt.includes(query);
     });
   }
@@ -774,6 +793,8 @@ function renderCards() {
             </div>
           </div>
           <div class="card-desc">${s.d}</div>
+          <div class="card-author">👤 ${s.a || '阿珊'}</div>
+          ${s.url ? `<a href="${s.url}" target="_blank" class="card-link" onclick="event.stopPropagation()">打开工具 →</a>` : ''}
           <div class="card-trigger" data-action="copy" data-copy="${s.t.replace(/<[^>]*>/g,'').replace(/"/g,'&quot;')}" title="点击复制触发词">
             ${s.t}
             <button class="copy-btn" data-action="copy" data-copy="${s.t.replace(/<[^>]*>/g,'').replace(/"/g,'&quot;')}">📋</button>

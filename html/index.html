@@ -89,6 +89,7 @@ body{
   <span class="logo">📚</span>
   <h1>AI 知识库 · 交互式文档</h1>
   <p>17 篇深度内容 · 11 种设计风格 · 点击任意卡片即可阅读</p>
+  <a href="http://localhost:8765" onclick="fetch('http://localhost:8765/').catch(()=>{alert('请先双击桌面上的「HTML截图工具」启动服务');return false})" style="display:inline-block;margin-top:16px;padding:12px 28px;background:linear-gradient(135deg,#6366F1,#8B5CF6);color:#fff;border-radius:25px;text-decoration:none;font-size:15px;font-weight:700;box-shadow:0 4px 14px rgba(99,102,241,.35);transition:all .2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">📸 HTML 截图工具</a>
 </div>
 
 <div class="container">
@@ -221,6 +222,22 @@ body{
   <div class="cat">
     <div class="cat-title">🔧 工具 & 生态</div>
     <div class="grid">
+      <a href="tools/screenshot.html" class="card">
+        <div class="icon" style="background:rgba(16,185,129,0.08);">📸</div>
+        <div class="info">
+          <h3>HTML 截图工具</h3>
+          <div class="desc">启动本地服务 → 拖拽 HTML → Playwright 真渲染 → 完美截图下载</div>
+          <span class="tag" style="background:rgba(16,185,129,0.08);color:#10B981;">截图</span>
+        </div>
+      </a>
+      <a href="tools/converter.html" class="card">
+        <div class="icon" style="background:rgba(79,70,229,0.08);">🔄</div>
+        <div class="info">
+          <h3>HTML 转换工具</h3>
+          <div class="desc">拖拽 HTML 文件 · 一键导出 Markdown 或 PowerPoint</div>
+          <span class="tag" style="background:rgba(79,70,229,0.08);color:#4F46E5;">转换</span>
+        </div>
+      </a>
       <a href="Agent-Reach.html" class="card">
         <div class="icon" style="background:rgba(0,190,150,0.08);">🌐</div>
         <div class="info">

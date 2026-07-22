@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTML 转换器 · 拖拽一键转 MD / PPT</title>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f8f9fb;--card:#fff;--border:#e2e6eb;--text:#1e293b;
+  --muted:#64748b;--accent:#4F46E5;--accent2:#7C3AED;
+  --green:#059669;--red:#DC2626;
+  --radius:16px;--radius-sm:10px;
+  --shadow:0 1px 3px rgba(0,0,0,.04),0 1px 2px rgba(0,0,0,.03);
+  --shadow-lg:0 10px 30px rgba(0,0,0,.06),0 4px 10px rgba(0,0,0,.02);
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;
+  display:flex;align-items:center;justify-content:center;padding:32px 16px;
+}
+.app{max-width:780px;width:100%}
+.header{text-align:center;margin-bottom:28px}
+.header h1{font-size:26px;font-weight:800;letter-spacing:-0.5px;margin-bottom:4px}
+.header h1 b{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header p{font-size:13px;color:var(--muted)}
+
+/* Drop Zone */
+.dropzone{
+  background:var(--card);border:2px dashed var(--border);border-radius:var(--radius);
+  padding:56px 40px;text-align:center;cursor:pointer;transition:all .25s;
+  box-shadow:var(--shadow);position:relative;
+}
+.dropzone:hover,.dropzone.drag-over{
+  border-color:var(--accent);background:#F5F3FF;
+  box-shadow:var(--shadow-lg);transform:translateY(-2px);
+}
+.dropzone.drag-over{border-style:solid;background:#EDE9FE}
+.dropzone .dz-icon{font-size:48px;margin-bottom:12px;display:block;opacity:.8}
+.dropzone .dz-title{font-size:17px;font-weight:700;margin-bottom:4px}
+.dropzone .dz-hint{font-size:12px;color:var(--muted)}
+.dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+/* File Card */
+.file-card{
+  background:var(--card);border-radius:var(--radius);padding:16px 20px;
+  margin-top:16px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:14px;
+}
+.file-card .fc-icon{
+  width:44px;height:44px;border-radius:12px;background:#F5F3FF;
+  display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;
+}
+.file-card .fc-info{flex:1;min-width:0}
+.file-card .fc-name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-card .fc-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.file-card .fc-remove{
+  width:30px;height:30px;border-radius:50%;border:1px solid var(--border);
+  background:var(--card);cursor:pointer;font-size:14px;color:var(--muted);
+  display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;
+}
+.file-card .fc-remove:hover{background:#FEE2E2;border-color:#FCA5A5;color:var(--red)}
+
+/* Segmented Control */
+.segmented{
+  display:flex;gap:0;margin-top:16px;background:var(--card);border-radius:var(--radius-sm);
+  padding:3px;box-shadow:var(--shadow);
+}
+.seg-btn{
+  flex:1;padding:10px 16px;border:none;background:transparent;cursor:pointer;
+  font-size:14px;font-weight:600;border-radius:8px;transition:all .2s;
+  color:var(--muted);text-align:center;
+}
+.seg-btn.selected{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(79,70,229,.3)}
+.seg-btn:hover:not(.selected){color:var(--text);background:#f1f5f9}
+
+/* Theme toggle */
+.theme-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px}
+.theme-row span{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.theme-toggle{
+  width:40px;height:22px;border-radius:11px;background:#cbd5e1;
+  cursor:pointer;position:relative;transition:background .2s;border:none;
+}
+.theme-toggle.dark{background:var(--accent)}
+.theme-toggle::after{
+  content:'';position:absolute;top:2px;left:2px;
+  width:18px;height:18px;border-radius:50%;background:#fff;
+  transition:transform .2s;box-shadow:0 1px 2px rgba(0,0,0,.1);
+}
+.theme-toggle.dark::after{transform:translateX(18px)}
+
+/* Convert Button */
+.cta-btn{
+  width:100%;margin-top:16px;padding:16px;border:none;border-radius:var(--radius-sm);
+  font-size:17px;font-weight:700;color:#fff;cursor:pointer;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  transition:all .2s;box-shadow:0 4px 14px rgba(79,70,229,.3);
+}
+.cta-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(79,70,229,.4)}
+.cta-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.cta-btn .spinner{display:none;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;
+  vertical-align:middle;margin-right:8px}
+.cta-btn.loading .spinner{display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Preview */
+.preview-box{
+  margin-top:16px;background:var(--card);border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden;
+}
+.pv-header{
+  padding:10px 18px;font-size:11px;font-weight:700;color:var(--muted);
+  border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:1px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.pv-body{padding:16px 18px;font-size:13px;line-height:1.9;font-family:"JetBrains Mono","Consolas",monospace;
+  color:#475569;max-height:360px;overflow-y:auto;white-space:pre-wrap}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:36px;left:50%;transform:translateX(-50%);
+  background:#1e293b;color:#fff;padding:12px 24px;border-radius:10px;
+  font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;
+}
+.toast.show{opacity:1}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+
+.footer{text-align:center;margin-top:24px;font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <h1>📂 HTML <b>转换器</b></h1>
+    <p>拖入 HTML 文件，一键导出干净的 Markdown 或 PowerPoint</p>
+  </div>
+
+  <div class="dropzone" id="dropzone">
+    <span class="dz-icon">📥</span>
+    <div class="dz-title">拖拽 HTML 文件到这里</div>
+    <div class="dz-hint">或点击此处选择文件 · 纯浏览器端，不会上传</div>
+    <input type="file" id="fileInput" accept=".html,.htm">
+  </div>
+
+  <div class="file-card" id="fileCard" style="display:none">
+    <div class="fc-icon">📄</div>
+    <div class="fc-info">
+      <div class="fc-name" id="fileName"></div>
+      <div class="fc-meta" id="fileMeta"></div>
+    </div>
+    <button class="fc-remove" id="removeFile" title="移除">✕</button>
+  </div>
+
+  <div class="segmented" id="formatSeg" style="display:none">
+    <button class="seg-btn selected" data-fmt="md">📝 Markdown</button>
+    <button class="seg-btn" data-fmt="pptx">📊 PowerPoint</button>
+    <button class="seg-btn" data-fmt="both">📦 两种都要</button>
+  </div>
+
+  <div class="theme-row" id="themeRow" style="display:none">
+    <span>☀️ 浅色</span>
+    <button class="theme-toggle" id="themeToggle"></button>
+    <span>🌙 暗色</span>
+  </div>
+
+  <button class="cta-btn" id="convertBtn" disabled>
+    <span class="spinner"></span>🚀 开始转换
+  </button>
+
+  <div class="preview-box" id="previewBox" style="display:none">
+    <div class="pv-header">📋 内容预览 <span id="pvCount"></span></div>
+    <div class="pv-body" id="pvContent"></div>
+  </div>
+
+  <div class="footer">文件不会上传，全部在浏览器本地处理</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+//  DOM refs
+// ============================================================
+const $ = id => document.getElementById(id);
+const dropzone = $('dropzone'), fileInput = $('fileInput');
+const fileCard = $('fileCard'), fileName = $('fileName'), fileMeta = $('fileMeta');
+const removeBtn = $('removeFile'), formatSeg = $('formatSeg');
+const themeRow = $('themeRow'), themeToggle = $('themeToggle');
+const convertBtn = $('convertBtn'), previewBox = $('previewBox');
+const pvContent = $('pvContent'), pvCount = $('pvCount'), toast = $('toast');
+
+let currentFile = null, currentHtml = '', fmt = 'md', dark = false, doc = null;
+
+// ============================================================
+//  Drag & drop
+// ============================================================
+['dragover','dragenter'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drag-over') }));
+['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drag-over') }));
+dropzone.addEventListener('drop', e => { if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]) });
+dropzone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]) });
+removeBtn.addEventListener('click', reset);
+
+// Format selector
+formatSeg.addEventListener('click', e => {
+  const btn = e.target.closest('.seg-btn');
+  if (!btn) return;
+  formatSeg.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  fmt = btn.dataset.fmt;
+  themeRow.style.display = (fmt === 'pptx' || fmt === 'both') ? 'flex' : 'none';
+});
+
+themeToggle.addEventListener('click', () => { dark = !dark; themeToggle.classList.toggle('dark', dark) });
+
+// Convert
+convertBtn.addEventListener('click', async () => {
+  if (!currentFile) return;
+  convertBtn.classList.add('loading');
+  convertBtn.disabled = true;
+  try {
+    if (fmt === 'md') downloadMD();
+    else if (fmt === 'pptx') await downloadPPTX();
+    else { downloadMD(); await downloadPPTX(); }
+    toastMsg('✅ 转换完成，文件已下载', 'success');
+  } catch(e) {
+    console.error(e);
+    toastMsg('❌ 转换失败：' + e.message, 'error');
+  }
+  convertBtn.classList.remove('loading');
+  convertBtn.disabled = false;
+});
+
+// ============================================================
+//  File loading
+// ============================================================
+function loadFile(file) {
+  if (!/\.html?$/i.test(file.name)) { toastMsg('请选择 .html 文件', 'error'); return; }
+  currentFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    currentHtml = e.target.result;
+    doc = new DOMParser().parseFromString(currentHtml, 'text/html');
+    fileName.textContent = file.name;
+    fileMeta.textContent = `${(file.size/1024).toFixed(1)} KB · ${new Date().toLocaleTimeString()}`;
+    fileCard.style.display = 'flex';
+    formatSeg.style.display = 'flex';
+    themeRow.style.display = (fmt === 'pptx' || fmt === 'both') ? 'flex' : 'none';
+    convertBtn.disabled = false;
+    renderPreview();
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function reset() {
+  currentFile = null; currentHtml = ''; doc = null;
+  fileCard.style.display = 'none'; formatSeg.style.display = 'none';
+  themeRow.style.display = 'none'; convertBtn.disabled = true;
+  previewBox.style.display = 'none'; fileInput.value = '';
+}
+
+// ============================================================
+//  Content extraction engine  (completely rewritten)
+// ============================================================
+
+// Remove noisy elements
+function cleanDoc(root) {
+  root.querySelectorAll('style,script,noscript,svg,nav,footer,template,link,meta,[aria-hidden="true"]').forEach(el => el.remove());
+}
+
+// Check if text is just decorative noise
+const DECORATIVE_RE = /^[\s -⁯☀-➿⭐⭕⌚⌛⏏⏩-⏳▪▫▶◀◻-◾☎☕☺♈-♓♠-♨♻♿⚓⚠⚡⚽⚾✂✅✈-✏✒✔✖✨✳✴❄❇❌❎❓-❕❗❣❤➕-➗➡➰➿⤴⤵⬅-⬇⬛⬜⭐⭕〰〽㊗㊙｢｣\-_=═╔╗╚╝║♥●○◉◎★☆▶▸►→←↑↓➤✓✔✗✘·•·]+$/;
+function isDecorative(text) {
+  return DECORATIVE_RE.test(text) || (text.replace(/[\s\p{Emoji}\-\|]/gu,'').length === 0 && text.length < 6);
+}
+
+// Get clean text from a single element (leaf-level)
+function leafText(el) {
+  let result = '';
+  for (const node of el.childNodes) {
+    if (node.nodeType === 3) { // Text node
+      result += node.textContent;
+    } else if (node.nodeType === 1) {
+      const tag = node.tagName.toLowerCase();
+      if (tag === 'br') { result += '\n'; continue; }
+      if (tag === 'strong' || tag === 'b') { result += '**' + node.textContent.trim() + '**'; continue; }
+      if (tag === 'em' || tag === 'i') { result += '*' + node.textContent.trim() + '*'; continue; }
+      if (tag === 'code') { result += '`' + node.textContent.trim() + '`'; continue; }
+      if (tag === 'a') { const href = node.getAttribute('href')||''; result += href ? '['+node.textContent.trim()+']('+href+')' : node.textContent.trim(); continue; }
+      result += node.textContent;
+    }
+  }
+  return result.replace(/\s+/g, ' ').trim();
+}
+
+// Main parser: extract structured content from HTML
+function parseContent(root) {
+  cleanDoc(root);
+  const body = root.body || root;
+  const title = (root.querySelector('title')||{}).textContent || '';
+
+  // Find all top-level <section> elements
+  let sections = [...body.querySelectorAll(':scope > section')];
+  if (!sections.length) sections = [body];
+
+  const blocks = []; // [{type, title, items:[]}]
+
+  for (const sec of sections) {
+    const block = parseBlock(sec);
+    if (block && block.items.length > 0) blocks.push(block);
+  }
+
+  return { title, blocks };
+}
+
+function parseBlock(container) {
+  const items = []; // [{type:'h1'|'h2'|'h3'|'p'|'list'|'quote'|'code', text, children?}]
+  const seen = new Set(); // prevent duplicates
+  let firstH = null;
+
+  function add(item) {
+    const key = item.type + '|' + (item.text || '').substring(0,80);
+    if (seen.has(key)) return;
+    seen.add(key);
+    if (item.text && isDecorative(item.text)) return;
+    if (item.type.startsWith('h') && !firstH) firstH = item;
+    items.push(item);
+  }
+
+  // Walk direct children of container
+  for (const child of container.children) {
+    const tag = child.tagName.toLowerCase();
+
+    if (/^h[1-6]$/.test(tag)) {
+      const text = child.textContent.replace(/\s+/g,' ').trim();
+      if (text && !isDecorative(text)) add({ type: tag, text });
+      continue;
+    }
+
+    if (tag === 'p') {
+      const text = leafText(child);
+      if (text && text.length > 2 && !isDecorative(text)) add({ type:'p', text });
+      continue;
+    }
+
+    if (tag === 'ul' || tag === 'ol') {
+      const listItems = [];
+      for (const li of child.querySelectorAll(':scope > li')) {
+        const t = li.textContent.replace(/\s+/g,' ').trim();
+        if (t && !isDecorative(t)) listItems.push(t);
+      }
+      if (listItems.length) add({ type:'list', text:'', children:listItems });
+      continue;
+    }
+
+    if (tag === 'pre') {
+      const code = child.querySelector('code');
+      const text = (code || child).textContent.trim();
+      if (text && text.length > 2) add({ type:'code', text: text.substring(0,800) });
+      continue;
+    }
+
+    if (tag === 'blockquote') {
+      const text = child.textContent.replace(/\s+/g,' ').trim();
+      if (text && !isDecorative(text)) add({ type:'quote', text });
+      continue;
+    }
+
+    if (tag === 'table') {
+      const rows = [];
+      for (const tr of child.querySelectorAll('tr')) {
+        rows.push([...tr.querySelectorAll('td,th')].map(c => c.textContent.trim()));
+      }
+      if (rows.length) add({ type:'table', text:'', children:rows });
+      continue;
+    }
+
+    if (tag === 'div') {
+      const cls = (child.className || '').toLowerCase();
+      const divText = child.textContent.replace(/\s+/g,' ').trim();
+
+      // Skip empty / purely decorative divs
+      if (!divText || isDecorative(divText)) continue;
+
+      // --- sticky wall (container for stickies) — MUST be BEFORE card/sticky check ---
+      if (/\bsticky-wall\b/.test(cls)) {
+        for (const sticky of child.children) {
+          const sText = sticky.textContent.replace(/\s+/g,' ').trim();
+          if (sText && !isDecorative(sText)) add({ type:'quote', text: sText });
+        }
+        continue;
+      }
+
+      // --- cards / sticky notes ---
+      if (/\b(card|sticky|note|panel|box|callout)\b/.test(cls)) {
+        const h3 = child.querySelector('h3,h4');
+        const strong = child.querySelector(':scope > strong, :scope > b');
+        const title = h3 ? h3.textContent.trim() : (strong ? strong.textContent.trim() : '');
+        const body = divText.replace(title, '').replace(/^[\s\-:：•·]+/,'').trim();
+
+        if (child.querySelector('ul,ol')) {
+          // Card with list inside — extract list items
+          const listEl = child.querySelector('ul,ol');
+          const listItems = [...listEl.querySelectorAll('li')].map(li => li.textContent.replace(/\s+/g,' ').trim()).filter(t => t && !isDecorative(t));
+          if (title && !isDecorative(title)) add({ type:'quote', text: title, bold: true });
+          for (const li of listItems) add({ type:'list-item', text: li });
+        } else if (body && body.length > 3) {
+          add({ type:'quote', text: (title ? title + '：' : '') + body, bold: title && title.length < 30 });
+        }
+        continue;
+      }
+
+      // --- anatomy / icon-row / decoration divs (skip entirely) ---
+      if (/\b(icon-row|doodle|decoration|decor|progress|grid-subtle|ambient|notebook-lines|notebook-margin)\b/.test(cls)) {
+        continue;
+      }
+
+      // --- anatomy row ---
+      if (/\banatomy-row\b/.test(cls)) {
+        for (const box of child.querySelectorAll(':scope > [class*=anatomy-box], :scope > [class*=feature-box], :scope > [class*=info-box]')) {
+          const strong = box.querySelector('strong');
+          const label = strong ? '**' + strong.textContent.trim() + '**' : '';
+          const desc = box.textContent.replace(/\s+/g,' ').replace(strong?.textContent||'', '').trim();
+          const q = [label, desc].filter(Boolean).join(' — ');
+          if (q && !isDecorative(q)) add({ type:'quote', text: q });
+        }
+        continue;
+      }
+
+      // --- anatomy container → process children ---
+      if (cls === 'anatomy') {
+        const subBlock = parseBlock(child);
+        for (const item of subBlock.items) add(item);
+        continue;
+      }
+
+      // --- heading-like divs (s-label, section-label, etc) ---
+      if (/\b(s-label|section-label|label-row|badge-row)\b/.test(cls)) {
+        if (divText && divText.length < 60 && !isDecorative(divText)) add({ type:'p', text:'**' + divText + '**' });
+        continue;
+      }
+
+      // --- grids with cards inside ---
+      if (/\bgrid/.test(cls)) {
+        for (const card of child.children) {
+          const cCls = (card.className||'').toLowerCase();
+          if (/\b(card|sticky|item)\b/.test(cCls)) {
+            const h = card.querySelector('h3,h4,strong');
+            const title = h ? h.textContent.trim() : '';
+            const body = card.textContent.replace(/\s+/g,' ').trim().replace(title,'').replace(/^[\s\-:：]+/,'').trim();
+            if (card.querySelector('ul,ol')) {
+              if (title && !isDecorative(title)) add({ type:'quote', text: title, bold: true });
+              for (const li of card.querySelectorAll(':scope > ul > li, :scope > ol > li')) {
+                const lt = li.textContent.replace(/\s+/g,' ').trim();
+                if (lt && !isDecorative(lt)) add({ type:'list-item', text: lt });
+              }
+            } else if (body && body.length > 3) {
+              add({ type:'quote', text: (title ? title + '：' : '') + body });
+            }
+          }
+        }
+        continue;
+      }
+
+      // --- generic content div ---
+      // If it has semantic children, recurse; otherwise treat as paragraph
+      const hasSemantic = child.querySelector('h1,h2,h3,h4,p,ul,ol,pre,blockquote,table');
+      if (hasSemantic) {
+        // Recurse: parse this div's children
+        const subBlock = parseBlock(child);
+        for (const item of subBlock.items) add(item);
+      } else if (divText.length > 5 && !isDecorative(divText)) {
+        add({ type:'p', text: divText });
+      }
+    }
+  }
+
+  // Use first heading as block title if present
+  const title = firstH ? firstH.text : '';
+  return { title, items };
+}
+
+// ============================================================
+//  Markdown generation
+// ============================================================
+function generateMD() {
+  if (!doc) return '';
+  const { title, blocks } = parseContent(doc);
+  const lines = [];
+
+  if (title) lines.push('# ' + title + '\n');
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    if (i > 0) lines.push('\n---\n');
+
+    for (const item of block.items) {
+      switch (item.type) {
+        case 'h1': lines.push('\n# ' + item.text + '\n'); break;
+        case 'h2': lines.push('\n## ' + item.text + '\n'); break;
+        case 'h3': lines.push('\n### ' + item.text + '\n'); break;
+        case 'h4': lines.push('\n#### ' + item.text + '\n'); break;
+        case 'p':
+          lines.push('\n' + item.text + '\n');
+          break;
+        case 'list':
+          for (const li of (item.children||[])) lines.push('- ' + li);
+          lines.push('');
+          break;
+        case 'list-item':
+          lines.push('- ' + item.text);
+          break;
+        case 'quote':
+          lines.push('> ' + (item.bold ? '**' + item.text + '**' : item.text));
+          break;
+        case 'code':
+          lines.push('\n```\n' + item.text + '\n```\n');
+          break;
+        case 'table':
+          if (item.children && item.children.length) {
+            const header = item.children[0];
+            lines.push('| ' + header.join(' | ') + ' |');
+            lines.push('| ' + header.map(()=>'---').join(' | ') + ' |');
+            for (let r=1; r<item.children.length; r++) {
+              lines.push('| ' + item.children[r].join(' | ') + ' |');
+            }
+            lines.push('');
+          }
+          break;
+      }
+    }
+  }
+
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function downloadMD() {
+  const md = generateMD();
+  const blob = new Blob(['﻿' + md], { type: 'text/markdown;charset=utf-8' });
+  saveBlob(blob, currentFile.name.replace(/\.html?$/i,'') + '.md');
+}
+
+// ============================================================
+//  PPTX generation  (rewritten with better layout)
+// ============================================================
+async function downloadPPTX() {
+  const PptxGenJS = window.PptxGenJS;
+  if (!PptxGenJS) throw new Error('PptxGenJS 加载失败，请检查网络');
+
+  const { title, blocks } = parseContent(doc);
+  const pptx = new PptxGenJS();
+  pptx.layout = 'LAYOUT_WIDE'; // 13.3 x 7.5
+
+  const T = dark ? {
+    bg:'1A1A2E', title:'F0F0F0', subtitle:'999999', body:'DDDDDD',
+    accent:'6C8CFF', cardBg:'25253A', cardBorder:'3A3A50'
+  } : {
+    bg:'FFFFFF', title:'1A1A1A', subtitle:'666666', body:'333333',
+    accent:'4F46E5', cardBg:'F8F7FF', cardBorder:'E0E0FF'
+  };
+  const FONT = 'Microsoft YaHei';
+
+  function addSlide() { const s = pptx.addSlide(); s.background = { color:T.bg }; return s; }
+
+  // --- Cover ---
+  if (title || blocks.length) {
+    const s = addSlide();
+    if (title) {
+      s.addText(title, { x:1.2, y:2.0, w:10.9, h:2.2, fontSize:42, bold:true, color:T.title, fontFace:FONT, align:'center', valign:'middle' });
+    }
+    // accent line
+    s.addShape(pptx.ShapeType.rect, { x:5.5, y:4.4, w:2.3, h:0.03, fill:{color:T.accent} });
+    s.addText(new Date().toISOString().slice(0,10), { x:1.2, y:4.8, w:10.9, h:0.4, fontSize:12, color:T.subtitle, fontFace:FONT, align:'center' });
+  }
+
+  // --- Content slides ---
+  let slideNum = 1;
+  for (const block of blocks) {
+    const s = addSlide();
+    let y = 0.7;
+
+    // page number
+    s.addText(String(slideNum++), { x:12.2, y:7.05, w:0.8, h:0.3, fontSize:9, color:T.subtitle, align:'right', fontFace:FONT });
+
+    // Block title
+    if (block.title) {
+      s.addText(block.title, { x:1.0, y, w:11.3, h:0.7, fontSize:28, bold:true, color:T.title, fontFace:FONT });
+      y += 0.6;
+      s.addShape(pptx.ShapeType.rect, { x:1.0, y, w:1.5, h:0.03, fill:{color:T.accent} });
+      y += 0.35;
+    }
+
+    const availableH = 6.6 - y;
+
+    // Collect text content
+    const txtParts = [];
+    for (const item of block.items) {
+      if (item.type === 'quote') {
+        txtParts.push((item.bold ? '▸ ' : '') + item.text);
+      } else if (item.type === 'p' || /^h[3-6]$/.test(item.type)) {
+        txtParts.push((/^h/.test(item.type) ? '■ ' : '') + item.text);
+      } else if (item.type === 'list-item') {
+        txtParts.push('• ' + item.text);
+      } else if (item.type === 'list' && item.children) {
+        for (const li of item.children) txtParts.push('• ' + li);
+      } else if (item.type === 'code') {
+        txtParts.push(item.text.substring(0,300));
+      }
+    }
+
+    if (txtParts.length > 0) {
+      const joined = txtParts.join('\n');
+      const lines = joined.split('\n');
+      // Auto font size based on content length
+      const fontSize = lines.length > 15 ? 13 : lines.length > 8 ? 16 : 18;
+      const lineSpacing = lines.length > 15 ? 18 : lines.length > 8 ? 22 : 28;
+
+      s.addText(joined, {
+        x:1.0, y, w:11.3, h: Math.min(availableH, 6.0),
+        fontSize, color:T.body, fontFace:FONT,
+        valign:'top', lineSpacingMultiple: lineSpacing / fontSize,
+        paraSpaceAfter: 4
+      });
+    }
+  }
+
+  // --- End slide ---
+  if (blocks.length > 2) {
+    const s = addSlide();
+    s.addText('感谢阅读', { x:1, y:2.6, w:11.3, h:1.5, fontSize:44, bold:true, color:T.title, fontFace:FONT, align:'center' });
+    s.addShape(pptx.ShapeType.rect, { x:5.5, y:4.2, w:2.3, h:0.03, fill:{color:T.accent} });
+  }
+
+  const blob = await pptx.write({ outputType:'blob' });
+  saveBlob(blob, currentFile.name.replace(/\.html?$/i,'') + '.pptx');
+}
+
+// ============================================================
+//  Preview
+// ============================================================
+function renderPreview() {
+  if (!doc) return;
+  const { title, blocks } = parseContent(doc);
+
+  const lines = [];
+  if (title) lines.push('# ' + title + '\n');
+
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i];
+    if (i > 0) lines.push('\n---\n');
+    if (b.title) lines.push('## ' + b.title + '\n');
+    for (const item of b.items) {
+      const t = item.children ? item.children.join(' | ') : item.text;
+      if (t) lines.push((item.type === 'quote' ? '> ' : '') + t.substring(0,120));
+    }
+  }
+
+  pvContent.textContent = lines.join('\n').substring(0, 3000);
+  pvCount.textContent = blocks.length + ' 个章节';
+  previewBox.style.display = 'block';
+}
+
+// ============================================================
+//  Utils
+// ============================================================
+function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function toastMsg(msg, type) {
+  toast.textContent = msg;
+  toast.className = 'toast ' + type + ' show';
+  clearTimeout(toast._tid);
+  toast._tid = setTimeout(() => toast.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
