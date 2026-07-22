@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QDM-TOB · 产品需求文档</title>
+<style>
+/* ========== Reset & Variables ========== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --c-primary:#1E40AF;--c-primary-light:#DBEAFE;--c-primary-dark:#1E3A8A;
+  --c-accent:#F59E0B;--c-accent-light:#FEF3C7;
+  --c-success:#10B981;--c-success-light:#D1FAE5;
+  --c-warning:#F59E0B;--c-danger:#EF4444;
+  --c-bg:#F8FAFC;--c-surface:#FFFFFF;--c-text:#1E3A8A;--c-text2:#475569;--c-text3:#94A3B8;
+  --c-border:#E2E8F0;--c-border-light:#F1F5F9;
+  --radius-sm:6px;--radius:10px;--radius-lg:16px;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.04);
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.03);
+  --shadow-md:0 4px 6px rgba(0,0,0,.05),0 2px 4px rgba(0,0,0,.03);
+  --shadow-lg:0 10px 25px rgba(0,0,0,.06),0 4px 10px rgba(0,0,0,.02);
+  --font-heading:'Fira Code','JetBrains Mono','PingFang SC','Microsoft YaHei',monospace;
+  --font-body:'Fira Sans',-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--c-bg);color:var(--c-text);line-height:1.7;-webkit-font-smoothing:antialiased}
+
+/* ========== Sidebar ========== */
+.sidebar{
+  position:fixed;top:0;left:0;z-index:1000;
+  width:260px;height:100vh;
+  background:var(--c-primary-dark);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.sidebar .sb-header{
+  padding:28px 22px 20px;
+  border-bottom:1px solid rgba(255,255,255,.1);
+  flex-shrink:0;
+}
+.sidebar .sb-header .logo{
+  font-size:16px;font-weight:700;color:#F1F5F9;
+  display:flex;align-items:center;gap:8px;
+  font-family:var(--font-heading);
+}
+.sidebar .sb-header .logo span{font-size:24px}
+.sidebar .sb-header .ver{
+  font-size:11px;color:#64748B;margin-top:4px;
+}
+.sidebar .sb-nav{
+  flex:1;overflow-y:auto;padding:8px 0;
+}
+.sidebar .sb-nav .grp{
+  padding:16px 22px 6px;font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:2px;color:#475569;
+}
+.sidebar .sb-nav a{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 22px;font-size:13px;color:#94A3B8;
+  text-decoration:none;font-weight:500;transition:all .12s;
+  border-left:3px solid transparent;
+}
+.sidebar .sb-nav a:hover{background:#334155;color:#E2E8F0}
+.sidebar .sb-nav a.active{
+  background:rgba(59,130,246,.15);color:#60A5FA;
+  border-left-color:#3B82F6;
+}
+.sidebar .sb-nav a .sb-badge{
+  margin-left:auto;font-size:10px;padding:2px 7px;border-radius:10px;
+  background:rgba(245,158,11,.2);color:var(--c-accent);font-weight:600;
+}
+
+/* ========== Main Content ========== */
+.main{margin-left:260px;max-width:960px;padding:48px 56px 80px}
+.main section{margin-bottom:56px}
+.main section h2{
+  font-family:var(--font-heading);font-size:26px;font-weight:700;
+  color:var(--c-primary-dark);margin-bottom:6px;
+  padding-bottom:12px;border-bottom:2px solid var(--c-border);
+}
+.main section h3{
+  font-family:var(--font-heading);font-size:18px;font-weight:700;
+  color:var(--c-text);margin:28px 0 10px;
+}
+.main section h4{
+  font-size:15px;font-weight:700;color:var(--c-text);margin:20px 0 8px;
+}
+.main section p{margin-bottom:12px;color:var(--c-text2);font-size:15px;line-height:1.8}
+.main section p strong{color:var(--c-text)}
+
+/* ========== Cards ========== */
+.info-card{
+  background:var(--c-surface);border:1px solid var(--c-border);
+  border-radius:var(--radius);padding:20px 24px;margin:16px 0;
+  box-shadow:var(--shadow-sm);
+}
+.info-card h4{font-family:var(--font-heading);margin-top:0;margin-bottom:8px;color:var(--c-primary)}
+.info-card p{margin-bottom:0;font-size:14px}
+
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0}
+.stat-card{
+  background:var(--c-surface);border:1px solid var(--c-border);
+  border-radius:var(--radius);padding:22px 20px;box-shadow:var(--shadow-sm);
+}
+.stat-card .stat-icon{font-size:28px;margin-bottom:8px;display:block}
+.stat-card .stat-num{font-family:var(--font-heading);font-size:28px;font-weight:800;color:var(--c-primary-dark)}
+.stat-card .stat-label{font-size:13px;color:var(--c-text2);margin-top:2px}
+
+/* ========== Tables ========== */
+.spec-table{
+  width:100%;border-collapse:collapse;margin:16px 0;
+  font-size:14px;background:var(--c-surface);
+  border:1px solid var(--c-border);border-radius:var(--radius);overflow:hidden;
+  box-shadow:var(--shadow-sm);
+}
+.spec-table thead{background:var(--c-primary-light)}
+.spec-table th{
+  padding:12px 16px;text-align:left;font-size:12px;font-weight:700;
+  color:var(--c-primary-dark);text-transform:uppercase;letter-spacing:.5px;
+}
+.spec-table td{padding:12px 16px;border-top:1px solid var(--c-border-light);color:var(--c-text2)}
+.spec-table tr:hover td{background:#FAFBFC}
+.spec-table code{
+  background:var(--c-primary-light);color:var(--c-primary-dark);
+  padding:2px 6px;border-radius:3px;font-size:12px;font-family:var(--font-heading);
+}
+
+/* ========== Tags / Badges ========== */
+.tag{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;
+}
+.tag-blue{background:var(--c-primary-light);color:var(--c-primary)}
+.tag-amber{background:var(--c-accent-light);color:#92400E}
+.tag-green{background:var(--c-success-light);color:#065F46}
+.tag-red{background:#FEE2E2;color:#991B1B}
+
+/* ========== Architecture Diagram ========== */
+.arch-diagram{
+  background:var(--c-surface);border:1px solid var(--c-border);
+  border-radius:var(--radius-lg);padding:32px;margin:16px 0;
+  box-shadow:var(--shadow-sm);text-align:center;
+}
+.arch-layer{
+  display:flex;justify-content:center;gap:10px;margin:6px 0;flex-wrap:wrap;
+}
+.arch-box{
+  padding:12px 18px;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:600;font-family:var(--font-heading);
+  border:1px solid;
+}
+.arch-box.layer-app{background:#DBEAFE;border-color:#93C5FD;color:var(--c-primary-dark)}
+.arch-box.layer-api{background:#FEF3C7;border-color:#FCD34D;color:#92400E}
+.arch-box.layer-svc{background:#D1FAE5;border-color:#6EE7B7;color:#065F46}
+.arch-box.layer-db{background:#F3E8FF;border-color:#C4B5FD;color:#5B21B6}
+.arch-box.layer-fe{background:#FEE2E2;border-color:#FCA5A5;color:#991B1B}
+.arch-arrow{color:var(--c-text3);font-size:18px;margin:4px 0}
+
+/* ========== File Tree ========== */
+.file-tree{
+  background:var(--c-surface);border:1px solid var(--c-border);
+  border-radius:var(--radius);padding:20px 24px;margin:16px 0;
+  font-family:var(--font-heading);font-size:13px;
+  box-shadow:var(--shadow-sm);overflow-x:auto;
+}
+.file-tree pre{margin:0;color:var(--c-text2);line-height:1.9}
+.file-tree .ft-dir{color:var(--c-primary);font-weight:700}
+.file-tree .ft-file{color:var(--c-text2)}
+.file-tree .ft-comment{color:var(--c-text3);font-style:italic}
+
+/* ========== Callout ========== */
+.callout{
+  border-left:4px solid;border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+  padding:14px 18px;margin:16px 0;font-size:14px;line-height:1.7;
+}
+.callout-info{border-color:var(--c-primary);background:var(--c-primary-light);color:var(--c-primary-dark)}
+.callout-warning{border-color:var(--c-accent);background:var(--c-accent-light);color:#92400E}
+.callout-success{border-color:var(--c-success);background:var(--c-success-light);color:#065F46}
+.callout strong{display:block;margin-bottom:4px;font-size:13px;text-transform:uppercase;letter-spacing:.5px}
+
+/* ========== Responsive ========== */
+@media(max-width:900px){
+  .sidebar{display:none}
+  .main{margin-left:0;padding:24px 20px 60px}
+  .card-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<nav class="sidebar">
+  <div class="sb-header">
+    <div class="logo"><span>📋</span> QDM-TOB</div>
+    <div class="ver">PRD v1.0 · 2026-07-22</div>
+  </div>
+  <div class="sb-nav">
+    <div class="grp">项目概述</div>
+    <a href="#overview" class="active">项目简介</a>
+    <a href="#stats">关键指标</a>
+
+    <div class="grp">产品架构</div>
+    <a href="#architecture">系统架构</a>
+    <a href="#modules">功能模块</a>
+    <a href="#three-platforms">三端规范</a>
+
+    <div class="grp">技术规范</div>
+    <a href="#tech-stack">技术栈</a>
+    <a href="#directory">目录结构</a>
+    <a href="#design-system">设计系统</a>
+    <a href="#backend">后端规范</a>
+    <a href="#database">数据库规范</a>
+
+    <div class="grp">工程实践</div>
+    <a href="#workflow">开发工作流</a>
+    <a href="#quality">质量门禁</a>
+    <a href="#prd-usage">模板使用指南 <span class="sb-badge">通用</span></a>
+  </div>
+</nav>
+
+<!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+<main class="main">
+
+<!-- ═══ 1. 项目概述 ═══ -->
+<section id="overview">
+  <h2>📋 项目简介</h2>
+
+  <p><strong>QDM-TOB</strong> 是一个面向企业客户的 B2B 电商管理平台，覆盖商品管理、客户管理、订单处理、运营管理等核心业务场景。</p>
+
+  <div class="card-grid">
+    <div class="stat-card">
+      <span class="stat-icon">🖥️</span>
+      <div class="stat-num">3</div>
+      <div class="stat-label">前端终端（PC / 小程序 / 企微H5）</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">📦</span>
+      <div class="stat-num">6+</div>
+      <div class="stat-label">业务模块</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">👥</span>
+      <div class="stat-num">3</div>
+      <div class="stat-label">用户角色（运营 / 客户 / 业务员）</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">🔧</span>
+      <div class="stat-num">5</div>
+      <div class="stat-label">Claude Code Skills</div>
+    </div>
+  </div>
+
+  <div class="info-card">
+    <h4>🎯 核心价值</h4>
+    <p>为企业提供一站式 B2B 交易管理能力：运营人员在 PC 后台管理商品、订单、客户；客户通过小程序浏览下单；业务员通过企业微信 H5 进行客户拜访与订单跟进。</p>
+  </div>
+</section>
+
+<!-- ═══ 2. 关键指标 ═══ -->
+<section id="stats">
+  <h2>📊 关键指标</h2>
+  <table class="spec-table">
+    <thead>
+      <tr><th>维度</th><th>详情</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>项目类型</td><td>B2B 企业电商平台</td></tr>
+      <tr><td>用户角色</td><td><span class="tag tag-blue">运营/管理员</span> <span class="tag tag-amber">客户</span> <span class="tag tag-green">业务员</span></td></tr>
+      <tr><td>前端框架</td><td>Vue 3 + TypeScript + Vite + pnpm</td></tr>
+      <tr><td>后端框架</td><td>Java Spring Boot + MyBatis Plus</td></tr>
+      <tr><td>数据库</td><td>MySQL 8.0 + Flyway 迁移</td></tr>
+      <tr><td>AI 工程化</td><td>Claude Code + Ruflo 多智能体 + 5 个专项 Skills</td></tr>
+      <tr><td>当前版本</td><td>v1.0.0</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ 3. 系统架构 ═══ -->
+<section id="architecture">
+  <h2>🏗️ 系统架构</h2>
+
+  <div class="arch-diagram">
+    <div style="font-size:13px;color:var(--c-text3);margin-bottom:16px;letter-spacing:1px">五层架构</div>
+
+    <div class="arch-layer">
+      <div class="arch-box layer-fe">PC 后台<br><small>Vue 3 + Element Plus</small></div>
+      <div class="arch-box layer-fe">微信小程序<br><small>Vant 4</small></div>
+      <div class="arch-box layer-fe">企微 H5<br><small>Vant 4</small></div>
+    </div>
+    <div class="arch-arrow">↓ HTTP / STS Token</div>
+    <div class="arch-layer">
+      <div class="arch-box layer-api">Controller 层<br><small>REST API · ResponseResult</small></div>
+    </div>
+    <div class="arch-arrow">↓</div>
+    <div class="arch-layer">
+      <div class="arch-box layer-svc">Service 层<br><small>业务逻辑 · 事务管理</small></div>
+      <div class="arch-box layer-svc">Internal API<br><small>跨模块调用</small></div>
+    </div>
+    <div class="arch-arrow">↓</div>
+    <div class="arch-layer">
+      <div class="arch-box layer-db">Mapper 层<br><small>MyBatis Plus</small></div>
+      <div class="arch-box layer-db">Domain 实体</div>
+    </div>
+    <div class="arch-arrow">↓</div>
+    <div class="arch-layer">
+      <div class="arch-box layer-db">MySQL 8.0<br><small>sys_ / cst_ / ord_ / prd_</small></div>
+    </div>
+  </div>
+
+  <div class="callout callout-info">
+    <strong>依赖方向</strong>
+    modules → infrastructure（单向），禁止反向。跨模块只通过 Internal API 或 Spring Event 通信。
+  </div>
+</section>
+
+<!-- ═══ 4. 功能模块 ═══ -->
+<section id="modules">
+  <h2>📦 功能模块</h2>
+  <table class="spec-table">
+    <thead>
+      <tr><th>模块</th><th>子模块</th><th>终端</th><th>状态</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td rowspan="4"><strong>商品管理</strong></td>
+        <td>商品分类</td><td><span class="tag tag-blue">PC 后台</span></td>
+        <td><span class="tag tag-green">完成</span></td>
+      </tr>
+      <tr><td>商品资料</td><td><span class="tag tag-blue">PC 后台</span></td><td><span class="tag tag-green">完成</span></td></tr>
+      <tr><td>商品基础资料</td><td><span class="tag tag-blue">PC 后台</span></td><td><span class="tag tag-green">完成</span></td></tr>
+      <tr><td>商品价格管理</td><td><span class="tag tag-blue">PC 后台</span></td><td><span class="tag tag-green">完成</span></td></tr>
+      <tr>
+        <td rowspan="2"><strong>客户管理</strong></td>
+        <td>登录账号</td><td><span class="tag tag-blue">PC 后台</span></td><td><span class="tag tag-green">完成</span></td>
+      </tr>
+      <tr><td>客户档案</td><td><span class="tag tag-blue">PC 后台</span></td><td><span class="tag tag-green">完成</span></td></tr>
+      <tr>
+        <td rowspan="4"><strong>运营管理</strong></td>
+        <td>销售大区</td><td><span class="tag tag-blue">PC 后台</span></td><td><span class="tag tag-green">完成</span></td>
+      </tr>
+      <tr><td>销售员管理</td><td><span class="tag tag-blue">PC 后台</span></td><td><span class="tag tag-green">完成</span></td></tr>
+      <tr><td>仓库管理</td><td><span class="tag tag-blue">PC 后台</span></td><td><span class="tag tag-green">完成</span></td></tr>
+      <tr><td>公告管理</td><td><span class="tag tag-blue">PC 后台</span></td><td><span class="tag tag-green">完成</span></td></tr>
+      <tr>
+        <td rowspan="5"><strong>系统管理</strong></td>
+        <td>用户管理</td><td><span class="tag tag-blue">PC 后台</span></td><td><span class="tag tag-green">完成</span></td>
+      </tr>
+      <tr><td>菜单管理</td><td><span class="tag tag-blue">PC 后台</span></td><td><span class="tag tag-green">完成</span></td></tr>
+      <tr><td>角色管理</td><td><span class="tag tag-blue">PC 后台</span></td><td><span class="tag tag-green">完成</span></td></tr>
+      <tr><td>字典管理</td><td><span class="tag tag-blue">PC 后台</span></td><td><span class="tag tag-green">完成</span></td></tr>
+      <tr><td>隐私政策</td><td><span class="tag tag-blue">PC 后台</span></td><td><span class="tag tag-green">完成</span></td></tr>
+      <tr>
+        <td rowspan="1"><strong>订单管理</strong></td>
+        <td>销售订单</td><td><span class="tag tag-amber">多端</span></td><td><span class="tag tag-red">待开发</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ 5. 三端规范 ═══ -->
+<section id="three-platforms">
+  <h2>📱 三端规范</h2>
+
+  <div class="card-grid">
+    <div class="stat-card">
+      <span class="stat-icon">🖥️</span>
+      <div class="stat-num">Admin</div>
+      <div class="stat-label">PC 管理后台 · 运营/管理员</div>
+      <div style="font-size:12px;color:var(--c-text3);margin-top:8px">Element Plus · Tailwind(tw-) · 侧边栏</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">📱</span>
+      <div class="stat-num">Mobile</div>
+      <div class="stat-label">微信小程序 · 客户</div>
+      <div style="font-size:12px;color:var(--c-text3);margin-top:8px">Vant 4 · Tailwind · TabBar · 375px</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">💬</span>
+      <div class="stat-num">H5</div>
+      <div class="stat-label">企业微信 H5 · 业务员</div>
+      <div style="font-size:12px;color:var(--c-text3);margin-top:8px">Vant 4 · Tailwind · TabBar · 375px</div>
+    </div>
+  </div>
+
+  <table class="spec-table">
+    <thead>
+      <tr><th>维度</th><th>PC 后台</th><th>小程序</th><th>企微 H5</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>屏宽</strong></td><td>≥1200px</td><td>375px</td><td>375px</td></tr>
+      <tr><td><strong>UI 库</strong></td><td>Element Plus</td><td>Vant 4</td><td>Vant 4</td></tr>
+      <tr><td><strong>字号基准</strong></td><td>14px</td><td>14px</td><td>14px</td></tr>
+      <tr><td><strong>导航</strong></td><td>左侧菜单 + iframe</td><td>底部 TabBar + iframe</td><td>底部 TabBar + iframe</td></tr>
+      <tr><td><strong>Tailwind 前缀</strong></td><td><code>tw-</code></td><td>标准（无前缀）</td><td>标准（无前缀）</td></tr>
+      <tr><td><strong>主题色</strong></td><td><code>#0369A1</code></td><td><code>#FF0000</code></td><td><code>#3B82F6</code></td></tr>
+      <tr><td><strong>表单密度</strong></td><td>宽松</td><td>紧凑</td><td>紧凑</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ 6. 技术栈 ═══ -->
+<section id="tech-stack">
+  <h2>⚙️ 技术栈</h2>
+
+  <h3>前端（三端统一核心栈）</h3>
+  <table class="spec-table">
+    <thead>
+      <tr><th>类别</th><th>选型</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>框架</td><td>Vue 3 Composition API + TypeScript</td><td>禁止 Options API</td></tr>
+      <tr><td>构建</td><td>Vite + pnpm</td><td>禁止 npm / yarn</td></tr>
+      <tr><td>状态管理</td><td>Pinia</td><td>按功能域创建 Store</td></tr>
+      <tr><td>路由</td><td>Vue Router (History 模式)</td><td>模块化路由，addRoute 动态注册</td></tr>
+      <tr><td>HTTP</td><td>Axios</td><td>统一拦截器 + Token 注入</td></tr>
+      <tr><td>CSS</td><td>Tailwind CSS + CSS 变量</td><td>PC 用 <code>tw-</code> 前缀</td></tr>
+      <tr><td>PC UI 库</td><td>Element Plus</td><td>全局注册 + 中文语言包</td></tr>
+      <tr><td>Mobile UI 库</td><td>Vant 4</td><td>小程序/H5 使用</td></tr>
+      <tr><td>富文本</td><td>Tiptap</td><td>仅 PC 端使用</td></tr>
+      <tr><td>测试</td><td>Vitest + @vue/test-utils</td><td>jsdom 环境</td></tr>
+      <tr><td>日志</td><td>阿里云 SLS</td><td>单例 Tracker + STS 凭证刷新</td></tr>
+      <tr><td>OSS</td><td>ali-oss SDK + STS 直传</td><td>自动重试 + 分片上传</td></tr>
+    </tbody>
+  </table>
+
+  <h3>后端</h3>
+  <table class="spec-table">
+    <thead>
+      <tr><th>类别</th><th>选型</th><th>说明</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>语言</td><td>Java 17+</td><td>LTS 版本</td></tr>
+      <tr><td>框架</td><td>Spring Boot 3.x</td><td></td></tr>
+      <tr><td>ORM</td><td>MyBatis Plus</td><td>禁止手写 SQL（简单 CRUD）</td></tr>
+      <tr><td>数据库迁移</td><td>Flyway</td><td>版本化 SQL 迁移</td></tr>
+      <tr><td>对象转换</td><td>MapStruct</td><td>Entity ↔ VO，禁止手写</td></tr>
+      <tr><td>鉴权</td><td>Spring Security + JWT</td><td>@RequirePermission 注解</td></tr>
+      <tr><td>Excel</td><td>@Exportable / @Importable</td><td>禁止自行封装</td></tr>
+      <tr><td>API 文档</td><td>Swagger / OpenAPI</td><td>agent-swagger-generator 自动生成</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ 7. 目录结构 ═══ -->
+<section id="directory">
+  <h2>📁 目录结构规范</h2>
+
+  <div class="callout callout-warning">
+    <strong>⚠️ 通用模板规则</strong>
+    以下结构为新项目标准范本。前端统一放 <code>tob-frontend-*</code>，后端放 <code>tob-backend/</code>，产品文档放 <code>product/</code>。
+  </div>
+
+  <h3>项目根目录</h3>
+  <div class="file-tree">
+<pre>
+<span class="ft-dir">qdm-tob/</span>                              <span class="ft-comment">← 项目根目录</span>
+├── <span class="ft-dir">product/</span>                           <span class="ft-comment">← 产品文档 & PRD 原型</span>
+│   ├── <span class="ft-file">PRD.html</span>                      <span class="ft-comment">← 产品需求文档（本文件）</span>
+│   ├── <span class="ft-dir">spec/</span>                          <span class="ft-comment">← SPEC 规范 + 原型 HTML</span>
+│   │   ├── <span class="ft-file">README.md</span>                   <span class="ft-comment">← 产品结构总览 & 菜单定义</span>
+│   │   ├── <span class="ft-dir">01-商品管理/</span>
+│   │   │   ├── <span class="ft-file">商品资料.md</span>
+│   │   │   └── <span class="ft-file">商品资料-原型.html</span>
+│   │   └── <span class="ft-dir">NN-模块名/</span>
+│   └── <span class="ft-dir">prd/</span>                           <span class="ft-comment">← 导航框架壳子</span>
+│       ├── <span class="ft-file">admin.html</span>                  <span class="ft-comment">← PC 后台框架</span>
+│       ├── <span class="ft-file">menu.js</span>                     <span class="ft-comment">← PC 后台菜单</span>
+│       ├── <span class="ft-file">mobile.html</span>                 <span class="ft-comment">← 小程序框架</span>
+│       └── <span class="ft-file">h5.html</span>                      <span class="ft-comment">← 企微 H5 框架</span>
+├── <span class="ft-dir">tob-backend/</span>                       <span class="ft-comment">← Java 后端</span>
+│   ├── <span class="ft-dir">api/admin/</span>
+│   ├── <span class="ft-dir">api/mall/</span>
+│   ├── <span class="ft-dir">service/</span>
+│   ├── <span class="ft-dir">mapper/</span>
+│   ├── <span class="ft-dir">domain/</span>
+│   └── <span class="ft-dir">enums/</span>
+├── <span class="ft-dir">tob-frontend/</span>
+│   ├── <span class="ft-dir">tob-frontend-web/</span>               <span class="ft-comment">← PC 管理后台</span>
+│   ├── <span class="ft-dir">tob-frontend-mobile/</span>           <span class="ft-comment">← 微信小程序</span>
+│   └── <span class="ft-dir">tob-frontend-h5/</span>               <span class="ft-comment">← 企微 H5</span>
+├── <span class="ft-dir">docs/</span>                              <span class="ft-comment">← 文档（数据库设计等）</span>
+└── <span class="ft-dir">.claude/</span>                           <span class="ft-comment">← Claude Code 配置</span>
+    ├── <span class="ft-dir">rules/</span>                          <span class="ft-comment">← 编码规范（自动注入）</span>
+    └── <span class="ft-dir">skills/</span>                         <span class="ft-comment">← 专项 AI Skills</span>
+</pre>
+  </div>
+
+  <h3>前端内部结构（以 web 为例）</h3>
+  <div class="file-tree">
+<pre>
+<span class="ft-dir">tob-frontend-web/src/</span>
+├── <span class="ft-dir">api/modules/</span>       <span class="ft-comment">← API 按业务模块拆分</span>
+├── <span class="ft-dir">router/modules/</span>    <span class="ft-comment">← 业务路由 RouteRecordRaw[]</span>
+├── <span class="ft-dir">stores/</span>            <span class="ft-comment">← Pinia Store</span>
+├── <span class="ft-dir">views/&lt;module&gt;/</span>    <span class="ft-comment">← 页面组件</span>
+├── <span class="ft-dir">layouts/</span>           <span class="ft-comment">← 布局组件</span>
+├── <span class="ft-dir">components/</span>        <span class="ft-comment">← 公共组件（禁止调 API）</span>
+├── <span class="ft-dir">utils/</span>             <span class="ft-comment">← request.ts, auth.ts, oss.ts</span>
+└── <span class="ft-dir">styles/</span>            <span class="ft-comment">← 全局样式 + CSS 变量</span>
+</pre>
+  </div>
+
+  <div class="callout callout-info">
+    <strong>通用模板规则</strong>
+    新项目遵循相同结构：<code>product/spec/</code> 放 SPEC + 原型，<code>product/prd/</code> 放框架壳子，
+    <code>前端名/src/</code> 下统一 api/router/stores/views/components/utils/styles 七目录。
+  </div>
+</section>
+
+<!-- ═══ 8. 设计系统 ═══ -->
+<section id="design-system">
+  <h2>🎨 设计系统</h2>
+
+  <table class="spec-table">
+    <thead>
+      <tr><th>维度</th><th>PC 后台</th><th>小程序 / H5</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>风格</strong></td><td>Data-Dense Dashboard</td><td>Restaurant & Food</td></tr>
+      <tr><td><strong>主色</strong></td><td><code>#0369A1</code> (Sky-700)</td><td><code>#FF0000</code> / <code>#3B82F6</code></td></tr>
+      <tr><td><strong>背景</strong></td><td><code>#F8FAFC</code></td><td><code>#F8FAFC</code></td></tr>
+      <tr><td><strong>标题字体</strong></td><td>Fira Code</td><td>PingFang SC</td></tr>
+      <tr><td><strong>正文字体</strong></td><td>Fira Sans</td><td>PingFang SC</td></tr>
+      <tr><td><strong>卡片圆角</strong></td><td>14px</td><td>12px</td></tr>
+      <tr><td><strong>按钮圆角</strong></td><td>12px</td><td>8px</td></tr>
+      <tr><td><strong>阴影</strong></td><td><code>0 4px 24px rgba(0,0,0,.05)</code></td><td>shadow-sm</td></tr>
+      <tr><td><strong>动画</strong></td><td>200-300ms ease</td><td>200ms ease</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-warning">
+    <strong>强制约束</strong>
+    禁止偏离设计体系自行定义样式。禁止混用他端色系。PC 端禁止使用 emoji 作为图标（必须用 SVG）。
+  </div>
+</section>
+
+<!-- ═══ 9. 后端规范 ═══ -->
+<section id="backend">
+  <h2>🔧 后端规范</h2>
+
+  <h3>五层架构</h3>
+  <table class="spec-table">
+    <thead>
+      <tr><th>层</th><th>目录</th><th>职责</th><th>禁止</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Controller</strong></td><td><code>api/admin/</code> <code>api/mall/</code></td><td>接收请求、调 Service、返回 ResponseResult</td><td>业务逻辑、直接 Mapper</td></tr>
+      <tr><td><strong>Service</strong></td><td><code>service/</code></td><td>业务逻辑、事务、调 Mapper</td><td>实现 API 接口、处理 HTTP</td></tr>
+      <tr><td><strong>Mapper</strong></td><td><code>mapper/</code></td><td>数据库 CRUD</td><td>业务逻辑</td></tr>
+      <tr><td><strong>VO</strong></td><td><code>vo/</code></td><td>入参/出参 + 校验注解</td><td>业务逻辑</td></tr>
+      <tr><td><strong>Domain</strong></td><td><code>domain/</code></td><td>实体字段映射 @TableName</td><td>作为 Controller 出参</td></tr>
+    </tbody>
+  </table>
+
+  <h3>API 规范速查</h3>
+  <div class="info-card">
+    <h4>关键约束</h4>
+    <p>
+      ✅ 统一返回 <code>ResponseResult&lt;T&gt;</code> &nbsp;
+      ✅ 资源 ID 用 @RequestParam &nbsp;
+      ✅ Entity ↔ VO 用 MapStruct &nbsp;
+      ✅ 异常 → TobServiceException &nbsp;
+      ✅ Excel 用 @Exportable / @Importable &nbsp;
+      ❌ 禁止 @PathVariable &nbsp;
+      ❌ 禁止手写 Entity↔VO 转换 &nbsp;
+      ❌ 禁止 Controller 使用 MultipartFile
+    </p>
+  </div>
+</section>
+
+<!-- ═══ 10. 数据库规范 ═══ -->
+<section id="database">
+  <h2>🗄️ 数据库规范</h2>
+
+  <table class="spec-table">
+    <thead>
+      <tr><th>规范项</th><th>要求</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>表前缀</td><td><code>sys_</code> <code>cst_</code> <code>ord_</code> <code>prd_</code> 按模块区分</td></tr>
+      <tr><td>引擎</td><td>InnoDB</td></tr>
+      <tr><td>字符集</td><td>utf8mb4</td></tr>
+      <tr><td>表名前缀隔离</td><td>不同前缀 <strong>禁止 JOIN</strong>，通过应用层组合或 Spring Event</td></tr>
+      <tr><td>标准字段</td><td><code>created_at</code> <code>updated_at</code> <code>created_by</code> <code>updated_by</code> <code>status</code></td></tr>
+      <tr><td>枚举类型</td><td>使用 MySQL ENUM 类型</td></tr>
+      <tr><td>字段注释</td><td>所有字段必须加 COMMENT</td></tr>
+      <tr><td>迁移工具</td><td>Flyway，SQL 文件放 <code>db/migration/</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ 11. 开发工作流 ═══ -->
+<section id="workflow">
+  <h2>🔄 开发工作流</h2>
+
+  <h3>AI 辅助开发流程</h3>
+  <div class="arch-diagram">
+    <div class="arch-layer">
+      <div class="arch-box layer-api">1. SPEC 定义<br><small>product/spec/ 下写 .md</small></div>
+      <div style="padding:12px;color:var(--c-text3);font-size:20px">→</div>
+      <div class="arch-box layer-svc">2. PRD 原型<br><small>product-prd-writer 生成 HTML</small></div>
+      <div style="padding:12px;color:var(--c-text3);font-size:20px">→</div>
+      <div class="arch-box layer-fe">3. 前后端开发<br><small>遵守 rules/ 编码规范</small></div>
+      <div style="padding:12px;color:var(--c-text3);font-size:20px">→</div>
+      <div class="arch-box layer-db">4. 质量门禁<br><small>SPEC 验证 + 代码审查</small></div>
+    </div>
+  </div>
+
+  <h3>Claude Code Skills</h3>
+  <table class="spec-table">
+    <thead>
+      <tr><th>Skill</th><th>用途</th><th>触发方式</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>product-prd-writer</strong></td><td>从 SPEC 生成三端原型 HTML</td><td>"生成PRD" "原型HTML"</td></tr>
+      <tr><td><strong>product-spec-engineer</strong></td><td>需求 → 结构化 SPEC 文档</td><td>"写SPEC" "需求规范"</td></tr>
+      <tr><td><strong>agent-swagger-generator</strong></td><td>Controller → Swagger API 文档</td><td>"生成API文档"</td></tr>
+      <tr><td><strong>agent-qa-expert</strong></td><td>代码质量审查 + 测试建议</td><td>"审查代码" "QA检查"</td></tr>
+      <tr><td><strong>ui-ux-pro-max</strong></td><td>设计系统生成 + UI 约束注入</td><td>自动注入 rules/</td></tr>
+    </tbody>
+  </table>
+
+  <h3>环境</h3>
+  <table class="spec-table">
+    <thead>
+      <tr><th>环境</th><th>PC Web</th><th>Mobile</th><th>H5</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>开发</td><td><code>pnpm dev</code></td><td><code>pnpm dev</code></td><td><code>pnpm dev</code></td></tr>
+      <tr><td>测试</td><td><code>pnpm qa</code> → <code>dist-qa/</code></td><td><code>pnpm qa</code></td><td><code>pnpm qa</code></td></tr>
+      <tr><td>生产</td><td><code>pnpm pro</code> → <code>dist-pro/</code></td><td><code>pnpm pro</code></td><td><code>pnpm pro</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ 12. 质量门禁 ═══ -->
+<section id="quality">
+  <h2>✅ 质量门禁</h2>
+
+  <table class="spec-table">
+    <thead>
+      <tr><th>#</th><th>检查项</th><th>验证方式</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>原型文件在 spec 模块目录下</td><td><code>ls product/spec/NN-模块/功能-原型.html</code></td></tr>
+      <tr><td>2</td><td>menu.js 已更新 url</td><td><code>grep '原型.html' product/prd/menu.js</code></td></tr>
+      <tr><td>3</td><td>PC 端未引入 Tailwind CDN</td><td>grep tailwind → 应为空</td></tr>
+      <tr><td>4</td><td>无 el-*/van-* 标签自闭合</td><td>检查标签是否完整闭合</td></tr>
+      <tr><td>5</td><td>Vue 挂载点是 #prd-root</td><td><code>grep '.mount'</code></td></tr>
+      <tr><td>6</td><td>PC 后台两段式布局</td><td>查询区 + 操作&数据区各自独立 div</td></tr>
+      <tr><td>7</td><td>表格含多选列 + 分页 + 表头样式</td><td>type="selection" + el-pagination</td></tr>
+      <tr><td>8</td><td>无 emoji 作为图标（PC端）</td><td>使用 SVG 图标</td></tr>
+      <tr><td>9</td><td>ESLint 0 error</td><td><code>pnpm lint</code></td></tr>
+      <tr><td>10</td><td>TypeScript 无 any/ts-ignore</td><td>代码审查</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ 13. 模板使用指南 ═══ -->
+<section id="prd-usage">
+  <h2>📝 PRD 模板使用指南 <span class="tag tag-amber">通用</span></h2>
+
+  <div class="callout callout-success">
+    <strong>本文件既是 QDM-TOB 的 PRD，也是新项目的模板</strong>
+    复制本文件到新项目，替换内容即可。文件命名：<code>PRD.html</code>，放在项目根目录或 <code>product/</code> 下。
+  </div>
+
+  <h3>新项目使用步骤</h3>
+  <table class="spec-table">
+    <thead>
+      <tr><th>步骤</th><th>操作</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>复制 <code>PRD.html</code> 到新项目 <code>product/</code> 目录</td></tr>
+      <tr><td>2</td><td>修改「项目简介」：项目名、简介、核心价值</td></tr>
+      <tr><td>3</td><td>修改「关键指标」：技术栈、版本等</td></tr>
+      <tr><td>4</td><td>修改「功能模块」表：按实际业务填写</td></tr>
+      <tr><td>5</td><td>修改「技术栈」：去掉不需要的，加上新的</td></tr>
+      <tr><td>6</td><td>修改「目录结构」：调整项目实际目录</td></tr>
+      <tr><td>7</td><td>修改「设计系统」：换成项目的设计规范</td></tr>
+      <tr><td>8</td><td>修改「质量门禁」：根据项目调整检查项</td></tr>
+    </tbody>
+  </table>
+
+  <h3>文件放置标准</h3>
+  <div class="info-card">
+    <h4>📁 新项目标准结构</h4>
+    <p style="line-height:2.2">
+      <strong>前端代码</strong> → <code>项目名-frontend/</code> 或按端拆分 <code>tob-frontend-{web|mobile|h5}/</code><br>
+      <strong>后端代码</strong> → <code>项目名-backend/</code> 或 <code>tob-backend/</code><br>
+      <strong>PRD 文档</strong> → <code>product/PRD.html</code><br>
+      <strong>SPEC 规范</strong> → <code>product/spec/{NN}-{模块名}/{功能名}.md</code><br>
+      <strong>原型 HTML</strong> → <code>product/spec/{NN}-{模块名}/{功能名}-原型.html</code><br>
+      <strong>框架壳子</strong> → <code>product/prd/{admin|mobile|h5}.html</code><br>
+      <strong>编码规范</strong> → <code>.claude/rules/{规则名}.md</code><br>
+      <strong>AI Skills</strong> → <code>.claude/skills/{skill名}/SKILL.md</code><br>
+      <strong>数据库文档</strong> → <code>docs/database/</code>
+    </p>
+  </div>
+
+  <div class="callout callout-info">
+    <strong>模板维护</strong>
+    本文件修改后同步到所有使用此模板的项目。变更记录写在 Sidebar 的版本号旁边。
+  </div>
+</section>
+
+</main>
+
+<script>
+// Sidebar active state
+document.querySelectorAll('.sb-nav a').forEach(a => {
+  a.addEventListener('click', function() {
+    document.querySelectorAll('.sb-nav a').forEach(el => el.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// Scroll spy
+window.addEventListener('scroll', () => {
+  const sections = document.querySelectorAll('main section[id]');
+  let current = '';
+  sections.forEach(sec => {
+    if (window.scrollY >= sec.offsetTop - 100) current = sec.id;
+  });
+  document.querySelectorAll('.sb-nav a').forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+});
+</script>
+</body>
+</html>
