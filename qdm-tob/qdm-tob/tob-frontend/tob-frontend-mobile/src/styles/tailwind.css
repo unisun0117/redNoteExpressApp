@@ -1,0 +1,37 @@
+/* ========================================
+ * Tailwind CSS 入口样式
+ * ======================================== */
+
+/* @tailwind base; */ /* 小程序不支持 tailwind 默认的 base 样式 */
+@tailwind components;
+@tailwind utilities;
+
+/* ========================================
+ * 自定义工具类
+ * ======================================== */
+
+/* 页面容器 */
+.page-container {
+  min-height: 100vh;
+  background-color: #f9fafb;
+  padding: 24rpx 32rpx;
+}
+
+/* 卡片容器 */
+.card {
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* 安全区域底部留白 */
+.safe-area-bottom {
+  padding-bottom: calc(constant(safe-area-inset-bottom) + 16rpx);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 16rpx);
+}
+
+
+.p-btn{
+    background: linear-gradient(135deg, #DC2626 0%, #EA580C 100%); 
+}

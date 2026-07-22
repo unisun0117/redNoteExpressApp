@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.qdm.tob.modules.system.dict.mapper.SysDictMapper">
+
+    <select id="pageSearch" resultType="cn.qdm.tob.modules.system.dict.domain.SysDict">
+        SELECT * FROM sys_dict
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (code LIKE CONCAT('%', #{keyword}, '%') OR name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>

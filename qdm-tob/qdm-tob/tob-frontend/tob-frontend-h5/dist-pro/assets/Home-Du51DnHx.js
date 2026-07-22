@@ -1,0 +1,1 @@
+import{d as t,o as s,c as a,a as o}from"./index-B90qQRvm.js";import{_ as n}from"./_plugin-vue_export-helper-DlAUqK2U.js";const r={class:"home-container"},c=t({__name:"Home",setup(_){return(m,e)=>(s(),a("div",r,[...e[0]||(e[0]=[o("h1",null,"企业微信H5",-1),o("p",null,"底座搭建完成",-1)])]))}}),l=n(c,[["__scopeId","data-v-0f657dc7"]]);export{l as default};

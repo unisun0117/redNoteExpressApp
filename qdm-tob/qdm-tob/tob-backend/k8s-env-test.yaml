@@ -1,0 +1,37 @@
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: env-sec
+  namespace: tob
+stringData:
+  # 数据库
+  MYSQL_HOST: rm-bp1395nx3y10abehj.mysql.rds.aliyuncs.com
+  MYSQL_USERNAME: pmsadmin
+  MYSQL_PASSWORD: QDMpmsqasdb@202009
+
+  # 短信验证码（本地联调跳过，上线必须改为 false）
+  APP_AUTH_SMS_BYPASS_ENABLED: true
+
+  # CAS 单点登录
+  CAS_SERVER_URL: https://cas-qa.qdama.cn
+
+  # 微信小程序登录
+  WECHAT_APP_ID: wxc3b9dd50ac286233
+  WECHAT_SECRET: 4bfe27708f7fd77842308dd12317d4b3
+
+  # 企业微信
+  WECOM_CORP_ID: ww9e2c026cd94a7356
+  WECOM_SECRET: BgpiG8p3xHDi8ErMsP3XsOjPo8_cYFisRPnHTm1Yulc
+
+  # OSS 对象存储
+  OSS_ENDPOINT: oss-cn-hangzhou-internal.aliyuncs.com
+  OSS_ACCESS_KEY_ID: YOUR_OSS_ACCESS_KEY_ID
+  OSS_ACCESS_KEY_SECRET: YOUR_OSS_ACCESS_KEY_SECRET
+  OSS_BUCKET: cnhqvitsmossqas01
+  OSS_BASE_URL: https://cnhqvitsmossqas01.oss-cn-hangzhou.aliyuncs.com
+  OSS_REGION: cn-hangzhou
+  OSS_ROLE_ARN: acs:ram::1645446608222577:role/itsm-qas-br
+  OSS_STS_ENDPOINT: sts.cn-hangzhou.aliyuncs.com
+

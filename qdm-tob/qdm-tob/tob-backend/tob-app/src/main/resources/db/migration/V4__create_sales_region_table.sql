@@ -1,0 +1,31 @@
+-- 销售大区管理表
+CREATE TABLE IF NOT EXISTS sys_sales_region
+(
+    id               BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    code             VARCHAR(20)  NOT NULL COMMENT '销售大区编号',
+    name             VARCHAR(50)  NOT NULL COMMENT '销售大区名称',
+    service_enabled  TINYINT(1)   NOT NULL DEFAULT 1 COMMENT '下单服务启用 1=启用 0=停用',
+    multi_day        TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '多天订购 1=开启 0=关闭',
+    min_days         INT          NULL     COMMENT '最少订购天数（多天订购开启时有效）',
+    biz_hours        VARCHAR(20)  NULL     COMMENT '营业时间（格式 HH:mm ~ HH:mm）',
+    order_type       VARCHAR(10)  NOT NULL DEFAULT '按金额' COMMENT '起订类型：按金额/按重量',
+    order_amount     VARCHAR(50)  NULL     COMMENT '起订金额或重量',
+    arrival_days     INT          NOT NULL DEFAULT 1 COMMENT '到货日期（T+N）',
+    price_approval   TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '价格审批 1=开启 0=关闭',
+    approval_threshold DECIMAL(5,1) NULL   COMMENT '审批阈值(%)',
+    approvers        JSON         NULL     COMMENT '审批人列表 JSON',
+    warehouse_count  INT          NOT NULL DEFAULT 0 COMMENT '已关联仓库数',
+    std_freight      DECIMAL(10,2) NULL    DEFAULT 0 COMMENT '标准物流费',
+    std_free_amount  DECIMAL(10,2) NULL    DEFAULT 0 COMMENT '免运费金额',
+    new_freight      DECIMAL(10,2) NULL    DEFAULT 0 COMMENT '新客物流费',
+    new_free_amount  DECIMAL(10,2) NULL    DEFAULT 0 COMMENT '新客免运费金额',
+    merchant_no      VARCHAR(30)  NOT NULL COMMENT '商户号',
+    merchant_name    VARCHAR(100) NULL     COMMENT '商户号名称',
+    region_managers  JSON         NULL     COMMENT '区域经理列表 JSON',
+    covered_cities   JSON         NULL     COMMENT '覆盖城市列表 JSON',
+    created_by       VARCHAR(64)  NULL     COMMENT '创建人',
+    created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_by       VARCHAR(64)  NULL     COMMENT '修改人',
+    updated_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    UNIQUE KEY uk_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='销售大区';

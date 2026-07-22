@@ -1,0 +1,76 @@
+-- 客户公司档案主表
+CREATE TABLE IF NOT EXISTS cst_company_archive (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    sap_customer_code VARCHAR(30) NULL COMMENT 'SAP客户编码（审核通过后回写）',
+    company_name VARCHAR(100) NOT NULL COMMENT '公司名称',
+    license_no VARCHAR(50) NULL COMMENT '营业执照编号',
+    door_photo VARCHAR(500) NULL COMMENT '门头照URL',
+    license_photo VARCHAR(500) NULL COMMENT '营业执照照URL',
+    storage_photos TEXT NULL COMMENT '收货存放位置照片（JSON数组）',
+    contact_name VARCHAR(50) NOT NULL COMMENT '收货人姓名',
+    contact_phone VARCHAR(20) NOT NULL COMMENT '收货人联系电话',
+    province VARCHAR(50) NOT NULL COMMENT '所在省份',
+    city VARCHAR(50) NOT NULL COMMENT '所在城市',
+    district VARCHAR(50) NOT NULL COMMENT '所在区县',
+    address VARCHAR(500) NOT NULL COMMENT '详细收货地址',
+    longitude DECIMAL(10,7) NULL COMMENT '经度',
+    latitude DECIMAL(10,7) NULL COMMENT '纬度',
+    receive_time_start VARCHAR(10) DEFAULT '00:00' COMMENT '可收货时段开始（HH:mm）',
+    receive_time_end VARCHAR(10) DEFAULT '08:00' COMMENT '可收货时段结束（HH:mm）',
+    receive_requirement TEXT NULL COMMENT '收货要求（备注）',
+    sales_region_id BIGINT NULL COMMENT '归属销售大区ID',
+    sales_region_name VARCHAR(50) NULL COMMENT '归属销售大区名称',
+    salesman_id BIGINT NULL COMMENT '归属业务员ID（通过推荐码绑定）',
+    salesman_name VARCHAR(50) NULL COMMENT '归属业务员姓名',
+    referral_code VARCHAR(10) NULL COMMENT '提交时填写的业务员推荐码',
+    audit_status VARCHAR(20) DEFAULT 'PENDING' COMMENT '审核状态：PENDING/APPROVED/REJECTED',
+    price_group VARCHAR(50) NULL COMMENT '价格组',
+    settle_company VARCHAR(100) NULL COMMENT '结算公司',
+    business_type VARCHAR(50) NULL COMMENT '经营类型',
+    settle_type VARCHAR(20) NULL COMMENT '结算类型：CASH/PERIOD',
+    internal_remark TEXT NULL COMMENT '内部收货备注（审核人补充）',
+    auditor_id BIGINT NULL COMMENT '审核处理人ID',
+    auditor_name VARCHAR(50) NULL COMMENT '审核处理人姓名',
+    auditor_type VARCHAR(20) NULL COMMENT '审核人类型：SALESMAN/MANAGER',
+    audit_reject_reason TEXT NULL COMMENT '审核驳回原因',
+    audit_time DATETIME NULL COMMENT '审核处理时间',
+    submit_user_id BIGINT NULL COMMENT '提交用户ID（小程序用户）',
+    submit_user_name VARCHAR(50) NULL COMMENT '提交用户姓名',
+    last_order_time DATETIME NULL COMMENT '最近下单时间',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建/提交时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最近更新时间',
+    INDEX idx_audit_status (audit_status),
+    INDEX idx_sales_region (sales_region_id),
+    INDEX idx_salesman (salesman_id),
+    INDEX idx_company_name (company_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='客户公司档案';
+
+-- 审核历史流转表
+CREATE TABLE IF NOT EXISTS cst_archive_audit_log (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    archive_id BIGINT NOT NULL COMMENT '客户档案ID',
+    action VARCHAR(20) NOT NULL COMMENT '操作动作：SUBMIT/APPROVE/REJECT/RE_SUBMIT/ASSIGN',
+    operator_id BIGINT NOT NULL COMMENT '操作人ID',
+    operator_type VARCHAR(20) NOT NULL COMMENT '操作人类型：CUSTOMER/SALESMAN/MANAGER/ADMIN',
+    operator_name VARCHAR(50) NULL COMMENT '操作人姓名',
+    remark TEXT NULL COMMENT '审批意见或备注',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间',
+    INDEX idx_archive_id (archive_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='档案审核历史';
+
+-- 地址-小程序用户绑定表
+CREATE TABLE IF NOT EXISTS cst_archive_user_binding (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    archive_id BIGINT NOT NULL COMMENT '客户档案ID',
+    user_id BIGINT NOT NULL COMMENT '小程序用户ID',
+    user_name VARCHAR(50) NULL COMMENT '用户姓名（冗余）',
+    user_mobile VARCHAR(20) NULL COMMENT '用户手机号（冗余）',
+    member_role VARCHAR(20) DEFAULT 'MEMBER' COMMENT '成员角色：ADMIN/MEMBER',
+    invite_code VARCHAR(20) NULL COMMENT '邀请码（加入时使用）',
+    invite_code_created_at DATETIME NULL COMMENT '邀请码生成时间',
+    binding_status VARCHAR(20) DEFAULT 'BOUND' COMMENT '绑定状态：BOUND/UNBOUND',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '绑定时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_archive_user (archive_id, user_id),
+    INDEX idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='档案用户绑定';

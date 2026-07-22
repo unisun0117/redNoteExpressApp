@@ -1,0 +1,28 @@
+/* ========================================
+ * uni-app 全局样式 & uview-plus 主题
+ * ======================================== */
+
+/* uview-plus 主题变量（可在此覆盖默认值） */
+$u-primary: #E01B1B;
+$u-success: #00b578;
+$u-warning: #ff8f1f;
+$u-error: #ff3141;
+$u-info: #909399;
+
+/* 引入 uview-plus 全局样式 */
+@import 'uview-plus/theme.scss';
+
+/* ========================================
+ * 全局公共样式
+ * ======================================== */
+
+/* 页面基础样式 */
+page {
+  background-color: #f5f5f5;
+  color: #333333;
+}
+
+/* 全局盒模型 (小程序不支持 * 选择器，建议根据需要设置) */
+view, scroll-view, swiper, button, input, textarea, label, navigator, image {
+  box-sizing: border-box;
+}

@@ -1,0 +1,27 @@
+{
+  "name": "tob-frontend-mobile",
+  "appid": "__UNI__XXXXXX",
+  "description": "toB 移动端微信小程序",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "wxc3b9dd50ac286233",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "postcss": true,
+      "minified": true,
+      "newFeature": true,
+      "autoCompileWXSS": true
+    },
+    "usingComponents": true,
+    "mergeVirtualHostAttributes" : true,
+    "lazyCodeLoading": "requiredComponents",
+    "permission": {}
+  },
+  "uniStatistics": {
+    "enable": false
+  },
+  "vueVersion": "3"
+}

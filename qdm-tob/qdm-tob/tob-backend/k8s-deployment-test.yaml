@@ -1,0 +1,158 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: tob
+  name: tob-new
+  annotations:
+    k8s.kuboard.cn/displayName: "TOB-新项目"
+  labels:
+    k8s.kuboard.cn/layer: svc
+    k8s.kuboard.cn/name: tob-new
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s.qdama.cn/app: tob-new
+  template:
+    metadata:
+      labels:
+        k8s.qdama.cn/app: tob-new
+    spec:
+      securityContext:
+        runAsUser: 1001
+        fsGroup: 1001
+      volumes:
+        - name: application-logs
+          hostPath:
+            path: /data/logs/b2b
+            type: DirectoryOrCreate
+        - name: wechat-certs
+          secret:
+            secretName: wechat-certs
+            items:
+              - key: cert-key-1609383520
+                path: apiclient_cert.wechat.1609383520.p12
+              - key: private-cert-1609383520
+                path: apiclient_cert.wechat.1609383520.pem
+              - key: private-key-1609383520
+                path: apiclient_key.wechat.1609383520.pem
+              - key: cert-key-1605115459
+                path: apiclient_cert.wechat.1605115459.p12
+              - key: private-cert-1605115459
+                path: apiclient_cert.wechat.1605115459.pem
+              - key: private-key-1605115459
+                path: apiclient_key.wechat.1605115459.pem
+              - key: cert-key-1113739543
+                path: apiclient_cert.wechat.1113739543.p12
+              - key: private-cert-1113739543
+                path: apiclient_cert.wechat.1113739543.pem
+              - key: private-key-1113739543
+                path: apiclient_key.wechat.1113739543.pem
+            defaultMode: 0640
+      initContainers:
+        - name: init-logs
+          image: 'busybox:latest'
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: application-logs
+              mountPath: /data/logs
+          command: [ "/bin/sh", "-c", "mkdir -p $(LOGGING_DIR) && env | grep 'K8S_' >> $(LOGGING_DIR)/pod.info && chown -R 1001:1001 $(LOGGING_DIR)" ]
+          env:
+            - name: K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: K8S_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: LOGGING_DIR
+              value: "/data/logs/$(K8S_POD_NAME)"
+      containers:
+        - name: service
+          image: 'harbor.qdama.cn/b2b/mall:66'
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "2000m"
+          volumeMounts:
+            - name: application-logs
+              mountPath: /data/logs
+              subPathExpr: $(POD_NAME)
+            - name: wechat-certs
+              mountPath: /home/qdama/certs
+          ports:
+            - containerPort: 8098
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              port: 8098
+              path: /actuator/health/readiness
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 30
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              port: 8098
+              path: /actuator/health/liveness
+              scheme: HTTP
+            periodSeconds: 30
+            failureThreshold: 3
+            timeoutSeconds: 3
+          envFrom:
+            - configMapRef:
+                name: env-cm
+                optional: false
+            - secretRef:
+                name: env-sec
+                optional: false
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: SPRING_PROFILES_ACTIVE
+              value: "test"
+            - name: LOGGING_DIR
+              value: "/data/logs"
+            - name: CERTIFICATE_DIR
+              value: "/home/qdama/certs"
+            - name: FONT_PATH
+              value: "/home/qdama/fonts"
+            - name: SW_AGENT_COLLECTOR_BACKEND_SERVICES
+              value: "10.111.227.211:11800"
+            - name: SW_AGENT_NAME
+              value: "B2B::mall"
+            - name: SW_JDBC_TRACE_SQL_PARAMETERS
+              value: "true"
+            - name: SW_LOGGING_FILE_NAME
+              value: "skywalking.log"
+            - name: SW_LOGGING_DIR
+              value: "/home/qdama/logs"
+            - name: JAVA_OPTS
+              value: >-
+                -javaagent:/home/qdama/skywalking-agent/skywalking-agent.jar
+                -Dfile.encoding=UTF8
+                -Dsun.jnu.encoding=UTF8
+                -XX:MinRAMPercentage=15.0
+                -XX:MaxRAMPercentage=90.0
+                -XX:+HeapDumpOnOutOfMemoryError
+                -XX:HeapDumpPath=/data/logs/
+                -XshowSettings:vm

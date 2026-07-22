@@ -1,0 +1,20 @@
+# CI 构建上下文（证书目录骨架允许提交，真实证书文件禁止）
+.ci/certs/**/*.p12
+.ci/certs/**/*.pem
+.ci/certs/**/*.key
+
+# 目标产物
+target/
+*.jar
+!target/*.jar
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

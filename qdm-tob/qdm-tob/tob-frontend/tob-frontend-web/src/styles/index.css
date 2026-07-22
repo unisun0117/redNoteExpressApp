@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== 全局 CSS 变量 ===== */
+:root {
+  --color-primary: #0369A1;
+  --color-primary-light: #E0F2FE;
+  --color-primary-dark: #075985;
+  --color-success: #67c23a;
+  --color-warning: #e6a23c;
+  --color-danger: #f56c6c;
+  --color-info: #64748B;
+
+  --sidebar-width: 198px;
+  --header-height: 50px;
+
+  --bg-color: #F8FAFC;
+  --text-color: #0F172A;
+  --text-secondary: #475569;
+  --border-radius-card: 14px;
+  --border-radius-btn: 12px;
+  --border-radius-input: 10px;
+  --shadow-card: 0 4px 24px rgba(0,0,0,0.05);
+}
+
+/* ===== 全局重置 ===== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  /* UI/UX Pro Max 推荐 Fira Sans + Fira Code */
+  font-family: 'Fira Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text-color);
+  background-color: var(--bg-color);
+}
+
+#app {
+  height: 100%;
+}
+
+/* ===== Element Plus 主题覆盖 ===== */
+
+/*
+ * 修复 Tailwind space-y-* 对 Element Plus 弹窗/抽屉等 overlay 组件的 margin 污染。
+ * el-dialog/el-drawer 通过 Teleport 挂载到 body，不会被页面级的 space-y 影响；
+ * 但部分场景下 overlay 容器若被包裹在 space-y 父级中，会继承 margin-top 导致顶部留白。
+ * 这里全局重置 overlay 容器的 margin，确保弹窗始终居中无偏移。
+ */
+.el-overlay {
+  margin-top: 0 !important;
+}
+
+/* =====   ===== */
+/* 全屏 Mobile */
+@media (max-width: 767px) {
+  :root {
+    --sidebar-width: 0px;
+  }
+  .resp-sidebar {
+    position: fixed !important;
+    z-index: 1000;
+    height: 100vh !important;
+  }
+  .resp-sidebar:not(.sidebar-open) {
+    display: none;
+  }
+  .resp-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  .resp-header .header-welcome {
+    display: none;
+  }
+  .resp-form .el-form-item {
+    display: block !important;
+    margin-right: 0 !important;
+    margin-bottom: 12px !important;
+  }
+  .el-dialog {
+    width: 95% !important;
+  }
+}
+
+/*  Tablet */
+@media (min-width: 768px) and (max-width: 1024px) {
+  :root {
+    --sidebar-width: 64px;
+  }
+  .resp-sidebar {
+    width: 64px !important;
+  }
+  .resp-sidebar .sidebar-logo-text {
+    display: none;
+  }
+  .resp-sidebar .sidebar-menu-text {
+    display: none;
+  }
+}
+
+/*  el-table   1200px     */
+@media (max-width: 1200px) {
+  .resp-table {
+    overflow-x: auto;
+  }
+}
+
+/*     */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 999;
+}
+.hamburger-btn {
+  display: none;
+}
+@media (max-width: 1024px) {
+  .hamburger-btn {
+    display: inline-flex;
+  }
+}

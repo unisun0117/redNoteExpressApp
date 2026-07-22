@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.qdm.tob.modules.system.operator.mapper.SysOperatorRegionMapper">
+
+    <insert id="batchInsert">
+        INSERT INTO sys_operator_region (operator_id, region_code, created_by, created_at) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.operatorId}, #{item.regionCode}, #{item.createdBy}, #{item.createdAt})
+        </foreach>
+    </insert>
+
+</mapper>

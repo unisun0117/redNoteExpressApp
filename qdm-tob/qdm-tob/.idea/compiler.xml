@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Annotation profile for TOB Backend" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$PROJECT_DIR$/../../../../../Maven/lib/org/projectlombok/lombok/1.18.46/lombok-1.18.46.jar" />
+          <entry name="$PROJECT_DIR$/../../../../../Maven/lib/org/mapstruct/mapstruct-processor/1.6.3/mapstruct-processor-1.6.3.jar" />
+          <entry name="$PROJECT_DIR$/../../../../../Maven/lib/org/mapstruct/mapstruct/1.6.3/mapstruct-1.6.3.jar" />
+          <entry name="$PROJECT_DIR$/../../../../../Maven/lib/org/projectlombok/lombok-mapstruct-binding/0.2.0/lombok-mapstruct-binding-0.2.0.jar" />
+        </processorPath>
+        <module name="tob-client" />
+        <module name="tob-framework" />
+        <module name="tob-app" />
+      </profile>
+    </annotationProcessing>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="tob-app" options="-parameters" />
+      <module name="tob-backend" options="-parameters" />
+      <module name="tob-client" options="-parameters" />
+      <module name="tob-framework" options="-parameters" />
+    </option>
+  </component>
+</project>

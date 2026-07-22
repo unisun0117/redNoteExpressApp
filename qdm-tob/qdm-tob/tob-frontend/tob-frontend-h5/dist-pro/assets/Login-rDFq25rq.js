@@ -1,0 +1,1 @@
+import{d as n,o as t,c as s,a as e}from"./index-B90qQRvm.js";import{_ as a}from"./_plugin-vue_export-helper-DlAUqK2U.js";const r={class:"login-container"},_=n({__name:"Login",setup(c){return(p,o)=>(t(),s("div",r,[...o[0]||(o[0]=[e("h1",null,"登录",-1),e("p",null,"企业微信授权登录",-1)])]))}}),d=a(_,[["__scopeId","data-v-34b039bb"]]);export{d as default};

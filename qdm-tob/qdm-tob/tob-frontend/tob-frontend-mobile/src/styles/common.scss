@@ -1,0 +1,253 @@
+// 定义flex等分
+@for $i from 0 through 12 {
+	.flex-#{$i} {
+		flex: $i;
+	}
+}
+
+// ==================== 布局 / 弹性盒子 ====================
+.flex {
+	display: flex;
+}
+.inline-flex {
+	display: inline-flex;
+}
+.flex-center {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.flex-between {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+.flex-middle {
+	display: flex;
+	align-items: center;
+}
+.flex-col {
+	display: flex;
+	flex-direction: column;
+}
+.flex-col-center {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.flex-wrap {
+	flex-wrap: wrap;
+}
+.flex-shrink-0 {
+	flex-shrink: 0;
+}
+// 修正：flex-1 补充 min-width:0 防止内容溢出
+.flex-1 {
+	min-width: 0;
+	flex: 1;
+}
+.flex-l{
+	justify-items: flex-end;
+}
+
+// 间距（常用 gap 值）
+.gap-8  { gap: 8rpx; }
+.gap-10 { gap: 10rpx; }
+.gap-12 { gap: 12rpx; }
+.gap-14 { gap: 14rpx; }
+.gap-16 { gap: 16rpx; }
+.gap-18 { gap: 18rpx; }
+.gap-20 { gap: 20rpx; }
+.gap-24 { gap: 24rpx; }
+
+// ==================== 文本 ====================
+.text-center { text-align: center; }
+.text-right  { text-align: right; }
+.text-left   { text-align: left; }
+.text-ellipsis {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+// 字重
+.fw-400 { font-weight: 400; }
+.fw-500 { font-weight: 500; }
+.fw-600 { font-weight: 600; }
+.fw-700 { font-weight: 700; }
+.fw-800 { font-weight: 800; }
+.text-white { color: #fff; }
+// 换行控制
+.whitespace-nowrap { white-space: nowrap; }
+.whitespace-normal { white-space: normal; }
+.word-break  { word-break: break-all; }
+// 常用字号（在已有 fs-0 ~ fs-120 基础上补充语义化别名）
+// fs-N 系列已在下方循环中生成
+
+// 行高
+@for $i from 10 through 64 {
+	.leading-#{$i} {
+		line-height: $i + rpx;
+	}
+}
+
+// ==================== 背景 & 颜色 ====================
+.bg-card    { background-color: var(--color-bg-card); }
+.bg-page    { background-color: var(--color-bg); }
+.bg-primary { background-color: var(--color-primary); }
+.text-primary      { color: var(--color-primary); }
+.text-secondary    { color: var(--color-text-secondary); }
+.text-disabled     { color: var(--color-text-disabled); }
+.text-error        { color: var(--color-error); }
+.text-success      { color: var(--color-success); }
+.text-warning      { color: var(--color-warning); }
+.bg-page-white { background-color: var(--color-bg-white); }
+
+// ==================== 溢出 ====================
+.ov-hidden   { overflow: hidden; }
+.ov-scroll   { overflow: scroll; }
+.ov-auto     { overflow: auto; }
+.ov-hidden-x { overflow-x: hidden; }
+.ov-hidden-y { overflow-y: hidden; }
+
+.ov-ellipsis {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+// ==================== 块级 / 行内 ====================
+.block        { display: block; }
+.inline-block { display: inline-block; }
+
+// ==================== 盒模型 ====================
+.box-border { box-sizing: border-box; }
+
+// ==================== 宽高 ====================
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+
+// ==================== 全局宽高（0-750 rpx） ====================
+@for $i from 0 through 750 {
+	.w-#{$i} {
+		width: $i + rpx;
+	}
+	.mw-#{$i} {
+		max-width: $i + rpx;
+		min-width: $i + rpx;
+	}
+	.h-#{$i} {
+		height: $i + rpx;
+	}
+	.lh-#{$i} {
+		line-height: $i + rpx;
+	}
+}
+
+// ==================== 定位 ====================
+@for $i from 0 through 750 {
+	.bottom-#{$i} { bottom: $i + rpx; }
+	.top-#{$i}    { top: $i + rpx; }
+	.left-#{$i}   { left: $i + rpx; }
+	.right-#{$i}  { right: $i + rpx; }
+}
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed    { position: fixed; }
+
+// ==================== 常用横/竖边距快捷 ====================
+.mx-auto { margin-left: auto; margin-right: auto; }
+@for $i from 0 through 120 {
+	.mx-#{$i} {
+		margin-left: $i + rpx;
+		margin-right: $i + rpx;
+	}
+	.my-#{$i} {
+		margin-top: $i + rpx;
+		margin-bottom: $i + rpx;
+	}
+	.px-#{$i} {
+		padding-left: $i + rpx;
+		padding-right: $i + rpx;
+	}
+	.py-#{$i} {
+		padding-top: $i + rpx;
+		padding-bottom: $i + rpx;
+	}
+}
+
+
+// ==================== 字重、圆角、间距（0-120 rpx） ====================
+@for $i from 0 through 120 {
+	.br-#{$i} {
+		border-radius: $i + rpx;
+	}
+	.fs-#{$i} {
+		font-size: $i + rpx;
+	}
+	.m-#{$i} {
+		margin: $i + rpx;
+	}
+	.p-#{$i} {
+		padding: $i + rpx;
+	}
+	@each $short, $long in l left, t top, r right, b bottom {
+		.m#{$short}-#{$i} {
+			margin-#{$long}: $i + rpx;
+		}
+		.p#{$short}-#{$i} {
+			padding-#{$long}: $i + rpx;
+		}
+	}
+}
+
+// ==================== 圆角快捷 ====================
+.rounded-xs  { border-radius: var(--radius-xs); }
+.rounded-sm  { border-radius: var(--radius-sm); }
+.rounded-md  { border-radius: var(--radius-md); }
+.rounded-lg  { border-radius: var(--radius-lg); }
+.rounded-xl  { border-radius: var(--radius-xl); }
+.rounded-full { border-radius: 999rpx; }
+
+// ==================== 阴影 ====================
+.shadow    { box-shadow: var(--shadow); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+
+// ==================== 通用页面包装 ====================
+.page-wrap {
+	padding: 24rpx 18rpx 40rpx;
+	box-sizing: border-box;
+}
+
+// ==================== 列表分隔线 ====================
+.divider-b {
+	border-bottom: 1rpx solid var(--color-border);
+}
+
+
+.text-container {
+  white-space: pre-wrap;    /* 保留空白符序列，并正常换行 */
+  word-wrap: break-word;    /* 在长单词或URL地址内部进行断行 */
+  overflow-wrap: break-word; /* 同上，是word-wrap的现代替代 */
+}
+.text-container-ellipsis {
+//   white-space: pre-wrap;    /* 保留空白符序列，并正常换行 */
+//   word-wrap: break-word;    /* 在长单词或URL地址内部进行断行 */
+//   overflow-wrap: break-word; /* 同上，是word-wrap的现代替代 */
+//   text-overflow: ellipsis;
+//   overflow: hidden;
+//   display: -webkit-box;
+//   -webkit-line-clamp: 1;
+  overflow: hidden;        /* 隐藏溢出内容 */
+  white-space: nowrap;     /* 强制不换行 */
+  text-overflow: ellipsis; /* 溢出显示省略号 */
+}
+
+.position-absolute{
+	position: absolute;
+}
+
+// 字体颜色 fc-N 系列
+@for $i from 0 through 100 {
+	.fc-#{$i} {
+		color: var(--color-text-#{$i});
+	}
+}

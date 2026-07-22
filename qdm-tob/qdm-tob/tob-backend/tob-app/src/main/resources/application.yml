@@ -1,0 +1,123 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: tob-app
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    locale: zh_CN
+  mybatis-plus:
+    mapper-locations: classpath*:mapper/**/*Mapper.xml
+    type-aliases-package: cn.qdm.tob.modules.**.domain
+    type-aliases-super-type: java.lang.Object
+    type-enums-package: cn.qdm.tob.modules.system,cn.qdm.tob.modules.order.sales.enums
+    global-config:
+      banner: false
+      db-config:
+        id-type: auto
+        table-underline: true
+        logic-delete-value: 1
+        logic-not-delete-value: 0
+    configuration:
+      map-underscore-to-camel-case: true
+      auto-mapping-behavior: partial
+      log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:rm-bp1395nx3y10abehj.mysql.rds.aliyuncs.com}:3306/qdm_tob?serverTimezone=Asia/Shanghai&useUnicode=yes&characterEncoding=UTF8
+    username: ${MYSQL_USERNAME:pmsadmin}
+    password: ${MYSQL_PASSWORD:QDMpmsqasdb@202009}
+  sql:
+    init:
+      mode: always
+  data:
+    redis:
+      host: r-bp15md64bp78xg18nb.redis.rds.aliyuncs.com
+      port: 6379
+      password: QDMpmsqasdb@202009
+      lettuce:
+        pool:
+          max-idle: 8
+          min-idle: 0
+          max-active: 8
+          max-wait: 3000ms
+
+app:
+  auth:
+    sms:
+      max-attempts: 30
+      # 验证码有效期（秒），对应 SmsCodeService 的 app.auth.sms.code-expiration
+      code-expiration: 300
+      resend-interval: 60
+      # 临时跳过短信验证码：true 时 sendSmsCode/verifySmsCode 直接放行，不读写 Redis。
+      # 用于本地联调（阿里云 Redis 有 IP 白名单，开发机出口 IP 不在白名单时短信流程不可用）。
+      # 上线前必须改回 false（或通过环境变量 APP_AUTH_SMS_BYPASS_ENABLED 覆盖）。
+      bypass-enabled: ${APP_AUTH_SMS_BYPASS_ENABLED:false}
+    cas:
+      server-url: ${APP_AUTH_CAS_SERVER_URL:https://cas-qa.qdama.cn}
+    wechat:
+      # 小程序微信登录，对应 WechatAuthenticationProvider 的 app.auth.wechat.app-id / app.auth.wechat.app-secret
+      app-id: ${APP_AUTH_WECHAT_APP_ID:wxc3b9dd50ac286233}
+      app-secret: ${APP_AUTH_WECHAT_SECRET:4bfe27708f7fd77842308dd12317d4b3}
+  wecom:
+    corp-id: ${APP_WECOM_CORP_ID:}
+    secret: ${APP_WECOM_SECRET:}
+
+# 日志配置已迁移至 logback-spring.xml，此处不再重复
+
+# SpringDoc OpenAPI + Scalar UI 配置
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  scalar:
+    enabled: true
+    path: /scalar
+  swagger-ui:
+    enabled: false
+
+tob:
+  auth:
+    jwt:
+      secret: dGhpcyBpcyBhIDI1Ni1iaXQgc2VjcmV0IGtleSBmb3IgSldU
+      expiration: 3600
+  oss:
+    endpoint: ${OSS_ENDPOINT:oss-cn-hangzhou.aliyuncs.com}
+    access-key-id: ${OSS_ACCESS_KEY_ID:YOUR_OSS_ACCESS_KEY_ID}
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET:YOUR_OSS_ACCESS_KEY_SECRET}
+    bucket: ${OSS_BUCKET:cnhqvitsmossqas01}
+    base-url: ${OSS_BASE_URL:https://cnhqvitsmossqas01.oss-cn-hangzhou.aliyuncs.com}
+    region: ${OSS_REGION:cn-hangzhou}
+    role-arn: ${OSS_ROLE_ARN:acs:ram::1645446608222577:role/itsm-qas-br}
+    sts-endpoint: ${OSS_STS_ENDPOINT:sts.cn-hangzhou.aliyuncs.com}
+  client:
+    sap:
+      base-url: http://10.111.215.25:50000
+      key: zt-test
+      secret: 1qaz2wsx
+    message:
+      base-url: https://wmsapi-qa.qdama.cn
+      key: tob
+      secret: toB@2021dev.0617
+    wms:
+      base-url: https://wmsapi-qa.qdama.cn
+      key: B2B
+      secret: B2B@20220811V1
+    wecom:
+      corp-id: wxbb8975d815a0b148
+      corp-secret: Fl--QOOgqMbU8oO1RbG5lcFGk28ZhBGDv-3x4OL234Q
+
+wechat:
+  app-id: ${WECHAT_APP_ID:wxc3b9dd50ac286233}
+  secret: ${WECHAT_SECRET:4bfe27708f7fd77842308dd12317d4b3}
+  pay:
+    app-id: wxc3b9dd50ac286233
+    mch-id: ${WECHAT_PAY_MCH_ID:1113739543}
+    api-v3-key: ${WECHAT_PAY_API_V3_KEY:qQ2J34DjGpxDqdm8yTh37OoE8hK0V8vL}
+    private-key-path: ${WECHAT_PAY_PRIVATE_KEY_PATH:classpath:wechat_pay/1113739543/apiclient_key.pem}
+    merchant-serial-number: ${WECHAT_PAY_MERCHANT_SERIAL_NUMBER:1124FC9632A776933ACE0FF23623987ABA01E4F0}
+    wechat-pay-public-key-id: ${WECHAT_PAY_PUBLIC_KEY_ID:PUB_KEY_ID_0111137395432026060800381994000404}
+    wechat-pay-public-key-path: ${WECHAT_PAY_PUBLIC_KEY_PATH:classpath:wechat_pay/pub_key.pem}
+    notify-url: ${WECHAT_PAY_NOTIFY_URL:https://endorphin-colt-grunge.ngrok-free.dev/api/mall/pay/notify}
+    refund-notify-url: ${WECHAT_PAY_REFUND_NOTIFY_URL:https://endorphin-colt-grunge.ngrok-free.dev/api/mall/refund/notify}

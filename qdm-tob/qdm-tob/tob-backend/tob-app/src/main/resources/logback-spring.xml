@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!--
+        TOB 应用日志配置
+        ===============
+        特性：
+        - traceId 全链路追踪（由 TraceIdFilter 写入 MDC）
+        - 控制台彩色输出（dev） / 纯文本输出（prod）
+        - 异步文件写入 + 按大小和时间滚动
+        - dev / prod Profile 自动切换日志级别
+    -->
+
+    <!-- ==================== 基础属性 ==================== -->
+    <property name="LOG_PATH" value="./logs"/>
+    <property name="LOG_FILE" value="tob-app"/>
+    <!-- 文件最大 50MB -->
+    <property name="MAX_FILE_SIZE" value="50MB"/>
+    <!-- 保留 30 天 -->
+    <property name="MAX_HISTORY" value="30"/>
+    <!-- 总大小上限 3GB -->
+    <property name="TOTAL_SIZE_CAP" value="3GB"/>
+    <!-- 异步队列大小 -->
+    <property name="ASYNC_QUEUE_SIZE" value="256"/>
+
+    <!-- 文件日志格式（纯文本） -->
+    <property name="FILE_PATTERN"
+              value="[%X{traceId}] %d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
+
+    <!-- 控制台日志格式（dev 带颜色，prod 纯文本） -->
+    <property name="CONSOLE_PATTERN_DEV"
+              value="%gray([%X{traceId}]) %highlight(%d{HH:mm:ss.SSS}) %gray([%thread]) %highlight(%-5level) %cyan(%logger{36}:%line) - %msg%n"/>
+    <property name="CONSOLE_PATTERN_PROD"
+              value="[%X{traceId}] %d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
+
+    <!-- ==================== Appenders ==================== -->
+
+    <!--
+        控制台 — dev 环境
+        使用 %clr/%highlight 输出 ANSI 颜色，高亮日志级别，附带行号
+    -->
+    <springProfile name="!prod">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${CONSOLE_PATTERN_DEV}</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!--
+        控制台 — prod 环境
+        纯文本，适合容器日志收集（ELK / Loki / 阿里云 SLS）
+    -->
+    <springProfile name="prod">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${CONSOLE_PATTERN_PROD}</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!--
+        文件 Appender — 按大小和时间滚动
+        文件名: tob-app.log（当前） / tob-app.2026-07-02.0.log（归档）
+    -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/${LOG_FILE}.log</file>
+        <encoder>
+            <pattern>${FILE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/${LOG_FILE}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+            <maxHistory>${MAX_HISTORY}</maxHistory>
+            <totalSizeCap>${TOTAL_SIZE_CAP}</totalSizeCap>
+            <!-- 启动时自动清理超出限制的旧日志 -->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+    </appender>
+
+    <!--
+        异步文件 Appender
+        包装 FILE Appender，日志写入不阻塞请求线程。
+        队列满时丢弃 TRACE/DEBUG/INFO 级别日志（neverBlock=true），
+        WARN/ERROR 仍会阻塞等待写入以防丢失。
+    -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE"/>
+        <queueSize>${ASYNC_QUEUE_SIZE}</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+        <includeCallerData>false</includeCallerData>
+    </appender>
+
+    <!-- ==================== Loggers ==================== -->
+
+    <!--
+        dev 环境：项目包 DEBUG，SQL DEBUG，慢 SQL WARN
+    -->
+    <springProfile name="!prod">
+        <logger name="cn.qdm.tob" level="DEBUG"/>
+        <logger name="org.springframework.web" level="DEBUG"/>
+        <logger name="org.hibernate.SQL" level="DEBUG"/>
+        <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE"/>
+        <logger name="com.zaxxer.hikari.HikariConfig" level="DEBUG"/>
+        <logger name="org.mybatis.spring" level="DEBUG"/>
+    </springProfile>
+
+    <!--
+        prod 环境：项目包 INFO，框架 WARN，SQL 不打印
+    -->
+    <springProfile name="prod">
+        <logger name="cn.qdm.tob" level="INFO"/>
+        <logger name="org.springframework.web" level="WARN"/>
+        <logger name="org.hibernate.SQL" level="WARN"/>
+    </springProfile>
+
+    <!--
+        始终静默的包
+    -->
+    <logger name="org.apache.catalina" level="INFO"/>
+    <logger name="org.apache.coyote" level="INFO"/>
+    <logger name="sun.rmi" level="WARN"/>
+    <logger name="com.zaxxer.hikari.pool.HikariPool" level="INFO"/>
+
+    <!-- ==================== Root Logger ==================== -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </root>
+</configuration>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.qdm.tob.modules.product.catalog.mapper.ProductCatalogMapper">
+
+    <select id="listForMall" resultType="cn.qdm.tob.modules.product.catalog.vo.ProductMallVO">
+        SELECT
+            pc.product_barcode AS productBarcode,
+            pc.product_name     AS productName,
+            pc.miniapp_name     AS miniappName,
+            pc.main_image       AS mainImage,
+            pc.sales_region_code AS salesRegionCode,
+            pd.price            AS price,
+            pc.order_base_qty   AS orderBaseQty,
+            pc.order_min_qty    AS orderMinQty,
+            pc.order_max_qty    AS orderMaxQty
+        FROM prd_product_catalog pc
+        INNER JOIN prd_price_group pg ON pc.sales_region_code = pg.sales_region_code
+        INNER JOIN prd_price_detail pd ON pc.product_barcode = pd.product_barcode and pg.price_group_code=pd.price_group_code
+        WHERE pc.status = 'LISTED' AND pg.price_group_code = #{priceGroupCode}
+        ORDER BY pc.updated_at DESC
+    </select>
+
+    <select id="listByBarcodesWithPrice" resultType="cn.qdm.tob.modules.product.catalog.api.internal.dto.ProductCatalogDTO">
+        SELECT
+            pc.product_barcode    AS productBarcode,
+            pc.product_name       AS productName,
+            pc.sales_region_code  AS salesRegionCode,
+            pc.status             AS status,
+            pc.miniapp_name       AS miniappName,
+            pc.main_image         AS mainImage,
+            pc.order_base_qty     AS orderBaseQty,
+            pc.order_min_qty      AS orderMinQty,
+            pc.order_max_qty      AS orderMaxQty,
+            pc.daily_available    AS dailyAvailable,
+            pc.warehouse_code     AS warehouseCode,
+            pc.warehouse_name     AS warehouseName,
+            pd.price              AS price
+        FROM prd_product_catalog pc
+        INNER JOIN prd_price_group pg ON pc.sales_region_code = pg.sales_region_code
+        INNER JOIN prd_price_detail pd ON pc.product_barcode = pd.product_barcode and pg.price_group_code=pd.price_group_code
+        WHERE pg.price_group_code = #{priceGroupCode}
+          AND pc.product_barcode IN
+          <foreach collection="barcodes" item="barcode" open="(" separator="," close=")">
+              #{barcode}
+          </foreach>
+    </select>
+
+</mapper>
