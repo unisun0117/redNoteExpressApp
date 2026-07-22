@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售员统计报表</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <style>
+        :root { --primary: #409eff; --green: #67c23a; --red: #f56c6c; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; background: #f0f2f5; margin: 0; padding: 10px; }
+        .page-title { background: #fff; border-radius: 8px; padding: 10px 16px; margin-bottom: 10px; font-size: 15px; color: #303133; font-weight: 600; }
+        .query-card { background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; }
+        .chart-card { background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; }
+        .data-card { background: #fff; border-radius: 8px; padding: 12px 16px; position: relative; }
+        .toolbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .query-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+        .query-label { font-size: 14px; color: #606266; white-space: nowrap; }
+        .section-title { font-size: 13px; color: #909399; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px dashed #ebeef5; }
+        .sortable-header { cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+        .sortable-header:hover { color: #409eff; }
+        .sort-popover-wrap { position: absolute; z-index: 9999; background: #fff; border-radius: 6px; box-shadow: 0 6px 16px rgba(0,0,0,.12); padding: 4px 0; min-width: 96px; }
+        .sort-popover-wrap .sort-opt { display: block; width: 100%; padding: 6px 16px; border: none; background: none; cursor: pointer; font-size: 13px; color: #606266; text-align: left; }
+        .sort-popover-wrap .sort-opt:hover { background: #ecf5ff; color: #409eff; }
+        .sort-popover-wrap .sort-opt.active { color: #409eff; font-weight: 600; background: #ecf5ff; }
+        .chart-container { width: 100%; height: 380px; }
+        .empty-state { text-align: center; padding: 60px 0; color: #909399; }
+        .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+        .interval-hint { font-size: 12px; color: #909399; margin-left: 12px; }
+        .up { color: #67c23a; font-weight: 600; }
+        .down { color: #f56c6c; font-weight: 600; }
+        .flat { color: #909399; }
+    </style>
+</head>
+<body>
+<div id="prd-root">
+    <div class="page-title">销售员统计报表</div>
+
+    <!-- ====== 一级筛选 ====== -->
+    <div class="query-card">
+        <div class="toolbar-row">
+            <el-button type="primary" @click="doSearch">查询</el-button>
+            <el-button @click="resetSearch">重置</el-button>
+            <el-button @click="doExport">导出</el-button>
+        </div>
+        <div class="query-row">
+            <span class="query-label">到货时间</span>
+            <el-date-picker v-model="search.arrivalDateRange" type="daterange" range-separator="至"
+                start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD"
+                style="width:240px;" @change="onPrimaryChange"></el-date-picker>
+            <span class="query-label">仓库</span>
+            <el-select v-model="search.warehouse" placeholder="全部" clearable style="width:190px;" @change="onPrimaryChange">
+                <el-option v-for="w in warehouseOptions" :key="w.value" :label="w.label" :value="w.value"></el-option>
+            </el-select>
+            <span class="query-label">订单类型</span>
+            <el-select v-model="search.orderType" placeholder="全部" clearable style="width:160px;" @change="onPrimaryChange">
+                <el-option v-for="o in orderTypeOptions" :key="o.value" :label="o.label" :value="o.value"></el-option>
+            </el-select>
+        </div>
+    </div>
+
+    <!-- ====== 图表分析区 ====== -->
+    <div class="chart-card">
+        <div class="section-title">图表分析（时间范围、仓库、订单类型继承上方筛选）</div>
+        <div class="query-row" style="margin-bottom:10px;">
+            <span class="query-label">销售员</span>
+            <el-select v-model="chartFilter.salesman" placeholder="全部" clearable filterable style="width:190px;" @change="onSalesmanChange">
+                <el-option label="全部" value=""></el-option>
+                <el-option v-for="s in salesmanOptions" :key="s.value" :label="s.label" :value="s.value"></el-option>
+            </el-select>
+            <span class="query-label">分析维度</span>
+            <el-select v-model="chartFilter.dimension" style="width:250px;" @change="updateChart">
+                <el-option v-for="d in dimensionOptions" :key="d.value" :label="d.label" :value="d.value"></el-option>
+            </el-select>
+            <span class="query-label">状态</span>
+            <el-select v-model="chartFilter.status" style="width:120px;" @change="updateChart">
+                <el-option label="全部" value=""></el-option>
+                <el-option label="启用" value="ACTIVE"></el-option>
+                <el-option label="禁用" value="DISABLED"></el-option>
+            </el-select>
+            <span class="interval-hint" v-if="chartFilter.salesman">采样间隔：{{ intervalLabel }}</span>
+        </div>
+        <div class="chart-container" id="main-chart"></div>
+        <div v-if="chartEmpty" style="text-align:center;padding:40px;color:#909399;">所选时间范围内无数据</div>
+    </div>
+
+    <!-- ====== 数据表格 ====== -->
+    <div class="data-card" id="data-card">
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:13px; color:#909399;">
+            <span>当前模式：<b style="color:#303133;">{{ tableMode }}</b></span>
+            <span>共 <b style="color:#303133; margin:0 4px;">{{ total }}</b> 条记录</span>
+        </div>
+        <el-table :data="tableData" v-loading="loading" border stripe style="width:100%;"
+            :header-cell-style="{background:'#f5f7fa',color:'#606266',fontWeight:500}">
+            <el-table-column label="序号" width="60" align="center" fixed>
+                <template #default="s">{{ (pageNum-1)*pageSize + s.$index + 1 }}</template>
+            </el-table-column>
+            <el-table-column v-if="chartFilter.salesman" prop="arrivalDate" label="到货日期" width="150" fixed></el-table-column>
+            <el-table-column prop="salesmanName" label="销售员姓名" width="120" fixed></el-table-column>
+            <el-table-column label="有效下单客户数" width="145" align="center"><template #header><sort-header l="有效下单客户数" f="effectiveCustomerCount" :s="sortState" @sort="onSortClick"></sort-header></template><template #default="s">{{ s.row.effectiveCustomerCount }}</template></el-table-column>
+            <el-table-column label="下单客户数" width="120" align="center"><template #header><sort-header l="下单客户数" f="customerCount" :s="sortState" @sort="onSortClick"></sort-header></template><template #default="s">{{ s.row.customerCount }}</template></el-table-column>
+            <el-table-column label="有效客户率" width="120" align="center"><template #header><sort-header l="有效客户率" f="effectiveRate" :s="sortState" @sort="onSortClick"></sort-header></template><template #default="s">{{ (s.row.effectiveRate*100).toFixed(2) }}%</template></el-table-column>
+            <el-table-column label="订货单数" width="110" align="center"><template #header><sort-header l="订货单数" f="orderCount" :s="sortState" @sort="onSortClick"></sort-header></template><template #default="s">{{ s.row.orderCount }}</template></el-table-column>
+            <el-table-column label="团队订单量均值差" width="165" align="center"><template #header><sort-header l="团队订单量均值差" f="teamOrderDiff" :s="sortState" @sort="onSortClick"></sort-header></template><template #default="s">{{ s.row.teamOrderDiff>=0?'+':'' }}{{ s.row.teamOrderDiff.toFixed(1) }}</template></el-table-column>
+            <el-table-column label="退货单数" width="110" align="center"><template #header><sort-header l="退货单数" f="returnCount" :s="sortState" @sort="onSortClick"></sort-header></template><template #default="s">{{ s.row.returnCount }}</template></el-table-column>
+            <el-table-column label="差补单数" width="110" align="center"><template #header><sort-header l="差补单数" f="diffCount" :s="sortState" @sort="onSortClick"></sort-header></template><template #default="s">{{ s.row.diffCount }}</template></el-table-column>
+            <el-table-column label="销售金额" width="130" align="right"><template #header><sort-header l="销售金额" f="saleAmount" :s="sortState" @sort="onSortClick"></sort-header></template><template #default="s">{{ s.row.saleAmount.toFixed(2) }}</template></el-table-column>
+            <el-table-column label="退货金额" width="130" align="right"><template #header><sort-header l="退货金额" f="returnAmount" :s="sortState" @sort="onSortClick"></sort-header></template><template #default="s">{{ s.row.returnAmount.toFixed(2) }}</template></el-table-column>
+            <el-table-column label="差补金额" width="130" align="right"><template #header><sort-header l="差补金额" f="diffAmount" :s="sortState" @sort="onSortClick"></sort-header></template><template #default="s">{{ s.row.diffAmount.toFixed(2) }}</template></el-table-column>
+            <el-table-column label="实际收益额" width="140" align="right"><template #header><sort-header l="实际收益额" f="actualRevenue" :s="sortState" @sort="onSortClick"></sort-header></template><template #default="s">{{ s.row.actualRevenue.toFixed(2) }}</template></el-table-column>
+            <el-table-column label="实际收益额同比变化（与上月同比）" width="225" align="center"><template #header><sort-header l="实际收益额同比变化（与上月同比）" f="yoyChange" :s="sortState" @sort="onSortClick"></sort-header></template><template #default="s"><span v-if="s.row.yoyChange==null" class="flat">-</span><span v-else-if="s.row.yoyChange>0" class="up">↑ {{ s.row.yoyChange.toFixed(2) }}%</span><span v-else-if="s.row.yoyChange<0" class="down">↓ {{ Math.abs(s.row.yoyChange).toFixed(2) }}%</span><span v-else class="flat">—</span></template></el-table-column>
+            <el-table-column label="团队实际收款额均值差" width="195" align="center"><template #header><sort-header l="团队实际收款额均值差" f="teamRevenueDiff" :s="sortState" @sort="onSortClick"></sort-header></template><template #default="s">{{ s.row.teamRevenueDiff>=0?'+':'' }}{{ s.row.teamRevenueDiff.toFixed(2) }}</template></el-table-column>
+        </el-table>
+
+        <div v-if="sortPop.visible" class="sort-popover-wrap" :style="{top:sortPop.top+'px',left:sortPop.left+'px'}">
+            <button class="sort-opt" @click="applySort('')">重置</button>
+            <button class="sort-opt" :class="{active:sortState.field===sortPop.field&&sortState.order==='ASC'}" @click="applySort('ASC')">升序 ↑</button>
+            <button class="sort-opt" :class="{active:sortState.field===sortPop.field&&sortState.order==='DESC'}" @click="applySort('DESC')">倒序 ↓</button>
+        </div>
+        <div v-if="sortPop.visible" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9998;" @click="sortPop.visible=false"></div>
+
+        <div v-if="tableData.length===0&&!loading" class="empty-state"><div class="empty-state-icon">📊</div><div>暂无统计数据</div></div>
+        <div style="margin-top:16px;display:flex;justify-content:flex-start;" v-if="total>0">
+            <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[5,10,20,30,50,100]" :total="total"
+                layout="total,sizes,prev,pager,next" background @size-change="doSearch" @current-change="doSearch"></el-pagination>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="https://unpkg.com/element-plus"></script>
+<script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+<script>
+var { createApp, ref, reactive, nextTick } = Vue;
+
+/* 排序头组件 */
+var SortHeader = { props:['l','f','s'], emits:['sort'],
+    template: '<div class="sortable-header" @click.stop="$emit(\'sort\',{field:f,event:$event})">{{l}}'+
+    '<span v-if="s.field===f&&s.order===\'ASC\'" style="font-size:12px;color:#409eff;">↑</span>'+
+    '<span v-else-if="s.field===f&&s.order===\'DESC\'" style="font-size:12px;color:#409eff;">↓</span>'+
+    '<span v-else style="font-size:12px;color:#c0c4cc;">⇅</span></div>' };
+
+/* 日期工具 */
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function daysAgo(n){ var d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
+function calcInterval(s,e){
+    if(!s||!e) return {interval:1,label:'每天（≤1月）'};
+    var d=Math.ceil((new Date(e)-new Date(s))/864e5)+1;
+    if(d<=30) return {interval:1,label:'每天（≤1月）'};
+    if(d<=180) return {interval:5,label:'每5天（1~6月）'};
+    return {interval:30,label:'每30天（>6月）'};
+}
+function genDates(s,e){ var d=[],c=new Date(s); while(c<=new Date(e)){ d.push((c.getMonth()+1)+'/'+c.getDate()); c.setDate(c.getDate()+1); } return d; }
+function genVals(n){ var v=[]; for(var i=0;i<n;i++){ var r=Math.random(); if(r<0.12)v.push(null); else if(r<0.20)v.push(0); else v.push(Math.floor(Math.random()*80)+1); } return v; }
+function sample(dates,vals,intv){ if(intv<=1)return{dates:dates,values:vals}; var sd=[],sv=[]; for(var i=0;i<dates.length;i+=intv){ var s=0,h=false; for(var j=i;j<Math.min(i+intv,dates.length);j++){ if(vals[j]!=null){s+=vals[j];h=true;} } sd.push(dates[i]); sv.push(h?s:null); } return{dates:sd,values:sv}; }
+
+var COLORS=['#409eff','#67c23a','#e6a23c','#f56c6c','#909399','#8e44ad','#2ec7c9','#d48265'];
+
+var app = createApp({
+    components:{ SortHeader:SortHeader },
+    setup:function(){
+        /* 默认近一个月 */
+        var defStart=daysAgo(29), defEnd=todayStr();
+
+        var search = reactive({ arrivalDateRange:[defStart,defEnd], warehouse:'', orderType:'' });
+        var chartFilter = reactive({ salesman:'', dimension:'saleAmount', status:'' });
+        var sortState = reactive({ field:'', order:'' });
+        var sortPop = reactive({ visible:false, field:'', top:0, left:0 });
+        var loading=ref(false), pageNum=ref(1), pageSize=ref(20), total=ref(10);
+        var tableMode=ref('全部销售员（柱状图）'), chartEmpty=ref(false), intervalLabel=ref('每天（≤1月）');
+        var chartInstance=null;
+
+        var salesmanOptions = [
+            {label:'张三',value:'S001'},{label:'李四',value:'S002'},{label:'王五',value:'S003'},
+            {label:'赵六',value:'S004'},{label:'陈七',value:'S005'},{label:'刘八',value:'S006'},
+            {label:'周九',value:'S007'},{label:'吴十',value:'S008'}
+        ];
+        var warehouseOptions = [
+            {label:'全国集采虚拟仓',value:'WH_ALL'},{label:'广州江高猪肉仓',value:'WH_GZJG'},{label:'广州江高电商仓',value:'WH_GZJGDS'},{label:'长沙丰泉综合仓',value:'WH_CSFQ'},{label:'成都双流综合仓',value:'WH_CDSL'},{label:'深圳恒寿蔬果仓',value:'WH_SZHS'},{label:'广州南海猪肉仓',value:'WH_GZNH'},{label:'广州花地湾水产仓',value:'WH_GZHDW'},{label:'广州番禺猪肉仓',value:'WH_GZPY'},{label:'广州菜吧仓',value:'WH_GZCB'},{label:'深圳菜吧仓',value:'WH_SZCB'},{label:'清远万安猪肉仓',value:'WH_QYWA'},{label:'海南项目仓',value:'WH_HNXM'},{label:'B端业务仓',value:'WH_B'},{label:'中山创新仓',value:'WH_ZSCX'},{label:'基地直采仓',value:'WH_JDZC'},{label:'中山颐丰猪肉仓',value:'WH_ZSYF'},{label:'长沙B端业务仓',value:'WH_CSB'},{label:'深圳创新仓',value:'WH_SZCX'},{label:'B端业务仓-停用',value:'WH_B_OLD'},{label:'华南区线下共享仓',value:'WH_HNGX'}
+        ];
+        var orderTypeOptions = [{label:'普通客户订单',value:'NORMAL'},{label:'线上尾货',value:'ONLINE_TAIL'},{label:'大客户订单',value:'BIG_CUSTOMER'}];
+        var dimensionOptions = [
+            {label:'有效下单客户数',value:'effectiveCustomerCount'},{label:'下单客户数',value:'customerCount'},
+            {label:'订单有效率',value:'orderEffectiveRate'},{label:'销售金额',value:'saleAmount'},
+            {label:'退货金额',value:'returnAmount'},{label:'实际销售额',value:'actualSales'},
+            {label:'与团队订单量均值差量',value:'teamOrderDiff'},{label:'与团队实际收款额均值差额',value:'teamRevenueDiff'}
+        ];
+
+        var allData = [
+            {salesmanName:'张三',salesmanId:'S001',effectiveCustomerCount:45,customerCount:52,effectiveRate:0.8654,orderCount:328,teamOrderDiff:15.2,returnCount:15,diffCount:5,saleAmount:98600.00,returnAmount:450.00,diffAmount:120.00,actualRevenue:98030.00,yoyChange:12.35,teamRevenueDiff:8520.50},
+            {salesmanName:'李四',salesmanId:'S002',effectiveCustomerCount:38,customerCount:45,effectiveRate:0.8444,orderCount:256,teamOrderDiff:-12.8,returnCount:10,diffCount:3,saleAmount:76800.00,returnAmount:320.00,diffAmount:80.00,actualRevenue:76400.00,yoyChange:-5.21,teamRevenueDiff:-2100.30},
+            {salesmanName:'王五',salesmanId:'S003',effectiveCustomerCount:52,customerCount:60,effectiveRate:0.8667,orderCount:412,teamOrderDiff:28.6,returnCount:18,diffCount:8,saleAmount:123600.00,returnAmount:890.00,diffAmount:340.00,actualRevenue:122370.00,yoyChange:18.72,teamRevenueDiff:15480.00},
+            {salesmanName:'赵六',salesmanId:'S004',effectiveCustomerCount:30,customerCount:38,effectiveRate:0.7895,orderCount:189,teamOrderDiff:-35.4,returnCount:8,diffCount:2,saleAmount:56700.00,returnAmount:280.00,diffAmount:65.00,actualRevenue:56355.00,yoyChange:-8.45,teamRevenueDiff:-6120.50},
+            {salesmanName:'陈七',salesmanId:'S005',effectiveCustomerCount:25,customerCount:31,effectiveRate:0.8065,orderCount:142,teamOrderDiff:-52.3,returnCount:5,diffCount:1,saleAmount:42600.00,returnAmount:180.00,diffAmount:42.00,actualRevenue:42378.00,yoyChange:3.18,teamRevenueDiff:-9850.20},
+            {salesmanName:'刘八',salesmanId:'S006',effectiveCustomerCount:41,customerCount:48,effectiveRate:0.8542,orderCount:298,teamOrderDiff:8.1,returnCount:12,diffCount:4,saleAmount:89400.00,returnAmount:410.00,diffAmount:110.00,actualRevenue:88880.00,yoyChange:7.65,teamRevenueDiff:4310.80},
+            {salesmanName:'周九',salesmanId:'S007',effectiveCustomerCount:19,customerCount:25,effectiveRate:0.7600,orderCount:98,teamOrderDiff:-78.9,returnCount:3,diffCount:1,saleAmount:29400.00,returnAmount:120.00,diffAmount:28.00,actualRevenue:29252.00,yoyChange:-15.32,teamRevenueDiff:-18650.30},
+            {salesmanName:'吴十',salesmanId:'S008',effectiveCustomerCount:35,customerCount:42,effectiveRate:0.8333,orderCount:234,teamOrderDiff:-18.5,returnCount:9,diffCount:3,saleAmount:70200.00,returnAmount:340.00,diffAmount:85.00,actualRevenue:69775.00,yoyChange:null,teamRevenueDiff:-3890.10}
+        ];
+        var detailData = [
+            {salesmanName:'张三',salesmanId:'S001',arrivalDate:'2026年-07月-12日',effectiveCustomerCount:8,customerCount:10,effectiveRate:0.8000,orderCount:58,teamOrderDiff:3.5,returnCount:2,diffCount:1,saleAmount:17400.00,returnAmount:80.00,diffAmount:20.00,actualRevenue:17300.00,yoyChange:15.20,teamRevenueDiff:1500.00},
+            {salesmanName:'张三',salesmanId:'S001',arrivalDate:'2026年-07月-11日',effectiveCustomerCount:7,customerCount:8,effectiveRate:0.8750,orderCount:52,teamOrderDiff:2.8,returnCount:3,diffCount:0,saleAmount:15600.00,returnAmount:75.00,diffAmount:15.00,actualRevenue:15510.00,yoyChange:10.50,teamRevenueDiff:1340.00},
+            {salesmanName:'张三',salesmanId:'S001',arrivalDate:'2026年-07月-10日',effectiveCustomerCount:9,customerCount:11,effectiveRate:0.8182,orderCount:65,teamOrderDiff:4.2,returnCount:2,diffCount:1,saleAmount:19500.00,returnAmount:90.00,diffAmount:25.00,actualRevenue:19385.00,yoyChange:18.30,teamRevenueDiff:1680.00},
+            {salesmanName:'张三',salesmanId:'S001',arrivalDate:'2026年-07月-09日',effectiveCustomerCount:6,customerCount:7,effectiveRate:0.8571,orderCount:45,teamOrderDiff:1.5,returnCount:1,diffCount:0,saleAmount:13500.00,returnAmount:60.00,diffAmount:10.00,actualRevenue:13430.00,yoyChange:8.75,teamRevenueDiff:1150.00},
+            {salesmanName:'张三',salesmanId:'S001',arrivalDate:'2026年-07月-08日',effectiveCustomerCount:5,customerCount:6,effectiveRate:0.8333,orderCount:38,teamOrderDiff:1.1,returnCount:2,diffCount:1,saleAmount:11400.00,returnAmount:55.00,diffAmount:15.00,actualRevenue:11330.00,yoyChange:5.60,teamRevenueDiff:980.00},
+            {salesmanName:'张三',salesmanId:'S001',arrivalDate:'2026年-07月-07日',effectiveCustomerCount:10,customerCount:10,effectiveRate:1.0,orderCount:70,teamOrderDiff:5.0,returnCount:5,diffCount:2,saleAmount:21000.00,returnAmount:90.00,diffAmount:35.00,actualRevenue:20875.00,yoyChange:20.10,teamRevenueDiff:1870.50}
+        ];
+        var tableData = ref(allData.slice());
+
+        function onSalesmanChange(){
+            tableMode.value = chartFilter.salesman ? '具体销售员（折线图）' : '全部销售员（柱状图）';
+            doSearch(); updateChart();
+        }
+        function onPrimaryChange(){ updateChart(); }
+
+        function doSearch(){
+            loading.value=true;
+            var src = chartFilter.salesman ? detailData.filter(function(r){return r.salesmanId===chartFilter.salesman;}) : allData.slice();
+            var flt = src.filter(function(row){
+                if(search.warehouse && row.warehouseVal && row.warehouseVal!==search.warehouse) return false;
+                if(search.orderType && row.orderType && row.orderType!==search.orderType) return false;
+                return true;
+            });
+            if(sortState.field && sortState.order){
+                flt.sort(function(a,b){ var va=a[sortState.field],vb=b[sortState.field]; if(typeof va==='string') return sortState.order==='ASC'?vb.localeCompare(va):va.localeCompare(vb); return sortState.order==='ASC'?vb-va:va-vb; });
+            }
+            total.value=flt.length; pageNum.value=1; tableData.value=flt; loading.value=false;
+        }
+        function resetSearch(){
+            search.arrivalDateRange=[daysAgo(29),todayStr()]; search.warehouse=''; search.orderType='';
+            chartFilter.salesman=''; chartFilter.dimension='saleAmount'; chartFilter.status='';
+            sortState.field=''; sortState.order=''; tableMode.value='全部销售员（柱状图）'; pageNum.value=1;
+            doSearch(); updateChart();
+        }
+        function doExport(){ ElementPlus.ElMessage.success('正在导出...（按当前筛选条件，无条数上限，导出 '+total.value+' 条）'); }
+
+        function onSortClick(p){ var f=p.field,ev=p.event; if(sortPop.visible&&sortPop.field===f){sortPop.visible=false;return;} sortPop.field=f; sortPop.visible=true;
+            var cell=ev.currentTarget.closest('th'); var wrap=cell.closest('.el-table__header-wrapper')||cell.closest('.el-table__header')||document.getElementById('data-card');
+            var wr=wrap.getBoundingClientRect(),cr=cell.getBoundingClientRect(); sortPop.top=cr.bottom-wr.top+2; sortPop.left=cr.left-wr.left; }
+        function applySort(o){ sortState.field=o?sortPop.field:''; sortState.order=o; sortPop.visible=false; doSearch(); }
+
+        /* 图表双模式 */
+        function initChart(){ nextTick(function(){
+            var dom=document.getElementById('main-chart'); if(!dom)return;
+            if(chartInstance)chartInstance.dispose(); chartInstance=echarts.init(dom); updateChart();
+            window.addEventListener('resize',function(){if(chartInstance)chartInstance.resize();});
+        });}
+        function updateChart(){ if(!chartInstance)return;
+            var dim=chartFilter.dimension; var opt=dimensionOptions.find(function(d){return d.value===dim;}); var yLabel=opt?opt.label:'销售金额';
+            /* X轴严格按到货时间范围 */
+            var start=search.arrivalDateRange&&search.arrivalDateRange.length===2?search.arrivalDateRange[0]:daysAgo(29);
+            var end=search.arrivalDateRange&&search.arrivalDateRange.length===2?search.arrivalDateRange[1]:todayStr();
+
+            if(chartFilter.salesman){
+                /* === 折线图模式 === */
+                var intv=calcInterval(start,end); intervalLabel.value=intv.label;
+                var dates=genDates(start,end); var vals=genVals(dates.length);
+                var sd=sample(dates,vals,intv.interval);
+                chartInstance.setOption({
+                    tooltip:{trigger:'axis',formatter:function(p){var v=p[0];if(v.value==null)return v.axisValue+'<br/>无数据';return v.axisValue+'<br/>'+v.seriesName+'：'+v.value;}},
+                    grid:{left:55,right:25,top:20,bottom:35},
+                    xAxis:{type:'category',data:sd.dates,axisLabel:{rotate:intv.interval>1?30:45,fontSize:11}},
+                    yAxis:{type:'value',name:yLabel,minInterval:1},
+                    series:[{name:yLabel,type:'line',data:sd.values,smooth:true,connectNulls:true,symbol:intv.interval>1?'circle':'emptyCircle',symbolSize:intv.interval>1?8:5,lineStyle:{color:'#409eff',width:2},itemStyle:{color:'#409eff',borderColor:'#409eff',borderWidth:1.5},areaStyle:{color:'rgba(64,158,255,0.08)'}}]
+                });
+            } else {
+                /* === 柱状图模式 === */
+                var names=salesmanOptions.map(function(sm){return sm.label;});
+                var barVals=salesmanOptions.map(function(){return Math.floor(Math.random()*5000)+500;});
+                chartInstance.setOption({
+                    tooltip:{trigger:'axis',axisPointer:{type:'shadow'},formatter:function(p){var v=p[0];return v.name+'<br/>'+yLabel+'（'+start+'~'+end+'汇总）：'+v.value;}},
+                    grid:{left:55,right:25,top:20,bottom:50},
+                    xAxis:{type:'category',data:names,axisLabel:{rotate:30,fontSize:11}},
+                    yAxis:{type:'value',name:yLabel,minInterval:1},
+                    series:[{name:yLabel,type:'bar',data:barVals,barMaxWidth:40,itemStyle:{color:function(p){return COLORS[p.dataIndex%COLORS.length];}},label:{show:true,position:'top',fontSize:11}}]
+                });
+            }
+        }
+
+        nextTick(function(){ initChart(); });
+
+        return {
+            search:search,chartFilter:chartFilter,sortState:sortState,sortPop:sortPop,
+            loading:loading,pageNum:pageNum,pageSize:pageSize,total:total,tableMode:tableMode,
+            salesmanOptions:salesmanOptions,warehouseOptions:warehouseOptions,
+            orderTypeOptions:orderTypeOptions,dimensionOptions:dimensionOptions,
+            tableData:tableData,chartEmpty:chartEmpty,intervalLabel:intervalLabel,
+            onSalesmanChange:onSalesmanChange,onPrimaryChange:onPrimaryChange,
+            doSearch:doSearch,resetSearch:resetSearch,doExport:doExport,
+            onSortClick:onSortClick,applySort:applySort,
+            initChart:initChart,updateChart:updateChart
+        };
+    }
+});
+app.use(ElementPlus,{locale:ElementPlusLocaleZhCn}).mount('#prd-root');
+</script>
+</body>
+</html>

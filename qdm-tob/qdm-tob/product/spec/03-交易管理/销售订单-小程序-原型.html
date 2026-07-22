@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>我的订单</title>
+  <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root { --van-primary-color: #ff0000; }
+    body {
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      margin: 0; padding: 0; box-sizing: border-box;
+    }
+    ::-webkit-scrollbar { display: none; }
+    .tab-active { color: #dc2626 !important; border-bottom: 2px solid #dc2626; }
+    .status-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .tag-pending { background: #FFF7ED; color: #EA580C; }
+    .tag-shipping { background: #EFF6FF; color: #2563EB; }
+    .tag-outbound { background: #F5F3FF; color: #7C3AED; }
+    .tag-done { background: #ECFDF5; color: #059669; }
+    .tag-cancel { background: #F1F5F9; color: #64748B; }
+  </style>
+</head>
+<body>
+  <div id="prd-root" class="pb-16">
+
+    <!-- 状态Tab -->
+    <div class="sticky top-0 bg-white z-10 shadow-sm">
+      <div class="flex overflow-x-auto whitespace-nowrap">
+        <div
+          v-for="tab in tabs" :key="tab.key"
+          class="flex-1 text-center py-3 text-sm font-medium cursor-pointer transition"
+          :class="activeTab === tab.key ? 'tab-active' : 'text-slate-500'"
+          @click="activeTab = tab.key"
+        >{{ tab.label }}</div>
+      </div>
+    </div>
+
+    <!-- 订单列表 -->
+    <div v-if="filteredOrders.length > 0" class="px-3 pt-3 space-y-3">
+      <div
+        v-for="o in filteredOrders" :key="o.id"
+        class="bg-white rounded-xl p-4 shadow-sm cursor-pointer active:scale-[0.98] transition"
+        @click="viewDetail(o)"
+      >
+        <!-- 订单头部 -->
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-medium text-slate-800">{{ o.orderNo }}</span>
+          <span class="status-tag" :class="statusTagClass(o.status)">{{ o.status }}</span>
+        </div>
+
+        <!-- 商品摘要行 -->
+        <div class="flex items-center gap-3 pb-3 border-b border-slate-50">
+          <div class="w-14 h-14 rounded-lg bg-slate-100 flex items-center justify-center text-2xl text-slate-300 shrink-0">📦</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-xs text-slate-500">共 {{ o.skuCount }} 种商品</div>
+            <div v-if="o.firstProduct" class="text-xs text-slate-400 mt-0.5 truncate">{{ o.firstProduct }}</div>
+          </div>
+        </div>
+
+        <!-- 金额 + 操作 -->
+        <div class="flex items-center justify-between mt-3">
+          <span class="text-lg font-bold text-slate-800">¥{{ o.paidTotal.toFixed(2) }}</span>
+          <div class="flex gap-2">
+            <template v-if="o.status === '待支付'">
+              <van-button size="small" plain round @click.stop="cancelOrder(o)">取消订单</van-button>
+              <van-button size="small" type="primary" round @click.stop="payOrder(o)">去支付</van-button>
+            </template>
+            <template v-else-if="o.status === '待出库' || o.status === '出库中'">
+              <van-button size="small" plain round @click.stop="viewDetail(o)">查看详情</van-button>
+            </template>
+            <template v-else-if="o.status === '已完成'">
+              <van-button size="small" plain round @click.stop="viewDetail(o)">查看详情</van-button>
+              <van-button size="small" type="primary" plain round @click.stop="rebuy(o)">再次购买</van-button>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 空数据 -->
+    <div v-else class="text-center py-24 text-slate-400">
+      <div class="text-6xl mb-4">📋</div>
+      <div class="text-base">暂无订单</div>
+      <van-button type="primary" round class="mt-4" @click="vant.showToast('跳转首页')">去逛逛</van-button>
+    </div>
+
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+  <script>
+    const { createApp, ref, computed } = Vue;
+    createApp({
+      setup() {
+        const activeTab = ref('all');
+        const tabs = [
+          { key: 'all', label: '全部' },
+          { key: '待支付', label: '待支付' },
+          { key: '待出库', label: '待出库' },
+          { key: '出库中', label: '出库中' },
+          { key: '已完成', label: '已完成' },
+        ];
+
+        const orders = ref([
+          { id: 1, orderNo: '20232343443A', status: '已完成', skuCount: 2, paidTotal: 110.00, firstProduct: '冷鲜瘦肉、优鲜带颈通排' },
+          { id: 2, orderNo: '20232343444B', status: '待支付', skuCount: 1, paidTotal: 50.00, firstProduct: '冷鲜瘦肉' },
+          { id: 3, orderNo: '20232343445C', status: '待出库', skuCount: 6, paidTotal: 310.00, firstProduct: '优鲜带颈通排等6种' },
+          { id: 4, orderNo: '20232343446D', status: '出库中', skuCount: 3, paidTotal: 200.00, firstProduct: '冷鲜瘦肉等3种' },
+          { id: 5, orderNo: '20232343447E', status: '已完成', skuCount: 14, paidTotal: 520.00, firstProduct: '优鲜带颈通排等14种' },
+          { id: 6, orderNo: '20232343448F', status: '待支付', skuCount: 2, paidTotal: 180.00, firstProduct: '冷鲜瘦肉、优鲜带颈通排' },
+        ]);
+
+        const filteredOrders = computed(() => {
+          if (activeTab.value === 'all') return orders.value;
+          return orders.value.filter(o => o.status === activeTab.value);
+        });
+
+        function statusTagClass(status) {
+          const map = { '待支付': 'tag-pending', '待出库': 'tag-shipping', '出库中': 'tag-outbound', '已完成': 'tag-done', '已取消': 'tag-cancel' };
+          return map[status] || '';
+        }
+        function viewDetail(o) {
+          window.location.href = '销售订单-小程序-详情-原型.html';
+        }
+        function cancelOrder(o) {
+          vant.showConfirmDialog({ title: '取消订单', message: '确定要取消该订单吗？', confirmButtonColor: '#dc2626' })
+            .then(() => { o.status = '已取消'; vant.showSuccessToast('订单已取消'); })
+            .catch(() => {});
+        }
+        function payOrder(o) {
+          vant.showToast('调起微信支付: ' + o.orderNo);
+        }
+        function rebuy(o) {
+          vant.showToast('已加入购物车');
+        }
+
+        return { activeTab, tabs, orders, filteredOrders, statusTagClass, viewDetail, cancelOrder, payOrder, rebuy, vant };
+      }
+    }).use(vant).mount('#prd-root');
+  </script>
+</body>
+</html>

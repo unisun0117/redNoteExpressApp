@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统字典管理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root {
+            --primary: #409eff;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #ffffff;
+            margin: 0;
+            padding: 24px;
+        }
+        .prd-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #303133;
+        }
+        .prd-subtitle {
+            font-size: 14px;
+            color: #909399;
+            margin-bottom: 24px;
+        }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .search-bar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .items-section {
+            margin-top: 20px;
+            border-top: 1px solid #ebeef5;
+            padding-top: 16px;
+        }
+        .items-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #303133;
+            font-weight: 600;
+        }
+        .item-col-headers {
+            display: flex;
+            gap: 10px;
+            padding: 0 12px;
+            margin-bottom: 4px;
+        }
+        .item-col-headers span {
+            flex: 1;
+            min-width: 0;
+            font-size: 12px;
+            color: #909399;
+        }
+        .item-col-headers .col-fixed {
+            width: 90px;
+            flex: none;
+        }
+        .item-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            background: #fafafa;
+            border-radius: 6px;
+            border: 1px solid #ebeef5;
+        }
+        .item-row > .el-input {
+            flex: 1;
+            min-width: 0;
+        }
+        .code-readonly {
+            flex: 1;
+            min-width: 0;
+            color: #909399;
+            font-size: 13px;
+            padding: 0 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .add-item-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 9px 0;
+            color: #409eff;
+            cursor: pointer;
+            border: 1px dashed #d9ecff;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .add-item-btn:hover {
+            background: #ecf5ff;
+            border-color: #409eff;
+        }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+        <h1 class="prd-title">系统字典管理</h1>
+        <p class="prd-subtitle">统一管理系统各功能模块中的枚举值，支持字典的新增、编辑及导出，运营人员可自助维护无需开发介入</p>
+
+        <!-- ========== 搜索筛选栏 ========== -->
+        <div class="toolbar">
+            <div class="search-bar">
+                <el-input
+                    v-model="search.dictCode"
+                    placeholder="字典编码"
+                    clearable
+                    style="width:200px;"
+                    @keyup.enter="doSearch"
+                ></el-input>
+                <el-input
+                    v-model="search.dictName"
+                    placeholder="字典名称"
+                    clearable
+                    style="width:200px;"
+                    @keyup.enter="doSearch"
+                ></el-input>
+                <el-button type="primary" @click="doSearch">查询</el-button>
+                <el-button @click="resetSearch">重置</el-button>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <span style="font-size:14px; color:#909399;">
+                    共 <b style="color:#303133;">{{ total }}</b> 条记录
+                </span>
+                <el-button @click="handleExport">导出</el-button>
+                <el-button type="primary" @click="openDictForm(null)">+ 新增字典</el-button>
+            </div>
+        </div>
+
+        <!-- ========== 字典列表表格 ========== -->
+        <el-table
+            :data="tableData"
+            stripe
+            v-loading="loading"
+            style="width:100%;"
+        >
+            <el-table-column
+                prop="dictCode"
+                label="字典编码"
+                width="200"
+            >
+                <template #default="scope">
+                    <b>{{ scope.row.dictCode }}</b>
+                </template>
+            </el-table-column>
+            <el-table-column
+                prop="dictName"
+                label="字典名称"
+                width="180"
+            ></el-table-column>
+            <el-table-column
+                prop="description"
+                label="用途描述"
+                min-width="200"
+            >
+                <template #default="scope">
+                    <span style="color:#606266;">{{ scope.row.description || '-' }}</span>
+                </template>
+            </el-table-column>
+            <el-table-column
+                label="明细项总数"
+                width="120"
+                align="center"
+            >
+                <template #default="scope">
+                    <span style="font-weight:600; color:#409eff;">{{ scope.row.items.length }}</span>
+                    <span style="font-size:12px; color:#909399;"> 项</span>
+                </template>
+            </el-table-column>
+            <el-table-column
+                label="操作"
+                width="100"
+                fixed="right"
+            >
+                <template #default="scope">
+                    <el-button
+                        type="primary"
+                        link
+                        size="small"
+                        @click="openDictForm(scope.row)"
+                    >编辑</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <!-- 空状态 -->
+        <div
+            v-if="tableData.length === 0 && !loading"
+            style="text-align:center; padding:60px 0; color:#909399;"
+        >
+            <div style="font-size:48px; margin-bottom:12px;">📖</div>
+            <div>{{ hasSearch ? '未找到匹配的字典' : '暂无数据' }}</div>
+        </div>
+
+        <!-- 分页 -->
+        <div
+            style="margin-top:16px; display:flex; justify-content:flex-end;"
+            v-if="total > 0"
+        >
+            <el-pagination
+                v-model:current-page="pageNum"
+                v-model:page-size="pageSize"
+                :page-sizes="[10, 20, 50, 100]"
+                :total="total"
+                layout="total, sizes, prev, pager, next"
+                background
+            ></el-pagination>
+        </div>
+
+        <!-- ==================== 弹窗：新增 / 编辑字典 ==================== -->
+        <el-dialog
+            v-model="dictDialog.visible"
+            :title="dictDialog.isEdit ? '编辑字典' : '新增字典'"
+            width="720px"
+            :close-on-click-modal="false"
+            @close="resetDictForm"
+        >
+            <el-form
+                ref="dictFormRef"
+                :model="dictForm"
+                :rules="dictRules"
+                label-width="110px"
+            >
+                <el-form-item label="字典编码" prop="dictCode">
+                    <el-input
+                        v-model="dictForm.dictCode"
+                        placeholder="请输入字典编码（字母、数字、下划线）"
+                        maxlength="50"
+                        :disabled="dictDialog.isEdit"
+                    ></el-input>
+                    <div style="font-size:12px; color:#909399; margin-top:4px;">
+                        逻辑主键，创建后不可修改，仅允许字母、数字、下划线
+                    </div>
+                </el-form-item>
+                <el-form-item label="字典名称" prop="dictName">
+                    <el-input
+                        v-model="dictForm.dictName"
+                        placeholder="请输入字典名称"
+                        maxlength="100"
+                    ></el-input>
+                </el-form-item>
+                <el-form-item label="用途描述" prop="description">
+                    <el-input
+                        v-model="dictForm.description"
+                        placeholder="请输入用途描述（选填）"
+                        maxlength="200"
+                        type="textarea"
+                        :rows="2"
+                    ></el-input>
+                </el-form-item>
+            </el-form>
+
+            <!-- 字典项明细 -->
+            <div class="items-section">
+                <div class="items-section-header">
+                    <span>
+                        📋 字典项明细
+                        <span style="color:#f56c6c;">*</span>
+                    </span>
+                    <span style="font-weight:400; font-size:12px; color:#909399;">
+                        状态和顺序在明细中维护
+                    </span>
+                </div>
+
+                <!-- 列头 -->
+                <div class="item-col-headers">
+                    <span>字典项编码</span>
+                    <span>字典项名称</span>
+                    <span class="col-fixed">顺序</span>
+                    <span class="col-fixed">状态</span>
+                </div>
+
+                <!-- 空行提示 -->
+                <div
+                    v-if="dictForm.items.length === 0"
+                    style="text-align:center; padding:24px 0; color:#c0c4cc; font-size:13px;"
+                >
+                    暂无字典项，请点击下方按钮添加
+                </div>
+
+                <!-- 字典项明细行 -->
+                <div
+                    v-for="(item, idx) in dictForm.items"
+                    :key="item._key"
+                    class="item-row"
+                >
+                    <!-- 字典项编码：新增可写 / 编辑已有只读 / 编辑时新增可写 -->
+                    <template v-if="dictDialog.isEdit && item._existing">
+                        <span class="code-readonly" :title="item.itemCode">{{ item.itemCode }}</span>
+                    </template>
+                    <template v-else>
+                        <el-input
+                            v-model="item.itemCode"
+                            placeholder="字典项编码"
+                            maxlength="50"
+                            size="small"
+                        ></el-input>
+                    </template>
+
+                    <!-- 字典项名称 -->
+                    <el-input
+                        v-model="item.itemName"
+                        placeholder="字典项名称"
+                        maxlength="100"
+                        size="small"
+                    ></el-input>
+
+                    <!-- 顺序 -->
+                    <el-input-number
+                        v-model="item.sortOrder"
+                        :min="1"
+                        :max="9999"
+                        size="small"
+                        style="width:90px; flex-shrink:0;"
+                    ></el-input-number>
+
+                    <!-- 状态 -->
+                    <el-select
+                        v-model="item.status"
+                        size="small"
+                        style="width:90px; flex-shrink:0;"
+                    >
+                        <el-option label="启用" value="启用"></el-option>
+                        <el-option label="停用" value="停用"></el-option>
+                    </el-select>
+
+                    <!-- 新增模式可删 / 编辑模式仅新增未保存的项可删 -->
+                    <el-button
+                        v-if="!dictDialog.isEdit || !item._existing"
+                        type="danger"
+                        link
+                        size="small"
+                        style="flex-shrink:0;"
+                        @click="removeItemRow(idx)"
+                    >✕</el-button>
+                </div>
+
+                <!-- 新增和编辑模式均可添加行 -->
+                <div
+                    class="add-item-btn"
+                    @click="addItemRow"
+                >+ 添加一行</div>
+            </div>
+
+            <template #footer>
+                <el-button @click="dictDialog.visible = false">取消</el-button>
+                <el-button
+                    type="primary"
+                    @click="submitDictForm"
+                    :loading="dictDialog.submitting"
+                >确认{{ dictDialog.isEdit ? '保存' : '创建' }}</el-button>
+            </template>
+        </el-dialog>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+
+    <script>
+        var createApp = Vue.createApp;
+        var ref = Vue.ref;
+        var reactive = Vue.reactive;
+        var computed = Vue.computed;
+        var watch = Vue.watch;
+
+        var application = createApp({
+            setup: function () {
+                // ================================================================
+                // 内部工具
+                // ================================================================
+                var nextDictId = 6;
+                var itemKeyCounter = 100;
+
+                function newItemKey() {
+                    itemKeyCounter = itemKeyCounter + 1;
+                    return 'k_' + itemKeyCounter;
+                }
+
+                // ================================================================
+                // Mock 数据
+                // ================================================================
+                var allDicts = ref([
+                    {
+                        id: 1,
+                        dictCode: 'CUSTOMER_LEVEL',
+                        dictName: '客户等级',
+                        description: '用于客户信息中的等级分类，影响价格策略和优惠力度',
+                        items: [
+                            { _key: newItemKey(), itemCode: 'VIP',    itemName: 'VIP客户', sortOrder: 1, status: '启用' },
+                            { _key: newItemKey(), itemCode: 'GOLD',   itemName: '金牌客户', sortOrder: 2, status: '启用' },
+                            { _key: newItemKey(), itemCode: 'SILVER', itemName: '银牌客户', sortOrder: 3, status: '启用' },
+                            { _key: newItemKey(), itemCode: 'NORMAL', itemName: '普通客户', sortOrder: 4, status: '停用' },
+                        ],
+                    },
+                    {
+                        id: 2,
+                        dictCode: 'ORDER_TYPE',
+                        dictName: '订单类型',
+                        description: '用于订单下单时的类型选择，区分不同业务场景',
+                        items: [
+                            { _key: newItemKey(), itemCode: 'NORMAL', itemName: '普通订单', sortOrder: 1, status: '启用' },
+                            { _key: newItemKey(), itemCode: 'URGENT', itemName: '加急订单', sortOrder: 2, status: '启用' },
+                            { _key: newItemKey(), itemCode: 'PRE',    itemName: '预售订单', sortOrder: 3, status: '停用' },
+                        ],
+                    },
+                    {
+                        id: 3,
+                        dictCode: 'PAYMENT_METHOD',
+                        dictName: '支付方式',
+                        description: '用于订单支付方式的选择，支持多种支付渠道',
+                        items: [
+                            { _key: newItemKey(), itemCode: 'WECHAT',    itemName: '微信支付', sortOrder: 1, status: '启用' },
+                            { _key: newItemKey(), itemCode: 'ALIPAY',    itemName: '支付宝',   sortOrder: 2, status: '启用' },
+                            { _key: newItemKey(), itemCode: 'BANK_CARD', itemName: '银行卡',   sortOrder: 3, status: '启用' },
+                            { _key: newItemKey(), itemCode: 'CASH',      itemName: '现金',     sortOrder: 4, status: '停用' },
+                        ],
+                    },
+                    {
+                        id: 4,
+                        dictCode: 'PRODUCT_UNIT',
+                        dictName: '商品单位',
+                        description: '用于商品信息中的单位选择',
+                        items: [
+                            { _key: newItemKey(), itemCode: 'KG',    itemName: '千克', sortOrder: 1, status: '启用' },
+                            { _key: newItemKey(), itemCode: 'G',     itemName: '克',   sortOrder: 2, status: '启用' },
+                            { _key: newItemKey(), itemCode: 'PIECE', itemName: '件',   sortOrder: 3, status: '启用' },
+                            { _key: newItemKey(), itemCode: 'BOX',   itemName: '箱',   sortOrder: 4, status: '停用' },
+                        ],
+                    },
+                    {
+                        id: 5,
+                        dictCode: 'INVOICE_TYPE',
+                        dictName: '发票类型',
+                        description: '用于订单开票时的发票类型选择',
+                        items: [
+                            { _key: newItemKey(), itemCode: 'VAT_SPECIAL', itemName: '增值税专用发票', sortOrder: 1, status: '启用' },
+                            { _key: newItemKey(), itemCode: 'VAT_NORMAL',  itemName: '增值税普通发票', sortOrder: 2, status: '启用' },
+                            { _key: newItemKey(), itemCode: 'ELECTRONIC',  itemName: '电子发票',       sortOrder: 3, status: '停用' },
+                        ],
+                    },
+                ]);
+
+                // ================================================================
+                // 搜索 & 分页
+                // ================================================================
+                var search = reactive({
+                    dictCode: '',
+                    dictName: '',
+                });
+
+                var pageNum = ref(1);
+                var pageSize = ref(20);
+                var loading = ref(false);
+
+                var hasSearch = computed(function () {
+                    if (search.dictCode) {
+                        return true;
+                    }
+                    if (search.dictName) {
+                        return true;
+                    }
+                    return false;
+                });
+
+                var filteredDicts = computed(function () {
+                    var list = allDicts.value;
+                    if (search.dictCode) {
+                        list = list.filter(function (d) {
+                            return d.dictCode.toLowerCase().indexOf(search.dictCode.toLowerCase()) !== -1;
+                        });
+                    }
+                    if (search.dictName) {
+                        list = list.filter(function (d) {
+                            return d.dictName.toLowerCase().indexOf(search.dictName.toLowerCase()) !== -1;
+                        });
+                    }
+                    return list;
+                });
+
+                var total = computed(function () {
+                    return filteredDicts.value.length;
+                });
+
+                var tableData = computed(function () {
+                    var start = (pageNum.value - 1) * pageSize.value;
+                    var end = start + pageSize.value;
+                    return filteredDicts.value.slice(start, end);
+                });
+
+                watch(
+                    [
+                        function () { return search.dictCode; },
+                        function () { return search.dictName; },
+                    ],
+                    function () {
+                        pageNum.value = 1;
+                    }
+                );
+
+                function doSearch() {
+                    pageNum.value = 1;
+                }
+
+                function resetSearch() {
+                    search.dictCode = '';
+                    search.dictName = '';
+                    pageNum.value = 1;
+                }
+
+                // ================================================================
+                // 导出
+                // ================================================================
+                function handleExport() {
+                    if (filteredDicts.value.length === 0) {
+                        ElementPlus.ElMessage.warning('当前查询条件下无数据可导出');
+                        return;
+                    }
+                    ElementPlus.ElMessage.success('正在按当前筛选条件导出 ' + filteredDicts.value.length + ' 条字典数据为 Excel，请稍候...');
+                }
+
+                // ================================================================
+                // 新增 / 编辑字典弹窗
+                // ================================================================
+                var dictDialog = reactive({
+                    visible: false,
+                    isEdit: false,
+                    submitting: false,
+                    editId: null,
+                });
+
+                var dictFormRef = ref(null);
+
+                var dictForm = reactive({
+                    dictCode: '',
+                    dictName: '',
+                    description: '',
+                    items: [],
+                });
+
+                var dictRules = {
+                    dictCode: [
+                        { required: true, message: '请输入字典编码', trigger: 'blur' },
+                        { pattern: /^[A-Za-z0-9_]+$/, message: '仅允许字母、数字、下划线', trigger: 'blur' },
+                    ],
+                    dictName: [
+                        { required: true, message: '请输入字典名称', trigger: 'blur' },
+                        { max: 100, message: '字典名称最长100字符', trigger: 'blur' },
+                    ],
+                };
+
+                function openDictForm(row) {
+                    dictDialog.submitting = false;
+                    if (row) {
+                        dictDialog.isEdit = true;
+                        dictDialog.editId = row.id;
+                        dictForm.dictCode = row.dictCode;
+                        dictForm.dictName = row.dictName;
+                        dictForm.description = row.description;
+                        dictForm.items = row.items.map(function (item) {
+                            return {
+                                _key: newItemKey(),
+                                itemCode: item.itemCode,
+                                itemName: item.itemName,
+                                sortOrder: item.sortOrder,
+                                status: item.status,
+                                _existing: true,
+                            };
+                        });
+                    } else {
+                        dictDialog.isEdit = false;
+                        dictDialog.editId = null;
+                        dictForm.dictCode = '';
+                        dictForm.dictName = '';
+                        dictForm.description = '';
+                        dictForm.items = [];
+                    }
+                    dictDialog.visible = true;
+                    setTimeout(function () {
+                        if (dictFormRef.value) {
+                            dictFormRef.value.clearValidate();
+                        }
+                    }, 0);
+                }
+
+                function resetDictForm() {
+                    dictDialog.editId = null;
+                }
+
+                function addItemRow() {
+                    dictForm.items.push({
+                        _key: newItemKey(),
+                        itemCode: '',
+                        itemName: '',
+                        sortOrder: dictForm.items.length + 1,
+                        status: '启用',
+                    });
+                }
+
+                function removeItemRow(idx) {
+                    dictForm.items.splice(idx, 1);
+                }
+
+                function submitDictForm() {
+                    if (!dictFormRef.value) {
+                        return;
+                    }
+                    dictFormRef.value.validate(function (valid) {
+                        if (!valid) {
+                            return;
+                        }
+                        if (dictForm.items.length === 0) {
+                            ElementPlus.ElMessage.error('请至少添加一项字典项明细');
+                            return;
+                        }
+                        var emptyItem = dictForm.items.find(function (item) {
+                            if (!item.itemCode.trim()) {
+                                return true;
+                            }
+                            if (!item.itemName.trim()) {
+                                return true;
+                            }
+                            return false;
+                        });
+                        if (emptyItem) {
+                            ElementPlus.ElMessage.error('字典项编码和名称不能为空');
+                            return;
+                        }
+                        var invalidCode = dictForm.items.find(function (item) {
+                            var pattern = /^[A-Za-z0-9_]+$/;
+                            return !pattern.test(item.itemCode);
+                        });
+                        if (invalidCode) {
+                            ElementPlus.ElMessage.error('字典项编码仅允许字母、数字、下划线');
+                            return;
+                        }
+                        var codes = dictForm.items.map(function (i) {
+                            return i.itemCode;
+                        });
+                        var dupIndex = -1;
+                        for (var i = 0; i < codes.length; i = i + 1) {
+                            if (codes.indexOf(codes[i]) !== i) {
+                                dupIndex = i;
+                                break;
+                            }
+                        }
+                        if (dupIndex !== -1) {
+                            ElementPlus.ElMessage.error('字典项编码「' + codes[dupIndex] + '」重复，请检查');
+                            return;
+                        }
+                        if (!dictDialog.isEdit) {
+                            var exists = allDicts.value.some(function (d) {
+                                return d.dictCode === dictForm.dictCode;
+                            });
+                            if (exists) {
+                                ElementPlus.ElMessage.error('该字典编码已存在，请更换');
+                                return;
+                            }
+                            dictDialog.submitting = true;
+                            setTimeout(function () {
+                                allDicts.value.unshift({
+                                    id: nextDictId,
+                                    dictCode: dictForm.dictCode,
+                                    dictName: dictForm.dictName,
+                                    description: dictForm.description,
+                                    items: dictForm.items.map(function (item) {
+                                        return {
+                                            _key: newItemKey(),
+                                            itemCode: item.itemCode,
+                                            itemName: item.itemName,
+                                            sortOrder: item.sortOrder,
+                                            status: item.status,
+                                        };
+                                    }),
+                                });
+                                nextDictId = nextDictId + 1;
+                                dictDialog.submitting = false;
+                                dictDialog.visible = false;
+                                ElementPlus.ElMessage.success('字典创建成功');
+                            }, 400);
+                        } else {
+                            dictDialog.submitting = true;
+                            setTimeout(function () {
+                                var d = allDicts.value.find(function (x) {
+                                    return x.id === dictDialog.editId;
+                                });
+                                if (d) {
+                                    d.dictName = dictForm.dictName;
+                                    d.description = dictForm.description;
+                                    d.items = dictForm.items.map(function (item) {
+                                        return {
+                                            _key: newItemKey(),
+                                            itemCode: item.itemCode,
+                                            itemName: item.itemName,
+                                            sortOrder: item.sortOrder,
+                                            status: item.status,
+                                        };
+                                    });
+                                }
+                                dictDialog.submitting = false;
+                                dictDialog.visible = false;
+                                ElementPlus.ElMessage.success('字典更新成功');
+                            }, 400);
+                        }
+                    });
+                }
+
+                // ================================================================
+                // 返回
+                // ================================================================
+                return {
+                    search: search,
+                    pageNum: pageNum,
+                    pageSize: pageSize,
+                    loading: loading,
+                    hasSearch: hasSearch,
+                    tableData: tableData,
+                    total: total,
+                    dictDialog: dictDialog,
+                    dictFormRef: dictFormRef,
+                    dictForm: dictForm,
+                    dictRules: dictRules,
+                    doSearch: doSearch,
+                    resetSearch: resetSearch,
+                    handleExport: handleExport,
+                    openDictForm: openDictForm,
+                    resetDictForm: resetDictForm,
+                    addItemRow: addItemRow,
+                    removeItemRow: removeItemRow,
+                    submitDictForm: submitDictForm,
+                };
+            },
+        });
+
+        application.use(ElementPlus).mount('#prd-root');
+    </script>
+</body>
+</html>

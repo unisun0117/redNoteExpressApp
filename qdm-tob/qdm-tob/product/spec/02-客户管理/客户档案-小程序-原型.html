@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>收货地址</title>
+    <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        :root {
+            --van-primary-color: #ff0000;
+        }
+        body {
+            background-color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        ::-webkit-scrollbar { display: none; }
+        .van-cell-group--inset{
+            margin: 0px;
+        }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+
+        <!-- ========== 地址列表页 ========== -->
+        <div v-if="currentView === 'list'" class="flex flex-col min-h-screen">
+            <div class="px-3 pt-3 pb-20 space-y-3">
+                <div v-for="addr in addressList" :key="addr.id" class="bg-white rounded-xl p-4 shadow-sm" @click="openDetail(addr)">
+                    <div class="text-base font-semibold text-slate-800 mb-1">{{ addr.companyName }}</div>
+                    <div class="text-sm text-slate-500">{{ addr.contactName }} {{ addr.contactPhone }}</div>
+                    <div class="text-sm text-slate-400 truncate mt-0.5 mb-2">{{ addr.fullAddress }}</div>
+                    <van-tag
+                        :type="addr.status === '已通过' ? 'success' : addr.status === '待审核' ? 'warning' : 'danger'"
+                        size="medium"
+                    >{{ addr.status }}</van-tag>
+                    <div v-if="addr.status === '已驳回' && addr.rejectReason" class="text-xs text-red-600 bg-red-50 rounded-md p-2 mt-2 leading-relaxed">
+                        驳回原因：{{ addr.rejectReason }}
+                    </div>
+                </div>
+
+                <div v-if="addressList.length === 0" class="flex flex-col items-center justify-center py-20 text-slate-400">
+                    <div class="text-5xl mb-3">📭</div>
+                    <div class="text-sm">暂无收货地址</div>
+                </div>
+            </div>
+
+            <div class="fixed bottom-0 left-0 right-0 p-2 px-3 bg-white border-t border-slate-100 z-50">
+                <van-button type="primary" block round @click="openForm()">新增公司地址</van-button>
+            </div>
+        </div>
+
+        <!-- ========== 新增/编辑地址页 ========== -->
+        <div v-if="currentView === 'form' || currentView === 'edit'" class="flex flex-col min-h-screen">
+            <div class="px-3 py-3 pb-24 space-y-4">
+                <div class="text-sm font-semibold text-slate-700 border-slate-100 pb-0 mt-1">公司资质</div>
+                <van-form ref="formRef">
+                    <van-cell-group inset>
+                        <van-field v-model="formData.companyName" label="公司名称" placeholder="请输入公司名称" maxlength="100" :rules="[{ required: true, message: '请输入公司名称' }]"></van-field>
+                        <div class="px-3 mt-2">
+                            <div class="text-xs text-slate-500 mb-1"><span class="text-red-600">*</span> 门头照片</div>
+                            <van-uploader :max-count="1" preview-size="80"></van-uploader>
+                        </div>
+
+                        <div class="px-3 mt-2">
+                            <div class="text-xs text-slate-500 mb-1"><span class="text-red-600">*</span> 营业执照照片</div>
+                            <van-uploader :max-count="1" preview-size="80"></van-uploader>
+                        </div>
+
+                        <van-field v-model="formData.licenseNo" label="营业执照编号" placeholder="18位统一社会信用代码" maxlength="18" :rules="[{ required: true, message: '请输入营业执照编号' }]"></van-field>
+
+                    </van-cell-group>
+
+                    <div class="text-sm font-semibold text-slate-700 border-slate-100 pb-3 mt-4">收货信息</div>
+                    <van-cell-group inset>
+                        <van-field v-model="formData.contactName" label="收货人姓名" placeholder="请输入收货人姓名" maxlength="50" :rules="[{ required: true, message: '请输入收货人姓名' }]"></van-field>
+                        <van-field v-model="formData.contactPhone" label="收货人电话" type="tel" placeholder="请输入手机号" maxlength="11" :rules="[{ required: true, message: '请输入手机号' }]"></van-field>
+                        <van-field v-model="formData.region" label="所在地区" placeholder="省 / 市 / 区" readonly is-link @click="showRegionPicker"></van-field>
+                        <van-field v-model="formData.detailAddress" label="详细收货地址" placeholder="请输入详细地址" maxlength="200" :rules="[{ required: true, message: '请输入详细地址' }]"></van-field>
+                    </van-cell-group>
+
+                    <div class="text-sm font-semibold text-slate-700 border-slate-100 pb-2 mt-4">收货配置</div>
+                    <van-cell-group inset>
+                        <van-field v-model="formData.receiveTime" label="可收货时段" placeholder="00:00 - 08:00" maxlength="50"></van-field>
+                        <div class="px-3 mt-2">
+                            <div class="text-xs text-slate-500 mb-1">收货存放位置图片（最多3张）</div>
+                            <van-uploader :max-count="3" preview-size="80"></van-uploader>
+                        </div>
+
+                        <van-field v-model="formData.remark" label="收货要求" placeholder="如：需冷链配送，需提前1小时通知等" maxlength="500" type="textarea" rows="2" autosize></van-field>
+                        
+                    </van-cell-group>
+
+                    <div class="text-sm font-semibold text-slate-700 border-slate-100 pb-2 mt-4">推荐信息</div>
+                    <van-cell-group inset>
+                        <van-field v-model="formData.referralCode" label="推荐码" placeholder="如有推荐码请输入" maxlength="50"></van-field>
+                    </van-cell-group>
+                </van-form>
+            </div>
+
+            <div class="fixed bottom-0 left-0 right-0 p-2 px-3 bg-white border-t border-slate-100 z-50">
+                <van-button type="primary" block round @click="submitForm">
+                    {{ currentView === 'edit' ? '重新提交审核' : '提交审核' }}
+                </van-button>
+            </div>
+        </div>
+
+        <!-- ========== 已通过详情页 ========== -->
+        <div v-if="currentView === 'detail-pass'" class="flex flex-col min-h-screen" v-cloak>
+            <div class="px-3 py-3 pb-24 space-y-3">
+                <div class="bg-white rounded-xl p-4 shadow-sm">
+                    <div class="text-base font-semibold text-slate-800 mb-1">{{ detailAddr.companyName }}</div>
+                    <div class="text-sm text-slate-500">{{ detailAddr.contactName }} {{ detailAddr.contactPhone }}</div>
+                    <div class="text-sm text-slate-400 mt-0.5 mb-2">{{ detailAddr.fullAddress }}</div>
+                    <van-tag type="success" size="medium">已通过</van-tag>
+                </div>
+                <div class="text-sm text-slate-500 px-1">
+                    收货时段 {{ detailAddr.receiveTime || '--' }} | 收货要求：{{ detailAddr.remark || '--' }}
+                </div>
+            </div>
+            <div class="fixed bottom-0 left-0 right-0 p-2 px-3 bg-white border-t border-slate-100 z-50">
+                <van-button block round plain type="primary" @click="openMembers">管理成员（已绑定 1 人）</van-button>
+            </div>
+        </div>
+
+        <!-- ========== 待审核详情页（只读） ========== -->
+        <div v-if="currentView === 'detail-pending'" class="flex flex-col min-h-screen">
+            <div class="px-3 py-3 pb-24 space-y-3">
+                <div class="bg-white rounded-xl p-4 shadow-sm">
+                    <div class="text-base font-semibold text-slate-800 mb-1">{{ detailAddr.companyName }}</div>
+                    <div class="text-sm text-slate-500">{{ detailAddr.contactName }} {{ detailAddr.contactPhone }}</div>
+                    <div class="text-sm text-slate-400 mt-0.5 mb-2">{{ detailAddr.fullAddress }}</div>
+                    <van-tag type="warning" size="medium">待审核</van-tag>
+                </div>
+                <div class="text-sm text-slate-500 text-center">审核中，请耐心等待。审核人：李四（业务员）</div>
+                <div class="text-xs text-slate-400 text-center">审核通过后可用于下单</div>
+            </div>
+        </div>
+
+        <!-- ========== 成员管理页 ========== -->
+        <div v-if="currentView === 'members'" class="flex flex-col min-h-screen">
+            <div class="px-3 pt-3 pb-24 space-y-3">
+                <div class="text-sm text-slate-500">{{ detailAddr.companyName }} · 已绑定 1 人</div>
+                <div class="bg-white rounded-xl p-4 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-red-600 text-white flex items-center justify-center font-semibold text-base">陈</div>
+                    <div class="flex-1">
+                        <div class="text-sm">陈经理 <span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">管理员</span></div>
+                        <div class="text-xs text-slate-400">绑定时间：2026-06-29</div>
+                    </div>
+                    <van-button size="small" disabled>解绑</van-button>
+                </div>
+                <div class="text-sm text-slate-400 text-center py-12">暂无其他成员，点击下方按钮邀请</div>
+            </div>
+            <div class="fixed bottom-0 left-0 right-0 p-2 px-3 bg-white border-t border-slate-100 z-50">
+                <van-button type="primary" block round @click="vant.showToast('邀请卡片已生成，可分享至微信聊天')">邀请成员</van-button>
+            </div>
+        </div>
+
+        <!-- ========== 地区选择弹出 ========== -->
+        <van-popup v-model:show="showRegion" position="bottom" round>
+            <van-cascader
+                v-model="regionValue"
+                title="请选择所在地区"
+                :options="regionOptions"
+                @close="showRegion = false"
+                @finish="onRegionFinish"
+            ></van-cascader>
+        </van-popup>
+
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+    <script>
+        const { createApp, ref, reactive } = Vue;
+        const app = createApp({
+            setup: function () {
+                var currentView = ref('list');
+                var showRegion = ref(false);
+                var regionValue = ref('');
+                var detailAddr = ref({});
+                var viewStack = ref([]);
+
+                var addressList = ref([
+                    { id: 1, companyName: '天福茗茶有限公司', contactName: '陈经理', contactPhone: '138****1234', fullAddress: '广东省广州市天河区 天河路123号天福大厦1层', status: '已通过', receiveTime: '06:00 - 08:00', remark: '需冷链配送，提前1小时通知', rejectReason: '' },
+                    { id: 2, companyName: '永辉超市股份有限公司', contactName: '林采购', contactPhone: '139****5678', fullAddress: '海南省海口市龙华区 椰海大道88号', status: '待审核', receiveTime: '', remark: '', rejectReason: '' },
+                    { id: 3, companyName: '海底捞餐饮有限公司', contactName: '王店长', contactPhone: '136****9012', fullAddress: '浙江省杭州市余杭区 文一西路2000号', status: '已驳回', receiveTime: '06:00 - 08:00', remark: '需验收后签收', rejectReason: '营业执照照片不清晰，请重新上传' },
+                ]);
+
+                var formData = reactive({
+                    companyName: '', licenseNo: '', contactName: '', contactPhone: '',
+                    region: '', detailAddress: '', receiveTime: '', remark: '', referralCode: '',
+                });
+
+                var regionOptions = [
+                    { text: '广东省', value: 'guangdong', children: [{ text: '广州市', value: 'guangzhou', children: [{ text: '天河区', value: 'tianhe' }, { text: '越秀区', value: 'yuexiu' }] }, { text: '深圳市', value: 'shenzhen', children: [{ text: '南山区', value: 'nanshan' }, { text: '福田区', value: 'futian' }] }] },
+                    { text: '海南省', value: 'hainan', children: [{ text: '海口市', value: 'haikou', children: [{ text: '龙华区', value: 'longhua' }] }] },
+                    { text: '浙江省', value: 'zhejiang', children: [{ text: '杭州市', value: 'hangzhou', children: [{ text: '余杭区', value: 'yuhang' }] }] },
+                ];
+
+                function pushView(view) { viewStack.value.push(currentView.value); currentView.value = view; window.scrollTo(0, 0); }
+                function goBack() { if (viewStack.value.length > 0) { currentView.value = viewStack.value.pop(); } }
+
+                function openDetail(addr) {
+                    detailAddr.value = addr;
+                    if (addr.status === '已通过') pushView('detail-pass');
+                    else if (addr.status === '已驳回') pushView('edit');
+                    else pushView('detail-pending');
+                }
+
+                function openForm() {
+                    Object.keys(formData).forEach(function (k) { formData[k] = ''; });
+                    pushView('form');
+                }
+
+                function openMembers() { pushView('members'); }
+
+                function showRegionPicker() { showRegion.value = true; }
+
+                function onRegionFinish(data) {
+                    var parts = data.selectedOptions.map(function (o) { return o.text; });
+                    formData.region = parts.join(' / ');
+                    showRegion.value = false;
+                }
+
+                function submitForm() {
+                    vant.showLoadingToast({ message: '提交中...', forbidClick: true });
+                    setTimeout(function () {
+                        vant.closeToast();
+                        vant.showToast('已提交审核，请耐心等待');
+                        goBack();
+                    }, 800);
+                }
+
+                return {
+                    currentView, showRegion, regionValue, detailAddr, viewStack,
+                    addressList, formData, regionOptions,
+                    openDetail, openForm, openMembers, goBack,
+                    showRegionPicker, onRegionFinish, submitForm,
+                };
+            },
+        });
+        app.use(vant).mount('#prd-root');
+    </script>
+</body>
+</html>

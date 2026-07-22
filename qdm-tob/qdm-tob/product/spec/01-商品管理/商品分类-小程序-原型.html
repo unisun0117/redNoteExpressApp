@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>商品分类</title>
+  <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root { --van-primary-color: #dc2626; }
+    body {
+      background-color: #f5f5f5;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      margin: 0; padding: 0;
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh;
+    }
+    .mobile-shell {
+      width: 100%; max-width: 430px; height: 100vh;
+      background: #f5f5f5; display: flex; flex-direction: column;
+      overflow: hidden; position: relative;
+    }
+    @media (min-width: 576px) {
+      .mobile-shell { height: 852px; border-radius: 40px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); border: 8px solid #1e293b; }
+    }
+
+    /* 搜索栏 */
+    .search-bar { padding: 10px 12px; background: #fff; flex-shrink: 0; }
+
+    /* 主内容区：左侧分类 + 右侧商品 */
+    .main-content { display: flex; flex: 1; overflow: hidden; }
+
+    /* 左侧分类 */
+    .category-sidebar {
+      width: 90px; flex-shrink: 0; background: #f8f8f8;
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
+    }
+    .category-sidebar::-webkit-scrollbar { display: none; }
+    .cat-item {
+      padding: 14px 8px; text-align: center; font-size: 13px; color: #666;
+      position: relative; cursor: pointer; transition: all .2s;
+      line-height: 1.4;
+    }
+    .cat-item.active {
+      background: #fff; color: #dc2626; font-weight: 600;
+    }
+    .cat-item.active::before {
+      content: ''; position: absolute; left: 0; top: 8px; bottom: 8px;
+      width: 3px; background: #dc2626; border-radius: 0 2px 2px 0;
+    }
+
+    /* 右侧商品区 */
+    .product-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 8px; }
+    .product-area::-webkit-scrollbar { display: none; }
+    .product-grid { display: flex; flex-direction: column; gap: 8px; }
+
+    /* 商品卡片 - 单列左图右文 */
+    .product-card {
+      background: #fff; border-radius: 8px; overflow: hidden;
+      display: flex; flex-direction: row; padding: 10px; gap: 10px;
+    }
+    .product-card.out-of-stock { opacity: 0.6; }
+    .product-img {
+      width: 90px; height: 90px; flex-shrink: 0;
+      object-fit: cover; border-radius: 6px;
+      background: #f0f0f0; display: flex; align-items: center; justify-content: center;
+      font-size: 36px; color: #d0d0d0;
+    }
+    .product-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; }
+    .product-name {
+      font-size: 14px; color: #333; line-height: 1.4; font-weight: 500;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; margin-bottom: 4px;
+    }
+    .product-stock { font-size: 11px; margin-bottom: 2px; }
+    .product-stock.normal { color: #999; }
+    .product-stock.low { color: #dc2626; font-weight: 600; }
+    .product-price-row {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-top: auto; padding-top: 4px;
+    }
+    .product-price { font-size: 17px; font-weight: 700; color: #dc2626; }
+    .product-price .unit { font-size: 10px; font-weight: 400; color: #999; margin-left: 2px; }
+    .cart-btn {
+      width: 28px; height: 28px; border-radius: 50%; background: #dc2626;
+      border: none; color: #fff; font-size: 18px; line-height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; padding: 0;
+      transition: all .15s;
+    }
+    .cart-btn:active { transform: scale(0.9); opacity: 0.8; }
+    .cart-btn.disabled { background: #ccc; pointer-events: none; }
+
+    /* 空状态 */
+    .empty-state { text-align: center; padding: 40px 20px; color: #999; }
+    .empty-state .icon { font-size: 48px; margin-bottom: 8px; }
+
+    /* 加购弹窗 */
+    .qty-popup { padding: 20px 16px 30px; }
+    .qty-product-info { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .qty-product-info .thumb {
+      width: 56px; height: 56px; border-radius: 8px; background: #f0f0f0;
+      display: flex; align-items: center; justify-content: center; font-size: 24px; color: #d0d0d0; flex-shrink: 0;
+    }
+    .stepper-row {
+      display: flex; align-items: center; justify-content: center; gap: 0;
+      margin: 16px 0;
+    }
+    .stepper-btn {
+      width: 40px; height: 40px; border-radius: 8px; border: 1px solid #e5e5e5;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; cursor: pointer; background: #fff; color: #333;
+      font-family: inherit;
+    }
+    .stepper-btn:active { background: #f5f5f5; }
+    .stepper-btn.disabled { color: #ccc; pointer-events: none; }
+    .stepper-val {
+      width: 56px; text-align: center; font-size: 18px; font-weight: 700; color: #333;
+      border: none; background: transparent; outline: none;
+    }
+    .qty-hint { font-size: 12px; color: #999; text-align: center; margin-bottom: 20px; }
+
+    /* 价格组标签 */
+    .price-tag {
+      font-size: 10px; background: #fef0f0; color: #dc2626;
+      padding: 2px 6px; border-radius: 4px; margin-left: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div id="prd-root" class="mobile-shell">
+
+    <!-- ========== 客户价格组提示条 ========== -->
+    <div style="background:#fffbe6;padding:6px 12px;font-size:11px;color:#b8860b;text-align:center;flex-shrink:0;" v-if="!isLoggedIn">
+      ⚠️ 未登录，展示默认价格组「{{ defaultPriceGroup }}」商品
+    </div>
+    <div style="background:#ecf5ff;padding:6px 12px;font-size:11px;color:#409eff;text-align:center;flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:6px;" v-else>
+      当前客户：<b>{{ currentCustomer }}</b>
+      <span class="price-tag">{{ currentPriceGroup }}</span>
+      <span style="cursor:pointer;text-decoration:underline;margin-left:4px;" @click="toggleLogin">切换</span>
+    </div>
+
+    <!-- ========== 搜索栏 ========== -->
+    <div class="search-bar">
+      <van-search
+        v-model="searchKeyword"
+        placeholder="搜索商品名称"
+        shape="round"
+        background="#fff"
+        @search="doSearch"
+        @clear="clearSearch"
+        @input="onSearchInput"
+      ></van-search>
+    </div>
+
+    <!-- ========== 主内容区 ========== -->
+    <div class="main-content">
+      <!-- 左侧大分类 -->
+      <div class="category-sidebar">
+        <div
+          v-for="(cat, idx) in categories" :key="idx"
+          class="cat-item"
+          :class="{ active: activeCategory === idx }"
+          @click="switchCategory(idx)"
+        >{{ cat.name }}</div>
+        <div v-if="categories.length === 0" class="cat-item" style="color:#ccc;">暂无分类</div>
+      </div>
+
+      <!-- 右侧商品列表 -->
+      <div class="product-area" ref="productAreaRef" @scroll="onProductScroll">
+        <!-- 搜索中提示 -->
+        <div v-if="isSearching" style="font-size:12px;color:#999;padding:4px 0 8px;">
+          搜索"{{ searchKeyword }}"的结果（{{ filteredProducts.length }}个商品）
+        </div>
+
+        <!-- 商品网格 -->
+        <div class="product-grid" v-if="filteredProducts.length > 0">
+          <div
+            v-for="(p, pi) in filteredProducts" :key="pi"
+            class="product-card"
+            :class="{ 'out-of-stock': p.todayAvailable <= 0 }"
+          >
+            <div class="product-img">{{ p.imageEmoji || '📦' }}</div>
+            <div class="product-info">
+              <div class="product-name">{{ p.productName }}</div>
+              <div class="product-stock" :class="p.todayAvailable > 0 ? 'normal' : 'low'">
+                库存：{{ p.todayAvailable > 0 ? p.todayAvailable : '不足' }}
+              </div>
+              <div class="product-price-row">
+                <div class="product-price">
+                  ¥{{ p.price }}<span class="unit">/{{ p.unit }}</span>
+                </div>
+                <button
+                  class="cart-btn"
+                  :class="{ disabled: p.todayAvailable <= 0 }"
+                  @click="openQtyPopup(p)"
+                >🛒</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div class="empty-state" v-if="filteredProducts.length === 0 && !loading">
+          <div class="icon">{{ isSearching ? '🔍' : '📦' }}</div>
+          <div style="font-size:14px;">{{ isSearching ? '未找到相关商品' : '该分类暂无商品' }}</div>
+          <div style="font-size:12px;margin-top:4px;">{{ isSearching ? '换个关键词试试' : '请浏览其他分类' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 加购弹窗 ========== -->
+    <van-popup v-model:show="qtyPopup.visible" position="bottom" round :close-on-click-overlay="true">
+      <div class="qty-popup">
+        <div style="font-size:15px;font-weight:600;color:#333;margin-bottom:16px;text-align:center;">选择订购数量</div>
+
+        <div class="qty-product-info">
+          <div class="thumb">{{ qtyPopup.product?.imageEmoji || '📦' }}</div>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#333;">{{ qtyPopup.product?.productName }}</div>
+            <div style="font-size:12px;color:#dc2626;margin-top:2px;">
+              ¥{{ qtyPopup.product?.price }}/{{ qtyPopup.product?.unit }}
+            </div>
+          </div>
+        </div>
+
+        <div class="stepper-row">
+          <button
+            class="stepper-btn"
+            :class="{ disabled: qtyPopup.qty - qtyPopup.step < qtyPopup.min }"
+            @click="changeQty(-1)"
+          >−</button>
+          <input
+            class="stepper-val"
+            :value="qtyPopup.qty"
+            type="number"
+            @input="onQtyInput"
+          />
+          <button
+            class="stepper-btn"
+            :class="{ disabled: qtyPopup.qty + qtyPopup.step > qtyPopup.max }"
+            @click="changeQty(1)"
+          >+</button>
+        </div>
+
+        <div class="qty-hint">
+          步长={{ qtyPopup.step }} · 范围 {{ qtyPopup.min }}~{{ qtyPopup.max }}
+          <span v-if="qtyPopup.product?.todayAvailable"> · 可用库存 {{ qtyPopup.product.todayAvailable }}</span>
+        </div>
+
+        <van-button type="primary" block round @click="addToCart" :loading="qtyPopup.adding">
+          加入购物车
+        </van-button>
+      </div>
+    </van-popup>
+
+    <!-- ========== 加购成功 Toast ========== -->
+    <van-toast id="van-toast"></van-toast>
+
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+  <script>
+    var { createApp, ref, reactive, computed } = Vue;
+
+    createApp({
+      setup() {
+        // ================================================================
+        // 登录态 & 价格组
+        // ================================================================
+        var isLoggedIn = ref(false);
+        var currentCustomer = ref('');
+        var currentPriceGroup = ref('标准价');
+        var defaultPriceGroup = '标准价';
+
+        function toggleLogin() {
+          if (isLoggedIn.value) {
+            isLoggedIn.value = false;
+            currentCustomer.value = '';
+            currentPriceGroup.value = defaultPriceGroup;
+            vant.showToast('已切换为未登录状态');
+          } else {
+            isLoggedIn.value = true;
+            currentCustomer.value = '张记食堂';
+            currentPriceGroup.value = 'VIP价';
+            vant.showToast('已登录：' + currentCustomer.value);
+          }
+          activeCategory.value = 0;
+          searchKeyword.value = '';
+          isSearching.value = false;
+        }
+
+        // ================================================================
+        // 大分类数据（模拟）
+        // ================================================================
+        var categories = [
+          { code: 'CAT_01', name: '新鲜水果' },
+          { code: 'CAT_02', name: '蔬菜' },
+          { code: 'CAT_03', name: '肉禽蛋' },
+          { code: 'CAT_04', name: '水产海鲜' },
+          { code: 'CAT_05', name: '粮油调味' },
+          { code: 'CAT_06', name: '乳品烘焙' },
+          { code: 'CAT_07', name: '冷冻食品' },
+          { code: 'CAT_08', name: '休闲零食' },
+        ];
+
+        // ================================================================
+        // 商品数据（模拟）- 按分类组织
+        // ================================================================
+        var allProducts = {
+          'CAT_01': [
+            { barcode: '69001', productName: '红富士苹果', imageEmoji: '🍎', todayAvailable: 470, unit: 'kg', orderBase: 10, orderMin: 10, orderMax: 100, prices: { '标准价': '8.50', 'VIP价': '7.80' } },
+            { barcode: '69002', productName: '脐橙', imageEmoji: '🍊', todayAvailable: 280, unit: 'kg', orderBase: 5, orderMin: 5, orderMax: 200, prices: { '标准价': '6.00', 'VIP价': '5.50' } },
+            { barcode: '69003', productName: '砂糖橘', imageEmoji: '🍊', todayAvailable: 900, unit: 'kg', orderBase: 10, orderMin: 10, orderMax: 200, prices: { '标准价': '5.00', 'VIP价': '4.50' } },
+            { barcode: '69004', productName: '蓝莓', imageEmoji: '🫐', todayAvailable: 750, unit: '盒', orderBase: 10, orderMin: 10, orderMax: 300, prices: { '标准价': '15.00', 'VIP价': '13.50' } },
+            { barcode: '69005', productName: '芒果', imageEmoji: '🥭', todayAvailable: 0, unit: 'kg', orderBase: 5, orderMin: 5, orderMax: 150, prices: { '标准价': '12.00', 'VIP价': '10.80' } },
+          ],
+          'CAT_02': [
+            { barcode: '69010', productName: '菠菜', imageEmoji: '🥬', todayAvailable: 600, unit: 'kg', orderBase: 20, orderMin: 20, orderMax: 500, prices: { '标准价': '4.00', 'VIP价': '3.60' } },
+            { barcode: '69011', productName: '大白菜', imageEmoji: '🥬', todayAvailable: 320, unit: 'kg', orderBase: 20, orderMin: 20, orderMax: 300, prices: { '标准价': '2.00', 'VIP价': '1.80' } },
+          ],
+          'CAT_03': [
+            { barcode: '69020', productName: '五花肉', imageEmoji: '🥩', todayAvailable: 180, unit: 'kg', orderBase: 2, orderMin: 2, orderMax: 50, prices: { '标准价': '25.00', 'VIP价': '22.00' } },
+            { barcode: '69021', productName: '排骨', imageEmoji: '🥩', todayAvailable: 150, unit: 'kg', orderBase: 3, orderMin: 3, orderMax: 80, prices: { '标准价': '45.00', 'VIP价': '40.00' } },
+            { barcode: '69022', productName: '鸡腿', imageEmoji: '🍗', todayAvailable: 380, unit: 'kg', orderBase: 5, orderMin: 5, orderMax: 100, prices: { '标准价': '18.00', 'VIP价': '16.00' } },
+          ],
+          'CAT_04': [
+            { barcode: '69030', productName: '基围虾', imageEmoji: '🦐', todayAvailable: 120, unit: 'kg', orderBase: 2, orderMin: 2, orderMax: 30, prices: { '标准价': '68.00', 'VIP价': '62.00' } },
+          ],
+          'CAT_05': [
+            { barcode: '69040', productName: '花生油 5L', imageEmoji: '🫒', todayAvailable: 200, unit: '桶', orderBase: 1, orderMin: 1, orderMax: 20, prices: { '标准价': '89.00', 'VIP价': '82.00' } },
+          ],
+          'CAT_06': [
+            { barcode: '69050', productName: '纯牛奶 250ml×12', imageEmoji: '🥛', todayAvailable: 500, unit: '箱', orderBase: 1, orderMin: 1, orderMax: 30, prices: { '标准价': '55.00', 'VIP价': '49.00' } },
+          ],
+          'CAT_07': [
+            { barcode: '69060', productName: '速冻水饺 500g', imageEmoji: '🥟', todayAvailable: 400, unit: '袋', orderBase: 10, orderMin: 10, orderMax: 100, prices: { '标准价': '12.00', 'VIP价': '10.50' } },
+          ],
+          'CAT_08': [
+            { barcode: '69070', productName: '坚果大礼包', imageEmoji: '🥜', todayAvailable: 300, unit: '盒', orderBase: 5, orderMin: 5, orderMax: 50, prices: { '标准价': '39.00', 'VIP价': '35.00' } },
+          ],
+        };
+
+        // ================================================================
+        // 状态
+        // ================================================================
+        var activeCategory = ref(0);
+        var searchKeyword = ref('');
+        var isSearching = ref(false);
+        var loading = ref(false);
+        var productAreaRef = ref(null);
+
+        // 当前价格组（响应式）
+        function getPriceGroup() {
+          return isLoggedIn.value ? currentPriceGroup.value : defaultPriceGroup;
+        }
+
+        // 当前分类的商品（已按价格组匹配显示价格）
+        var currentProducts = computed(function() {
+          var catCode = categories[activeCategory.value]?.code;
+          if (!catCode) return [];
+          var group = getPriceGroup();
+          var products = allProducts[catCode] || [];
+          // 价格组下无价格的不展示；按库存排序（有库存优先）
+          return products
+            .filter(function(p) { return p.prices[group] !== undefined; })
+            .map(function(p) {
+              return Object.assign({}, p, { price: p.prices[group] });
+            })
+            .sort(function(a, b) {
+              if (a.todayAvailable > 0 && b.todayAvailable <= 0) return -1;
+              if (a.todayAvailable <= 0 && b.todayAvailable > 0) return 1;
+              return 0;
+            });
+        });
+
+        // 筛选后的商品（含搜索过滤）
+        var filteredProducts = computed(function() {
+          var list = currentProducts.value;
+          if (isSearching.value && searchKeyword.value) {
+            var kw = searchKeyword.value.toLowerCase();
+            list = list.filter(function(p) {
+              return p.productName.toLowerCase().indexOf(kw) !== -1;
+            });
+          }
+          return list;
+        });
+
+        // ================================================================
+        // 分类切换
+        // ================================================================
+        var autoSwitching = false;
+        function switchCategory(idx) {
+          if (activeCategory.value === idx) return;
+          activeCategory.value = idx;
+          searchKeyword.value = '';
+          isSearching.value = false;
+          // 重置右侧滚动位置
+          if (productAreaRef.value) { productAreaRef.value.scrollTop = 0; }
+        }
+
+        function onProductScroll() {
+          if (autoSwitching || isSearching.value) return;
+          var el = productAreaRef.value;
+          if (!el) return;
+          // 滚动到底部检测（距离底部 < 20px）
+          if (el.scrollHeight - el.scrollTop - el.clientHeight < 20) {
+            var nextIdx = activeCategory.value + 1;
+            if (nextIdx < categories.length) {
+              autoSwitching = true;
+              activeCategory.value = nextIdx;
+              searchKeyword.value = '';
+              isSearching.value = false;
+              // 下一个 tick 重置滚动位置并解锁
+              setTimeout(function() {
+                if (productAreaRef.value) { productAreaRef.value.scrollTop = 0; }
+                autoSwitching = false;
+              }, 50);
+            }
+          }
+        }
+
+        // ================================================================
+        // 搜索
+        // ================================================================
+        function doSearch() {
+          if (searchKeyword.value.trim()) {
+            isSearching.value = true;
+          }
+        }
+
+        function clearSearch() {
+          searchKeyword.value = '';
+          isSearching.value = false;
+        }
+
+        function onSearchInput(val) {
+          if (!val || !val.trim()) {
+            isSearching.value = false;
+          }
+        }
+
+        // ================================================================
+        // 加购弹窗
+        // ================================================================
+        var qtyPopup = reactive({
+          visible: false,
+          product: null,
+          qty: 0,
+          step: 0,
+          min: 0,
+          max: 0,
+          adding: false,
+        });
+
+        function openQtyPopup(product) {
+          if (!isLoggedIn.value) {
+            vant.showToast('请先登录');
+            return;
+          }
+          if (product.todayAvailable <= 0) {
+            vant.showToast('该商品库存不足');
+            return;
+          }
+          qtyPopup.product = product;
+          qtyPopup.step = product.orderBase;
+          qtyPopup.min = product.orderMin;
+          qtyPopup.max = Math.min(product.orderMax, product.todayAvailable);
+          qtyPopup.qty = product.orderBase;
+          qtyPopup.visible = true;
+        }
+
+        function changeQty(delta) {
+          var newQty = qtyPopup.qty + delta * qtyPopup.step;
+          if (newQty < qtyPopup.min || newQty > qtyPopup.max) return;
+          qtyPopup.qty = newQty;
+        }
+
+        function onQtyInput(e) {
+          var val = parseInt(e.target.value);
+          if (isNaN(val)) return;
+          qtyPopup.qty = val;
+        }
+
+        function addToCart() {
+          if (qtyPopup.qty < qtyPopup.min) {
+            vant.showToast('低于最小订购数量 ' + qtyPopup.min);
+            return;
+          }
+          if (qtyPopup.qty > qtyPopup.max) {
+            vant.showToast('超过最大订购数量 ' + qtyPopup.max);
+            return;
+          }
+          if (qtyPopup.qty % qtyPopup.step !== 0) {
+            vant.showToast('数量需为订购基数 ' + qtyPopup.step + ' 的整数倍');
+            return;
+          }
+          qtyPopup.adding = true;
+          setTimeout(function() {
+            qtyPopup.adding = false;
+            qtyPopup.visible = false;
+            vant.showToast({
+              message: '已加入购物车 ×' + qtyPopup.qty,
+              icon: 'success',
+              duration: 1500,
+            });
+          }, 400);
+        }
+
+        return {
+          isLoggedIn, currentCustomer, currentPriceGroup, defaultPriceGroup, toggleLogin,
+          categories, activeCategory, switchCategory,
+          searchKeyword, isSearching, filteredProducts, productAreaRef,
+          doSearch, clearSearch, onSearchInput, onProductScroll,
+          qtyPopup, openQtyPopup, changeQty, onQtyInput, addToCart,
+          loading,
+        };
+      }
+    }).use(vant).mount('#prd-root');
+  </script>
+</body>
+</html>

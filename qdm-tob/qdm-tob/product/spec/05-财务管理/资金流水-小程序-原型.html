@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>账单明细</title>
+  <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root {
+      --van-primary-color: #ff0000;
+    }
+    body {
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      margin: 0;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+    ::-webkit-scrollbar { display: none; }
+    .capsule-active { background: #1e293b !important; color: #fff !important; }
+    .capsule-active-income { background: #dc2626 !important; color: #fff !important; }
+  </style>
+</head>
+<body>
+  <div id="prd-root" class="space-y-4 pb-16">
+
+    <!-- 日期筛选 + 收支胶囊 -->
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-1 text-base font-bold text-slate-800 cursor-pointer" @click="showDatePicker = true">
+        {{ displayMonth }}<span class="text-xs text-slate-400 ml-1">▼</span>
+      </div>
+      <div class="flex gap-2">
+        <button
+          class="px-4 py-1.5 rounded-full text-xs font-semibold transition border-none cursor-pointer"
+          :class="filterType === 'expense' ? 'capsule-active' : 'bg-slate-200 text-slate-500'"
+          @click="toggleFilter('expense')">支出</button>
+        <button
+          class="px-4 py-1.5 rounded-full text-xs font-semibold transition border-none cursor-pointer"
+          :class="filterType === 'income' ? 'capsule-active-income' : 'bg-slate-200 text-slate-500'"
+          @click="toggleFilter('income')">收入</button>
+      </div>
+    </div>
+
+    <!-- 汇总行 -->
+    <div class="flex gap-5 text-sm text-slate-500">
+      <span>支出 <b class="text-slate-800">¥{{ summary.expense.toFixed(1) }}</b></span>
+      <span>收入 <span class="text-red-600 font-semibold">¥{{ summary.income.toFixed(1) }}</span></span>
+    </div>
+
+    <!-- 按日期分组列表 -->
+    <div v-if="filteredGroups.length > 0">
+      <div v-for="group in filteredGroups" :key="group.date" class="mb-4">
+        <div class="flex items-center gap-4 py-2 text-sm font-semibold text-slate-800 border-b border-slate-100 mb-2">
+          {{ group.date }}
+          <span class="text-xs text-slate-400 font-normal ml-auto">
+            支出 ¥{{ group.totalExpense.toFixed(1) }}
+            <span class="text-red-600 ml-2">收入 ¥{{ group.totalIncome.toFixed(1) }}</span>
+          </span>
+        </div>
+
+        <div
+          v-for="tx in group.items" :key="tx.id"
+          class="flex items-center gap-3 py-3.5 px-2 bg-white border-b border-slate-50 cursor-pointer transition active:bg-red-50"
+          @click="viewDetail(tx)">
+          <div
+            class="w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold text-white shrink-0"
+            :class="iconBgClass(tx.category)">{{ iconText(tx.category) }}</div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-semibold text-slate-800">{{ tx.category }}-{{ tx.subCategory }}</div>
+            <div class="text-xs text-slate-400 mt-0.5">{{ tx.orderNo }}</div>
+            <div class="text-xs text-slate-400 mt-px">{{ tx.time }}</div>
+          </div>
+          <div class="text-base font-bold shrink-0 text-right" :class="tx.direction === 'income' ? 'text-red-600' : 'text-slate-800'">
+            {{ tx.direction === 'income' ? '+' : '-' }}¥{{ tx.amount.toFixed(2) }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-else class="text-center py-20 text-slate-400">
+      <div class="text-5xl mb-3">📋</div>
+      <div>暂无流水记录</div>
+    </div>
+
+    <!-- 日期选择弹窗 -->
+    <van-popup v-model:show="showDatePicker" position="bottom" round>
+      <van-datetime-picker
+        v-model="currentDate"
+        type="date"
+        title="选择日期"
+        :min-date="minDate"
+        :max-date="maxDate"
+        @confirm="onDateConfirm"
+        @cancel="showDatePicker = false"
+      ></van-datetime-picker>
+    </van-popup>
+
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+  <script>
+    const { createApp, ref, computed } = Vue;
+    createApp({
+      setup() {
+        const currentDate = ref([2026, 8, 8]);
+        const showDatePicker = ref(false);
+        const filterType = ref('');
+        const minDate = new Date(2025, 0, 1);
+        const maxDate = new Date(2026, 11, 31);
+
+        const displayMonth = computed(() => {
+          const d = currentDate.value;
+          return d[0] + '年' + String(d[1]).padStart(2, '0') + '月' + String(d[2]).padStart(2, '0') + '日';
+        });
+
+        function onDateConfirm(val) {
+          currentDate.value = val.selectedValues;
+          showDatePicker.value = false;
+        }
+        function toggleFilter(type) {
+          filterType.value = filterType.value === type ? '' : type;
+        }
+
+        const allGroups = ref([
+          {
+            date: '2026年08月08日',
+            totalExpense: 175.0, totalIncome: 200.0,
+            items: [
+              { id: 1, category: '交易订单', subCategory: '微信支付', orderNo: '230232323', time: '23:23:45', direction: 'expense', amount: 175.00 },
+              { id: 2, category: '预付款充值', subCategory: '充值', orderNo: '230232324', time: '23:23:45', direction: 'income', amount: 200.00 },
+            ],
+          },
+          {
+            date: '2026年08月08日',
+            totalExpense: 100.0, totalIncome: 75.0,
+            items: [
+              { id: 3, category: '交易订单', subCategory: '预付款支付', orderNo: '230232325', time: '23:23:45', direction: 'expense', amount: 100.00 },
+              { id: 4, category: '交易订单', subCategory: '订单退款', orderNo: '230232326', time: '22:15:30', direction: 'income', amount: 75.00 },
+            ],
+          },
+        ]);
+
+        const filteredGroups = computed(() => {
+          return allGroups.value.map(function(g) {
+            var items = g.items;
+            if (filterType.value === 'expense') items = items.filter(function(t) { return t.direction === 'expense'; });
+            if (filterType.value === 'income') items = items.filter(function(t) { return t.direction === 'income'; });
+            if (items.length === 0) return null;
+            var te = items.filter(function(t) { return t.direction === 'expense'; }).reduce(function(s, t) { return s + t.amount; }, 0);
+            var ti = items.filter(function(t) { return t.direction === 'income'; }).reduce(function(s, t) { return s + t.amount; }, 0);
+            return { date: g.date, totalExpense: te, totalIncome: ti, items: items };
+          }).filter(Boolean);
+        });
+
+        const summary = computed(() => {
+          var exp = 0, inc = 0;
+          filteredGroups.value.forEach(function(g) {
+            g.items.forEach(function(t) {
+              if (t.direction === 'expense') exp += t.amount;
+              else inc += t.amount;
+            });
+          });
+          return { expense: exp, income: inc };
+        });
+
+        function iconBgClass(cat) {
+          if (cat === '交易订单') return 'bg-blue-500';
+          if (cat === '预付款充值') return 'bg-emerald-500';
+          if (cat === '退款') return 'bg-amber-500';
+          return 'bg-red-500';
+        }
+        function iconText(cat) {
+          if (cat === '交易订单') return '单';
+          if (cat === '预付款充值') return '充';
+          if (cat === '退款') return '退';
+          return '提';
+        }
+        function viewDetail(tx) {
+          vant.showToast('跳转交易详情：' + tx.orderNo);
+        }
+
+        return {
+          currentDate, showDatePicker, filterType, minDate, maxDate,
+          displayMonth, allGroups, filteredGroups, summary,
+          onDateConfirm, toggleFilter, iconBgClass, iconText, viewDetail,
+        };
+      }
+    }).use(vant).mount('#prd-root');
+  </script>
+</body>
+</html>

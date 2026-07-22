@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品分类管理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 10px;
+        }
+
+        /* 查询区卡片 */
+        .search-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px 16px 12px 16px;
+            margin-bottom: 10px;
+        }
+        .search-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* 数据区卡片 */
+        .data-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #303133;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #ebeef5;
+        }
+
+        /* 级别标签 */
+        .level-tag-major { }
+        .level-tag-medium { }
+        .level-tag-minor { }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+        <!-- ==================== 查询区 ==================== -->
+        <div class="search-card">
+            <div class="search-row">
+                <span style="font-size:14px; color:#606266;">分类级别：</span>
+                <el-select v-model="query.level" style="width:140px;" clearable placeholder="全部">
+                    <el-option label="全部" value=""></el-option>
+                    <el-option label="大分类" value="MAJOR"></el-option>
+                    <el-option label="中分类" value="MEDIUM"></el-option>
+                    <el-option label="小分类" value="MINOR"></el-option>
+                </el-select>
+                <span style="font-size:14px; color:#606266;">分类编码：</span>
+                <el-input v-model="query.code" style="width:180px;" placeholder="请输入分类编码" clearable></el-input>
+                <span style="font-size:14px; color:#606266;">分类名称：</span>
+                <el-input v-model="query.name" style="width:180px;" placeholder="请输入分类名称" clearable></el-input>
+                <el-button type="primary" @click="doSearch">查询</el-button>
+            </div>
+        </div>
+
+        <!-- ==================== 列表区 ==================== -->
+        <div class="data-card">
+            <div class="section-title">
+                <span>商品分类列表</span>
+                <span style="font-size:12px; color:#909399; font-weight:400; margin-left:8px;">
+                    数据来源于 SAP 系统
+                </span>
+            </div>
+
+            <el-table
+                :data="pageData"
+                stripe
+                style="width:100%;"
+                :header-cell-style="{background:'#f5f7fa', color:'#606266', fontWeight:500}"
+            >
+                <el-table-column label="分类级别" width="100" align="center">
+                    <template #default="scope">
+                        <el-tag
+                            :type="scope.row.level === 'MAJOR' ? '' : scope.row.level === 'MEDIUM' ? 'success' : 'info'"
+                            size="small"
+                        >{{ levelLabel(scope.row.level) }}</el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="code" label="分类编码" width="160"></el-table-column>
+                <el-table-column prop="name" label="分类名称" min-width="160"></el-table-column>
+                <el-table-column label="自定义名称" min-width="160">
+                    <template #default="scope">
+                        <span :style="{ color: scope.row.customName ? '#303133' : '#c0c4cc' }">
+                            {{ scope.row.customName || '-' }}
+                        </span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="parentCode" label="上级编码" width="140">
+                    <template #default="scope">
+                        <span :style="{ color: scope.row.parentCode ? '#303133' : '#c0c4cc' }">
+                            {{ scope.row.parentCode || '-' }}
+                        </span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="parentName" label="上级名称" width="160">
+                    <template #default="scope">
+                        <span :style="{ color: scope.row.parentName ? '#303133' : '#c0c4cc' }">
+                            {{ scope.row.parentName || '-' }}
+                        </span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作" width="80" fixed="right" align="center">
+                    <template #default="scope">
+                        <el-button type="primary" link size="small" @click="openEditDialog(scope.row)">编辑</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+
+            <!-- 空状态 -->
+            <div v-if="filteredData.length === 0" style="text-align:center; padding:60px 0; color:#909399;">
+                <div style="font-size:48px; margin-bottom:12px;">📂</div>
+                <div style="font-size:14px;">暂无分类数据</div>
+                <div style="font-size:12px; margin-top:4px;">分类数据来源于 SAP，请确认 SAP 数据同步状态</div>
+            </div>
+
+            <!-- 分页 -->
+            <div v-if="filteredData.length > 0" class="tw-mt-4 tw-flex tw-justify-center">
+                <el-pagination
+                    v-model:current-page="pageNum"
+                    v-model:page-size="pageSize"
+                    :page-sizes="[10, 20, 50]"
+                    :total="filteredData.length"
+                    layout="total, sizes, prev, pager, next"
+                    background
+                />
+            </div>
+        </div>
+
+        <!-- ==================== 编辑自定义名称弹窗 ==================== -->
+        <el-dialog
+            v-model="editDialog.visible"
+            title="编辑自定义名称"
+            width="500px"
+            :close-on-click-modal="false"
+            @close="editDialogClose"
+        >
+            <el-form ref="editFormRef" :model="editForm" label-width="90px">
+                <el-form-item label="分类级别">
+                    <el-tag
+                        :type="editForm.level === 'MAJOR' ? '' : editForm.level === 'MEDIUM' ? 'success' : 'info'"
+                        size="small"
+                    >{{ levelLabel(editForm.level) }}</el-tag>
+                </el-form-item>
+                <el-form-item label="分类编码">
+                    <span style="color:#606266;">{{ editForm.code }}</span>
+                </el-form-item>
+                <el-form-item label="分类名称">
+                    <span style="color:#606266;">{{ editForm.name }}</span>
+                </el-form-item>
+                <el-form-item label="上级分类">
+                    <span :style="{ color: editForm.parentCode ? '#606266' : '#c0c4cc' }">
+                        {{ editForm.parentCode ? editForm.parentCode + ' / ' + editForm.parentName : '-' }}
+                    </span>
+                </el-form-item>
+                <el-form-item label="自定义名称" prop="customName">
+                    <el-input
+                        v-model="editForm.customName"
+                        placeholder="请输入自定义名称（可为空）"
+                        maxlength="100"
+                        clearable
+                    ></el-input>
+                    <div style="font-size:12px; color:#909399; margin-top:4px;">
+                        可为空，为空时系统展示原始分类名称
+                    </div>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="editDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitEdit" :loading="editDialog.submitting">保存</el-button>
+            </template>
+        </el-dialog>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+    <script>
+        var { createApp, ref, reactive, computed, nextTick } = Vue;
+
+        var app = createApp({
+            setup() {
+                // ================================================================
+                // Mock 数据（模拟 SAP 同步的分类数据）
+                // ================================================================
+                var mockData = [
+                    { id: 1,  level: 'MAJOR',  code: 'CAT_01',     name: '新鲜水果',   customName: '时令水果',   parentCode: '',        parentName: '' },
+                    { id: 2,  level: 'MAJOR',  code: 'CAT_02',     name: '蔬菜',       customName: '',           parentCode: '',        parentName: '' },
+                    { id: 3,  level: 'MAJOR',  code: 'CAT_03',     name: '肉禽蛋',     customName: '肉禽蛋类',   parentCode: '',        parentName: '' },
+                    { id: 4,  level: 'MAJOR',  code: 'CAT_04',     name: '水产海鲜',   customName: '',           parentCode: '',        parentName: '' },
+                    { id: 11, level: 'MEDIUM', code: 'CAT_0101',   name: '苹果类',     customName: '苹果',       parentCode: 'CAT_01',  parentName: '新鲜水果' },
+                    { id: 12, level: 'MEDIUM', code: 'CAT_0102',   name: '柑橘类',     customName: '',           parentCode: 'CAT_01',  parentName: '新鲜水果' },
+                    { id: 13, level: 'MEDIUM', code: 'CAT_0103',   name: '浆果类',     customName: '莓果',       parentCode: 'CAT_01',  parentName: '新鲜水果' },
+                    { id: 14, level: 'MEDIUM', code: 'CAT_0201',   name: '叶菜类',     customName: '',           parentCode: 'CAT_02',  parentName: '蔬菜' },
+                    { id: 15, level: 'MEDIUM', code: 'CAT_0202',   name: '根茎类',     customName: '',           parentCode: 'CAT_02',  parentName: '蔬菜' },
+                    { id: 16, level: 'MEDIUM', code: 'CAT_0301',   name: '猪肉类',     customName: '猪肉',       parentCode: 'CAT_03',  parentName: '肉禽蛋' },
+                    { id: 17, level: 'MEDIUM', code: 'CAT_0302',   name: '禽类',       customName: '鸡肉鸭肉',   parentCode: 'CAT_03',  parentName: '肉禽蛋' },
+                    { id: 101, level: 'MINOR', code: 'CAT_010101', name: '红富士',     customName: '红富士苹果', parentCode: 'CAT_0101', parentName: '苹果类' },
+                    { id: 102, level: 'MINOR', code: 'CAT_010102', name: '嘎啦果',     customName: '',           parentCode: 'CAT_0101', parentName: '苹果类' },
+                    { id: 103, level: 'MINOR', code: 'CAT_010201', name: '脐橙',       customName: '',           parentCode: 'CAT_0102', parentName: '柑橘类' },
+                    { id: 104, level: 'MINOR', code: 'CAT_010202', name: '砂糖橘',     customName: '',           parentCode: 'CAT_0102', parentName: '柑橘类' },
+                    { id: 105, level: 'MINOR', code: 'CAT_010301', name: '蓝莓',       customName: '',           parentCode: 'CAT_0103', parentName: '浆果类' },
+                    { id: 106, level: 'MINOR', code: 'CAT_020101', name: '菠菜',       customName: '',           parentCode: 'CAT_0201', parentName: '叶菜类' },
+                    { id: 107, level: 'MINOR', code: 'CAT_030101', name: '五花肉',     customName: '',           parentCode: 'CAT_0301', parentName: '猪肉类' },
+                    { id: 108, level: 'MINOR', code: 'CAT_030102', name: '排骨',       customName: '',           parentCode: 'CAT_0301', parentName: '猪肉类' },
+                    { id: 109, level: 'MINOR', code: 'CAT_030201', name: '鸡腿',       customName: '',           parentCode: 'CAT_0302', parentName: '禽类' },
+                ];
+
+                // ================================================================
+                // 查询条件
+                // ================================================================
+                var query = reactive({ level: '', code: '', name: '' });
+
+                // ================================================================
+                // 分页
+                // ================================================================
+                var pageNum = ref(1);
+                var pageSize = ref(20);
+
+                // ================================================================
+                // 筛选逻辑
+                // ================================================================
+                var filteredData = computed(function() {
+                    return mockData.filter(function(row) {
+                        if (query.level && row.level !== query.level) return false;
+                        if (query.code && row.code.toLowerCase().indexOf(query.code.toLowerCase()) === -1) return false;
+                        if (query.name && row.name.toLowerCase().indexOf(query.name.toLowerCase()) === -1) return false;
+                        return true;
+                    });
+                });
+
+                var pageData = computed(function() {
+                    var start = (pageNum.value - 1) * pageSize.value;
+                    return filteredData.value.slice(start, start + pageSize.value);
+                });
+
+                function doSearch() {
+                    pageNum.value = 1;
+                }
+
+                function levelLabel(level) {
+                    var map = { MAJOR: '大分类', MEDIUM: '中分类', MINOR: '小分类' };
+                    return map[level] || level;
+                }
+
+                // ================================================================
+                // 编辑弹窗
+                // ================================================================
+                var editFormRef = ref(null);
+                var editDialog = reactive({ visible: false, submitting: false, editId: null });
+                var editForm = reactive({ code: '', name: '', level: '', parentCode: '', parentName: '', customName: '' });
+
+                function openEditDialog(row) {
+                    editDialog.editId = row.id;
+                    editDialog.visible = true;
+                    editForm.code = row.code;
+                    editForm.name = row.name;
+                    editForm.level = row.level;
+                    editForm.parentCode = row.parentCode;
+                    editForm.parentName = row.parentName;
+                    editForm.customName = row.customName || '';
+                    nextTick(function() { if (editFormRef.value) editFormRef.value.clearValidate(); });
+                }
+
+                function editDialogClose() {
+                    editDialog.editId = null;
+                }
+
+                function submitEdit() {
+                    editDialog.submitting = true;
+                    setTimeout(function() {
+                        var target = null;
+                        for (var i = 0; i < mockData.length; i++) {
+                            if (mockData[i].id === editDialog.editId) { target = mockData[i]; break; }
+                        }
+                        if (target) {
+                            target.customName = editForm.customName || '';
+                        }
+                        editDialog.submitting = false;
+                        editDialog.visible = false;
+                        ElementPlus.ElMessage.success('自定义名称保存成功');
+                    }, 300);
+                }
+
+                // ================================================================
+                return {
+                    query, pageNum, pageSize,
+                    filteredData, pageData,
+                    doSearch, levelLabel,
+                    editDialog, editFormRef, editForm,
+                    openEditDialog, editDialogClose, submitEdit,
+                };
+            }
+        });
+
+        app.use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+    </script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>订单详情</title>
+  <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root { --van-primary-color: #ff0000; }
+    body {
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      margin: 0; padding: 12px; padding-bottom: 100px; box-sizing: border-box;
+    }
+    ::-webkit-scrollbar { display: none; }
+    .info-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 13px; }
+    .info-row .lbl { color: #94a3b8; }
+    .info-row .val { color: #1e293b; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div id="prd-root" class="space-y-3">
+
+    <!-- 状态区 -->
+    <div class="text-center py-6">
+      <div class="text-5xl mb-2">{{ statusIcon }}</div>
+      <div class="text-lg font-bold text-slate-800">{{ order.status }}</div>
+      <div class="text-sm text-slate-400 mt-1">{{ statusText }}</div>
+    </div>
+
+    <!-- 物流信息（仅已出库/已完成展示） -->
+    <div v-if="order.status === '已完成'" class="bg-white rounded-xl p-4 shadow-sm">
+      <div class="text-sm font-semibold text-slate-800 mb-3">物流信息</div>
+      <div class="text-xs text-slate-500 mb-2">物流公司：顺丰速运</div>
+      <div class="text-xs text-slate-500 mb-3">运单号：{{ order.logisticsNo }} <span class="text-red-500 cursor-pointer ml-1" @click="copy(order.logisticsNo)">复制</span></div>
+      <van-steps direction="vertical" :active="3" active-color="#dc2626">
+        <van-step><div class="text-xs">2026-08-08 10:34</div><div class="text-sm">已签收</div></van-step>
+        <van-step><div class="text-xs">2026-08-08 08:00</div><div class="text-sm">派送中</div></van-step>
+        <van-step><div class="text-xs">2026-08-08 05:00</div><div class="text-sm">已发车</div></van-step>
+      </van-steps>
+    </div>
+
+    <!-- 待支付倒计时 -->
+    <div v-if="order.status === '待支付'" class="bg-orange-50 border border-orange-200 rounded-xl p-3 text-center text-sm text-orange-600">
+      订单将在 <b>29:58</b> 后自动取消，请尽快支付
+    </div>
+
+    <!-- 收货信息 -->
+    <div class="bg-white rounded-xl p-4 shadow-sm">
+      <div class="text-sm font-semibold text-slate-800 mb-3">收货信息</div>
+      <div class="text-sm text-slate-800">{{ order.receiver }}  {{ order.receiverPhone }}</div>
+      <div class="text-xs text-slate-500 mt-1">{{ order.receiverAddress }}</div>
+    </div>
+
+    <!-- 商品明细 -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div class="text-sm font-semibold text-slate-800 p-4 pb-2">商品明细</div>
+      <div
+        v-for="(item, idx) in order.products" :key="idx"
+        class="flex items-center gap-3 p-3" :class="idx < order.products.length-1 ? 'border-b border-slate-50' : ''">
+        <div class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center text-xl text-slate-300 shrink-0">📦</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm text-slate-800">{{ item.name }}</div>
+          <div class="text-xs text-slate-400 mt-0.5">{{ item.unit }}  ¥{{ item.price }} ×{{ item.qty }}</div>
+        </div>
+        <div class="text-sm font-semibold text-slate-800 shrink-0">¥{{ (item.price * item.qty).toFixed(2) }}</div>
+      </div>
+    </div>
+
+    <!-- 价格明细 -->
+    <div class="bg-white rounded-xl p-4 shadow-sm">
+      <div class="text-sm font-semibold text-slate-800 mb-2">价格明细</div>
+      <div class="info-row"><span class="lbl">商品总额</span><span class="val">¥{{ order.goodsTotal }}</span></div>
+      <div class="info-row"><span class="lbl">优惠券抵扣</span><span class="val" style="color:#dc2626;">-¥{{ order.couponAmount }}</span></div>
+      <div class="info-row"><span class="lbl">运费</span><span class="val">+¥{{ order.freight }}</span></div>
+      <div class="info-row" style="border-top:1px solid #f1f5f9; margin-top:6px; padding-top:10px;">
+        <span class="lbl" style="font-weight:600;">实付金额</span>
+        <span class="val" style="font-size:16px; color:#dc2626; font-weight:700;">¥{{ order.paidTotal }}</span>
+      </div>
+    </div>
+
+    <!-- 订单信息 -->
+    <div class="bg-white rounded-xl p-4 shadow-sm">
+      <div class="text-sm font-semibold text-slate-800 mb-3">订单信息</div>
+      <div class="info-row">
+        <span class="lbl">订单编号</span>
+        <span class="val text-red-500 cursor-pointer" @click="copy(order.orderNo)">{{ order.orderNo }} <span class="text-xs">复制</span></span>
+      </div>
+      <div class="info-row"><span class="lbl">下单时间</span><span class="val">{{ order.orderTime }}</span></div>
+      <div class="info-row"><span class="lbl">支付方式</span><span class="val">{{ order.payMethod }}</span></div>
+      <div class="info-row"><span class="lbl">支付时间</span><span class="val">{{ order.payTime || '--' }}</span></div>
+      <div class="info-row"><span class="lbl">备注</span><span class="val">{{ order.remark || '--' }}</span></div>
+    </div>
+
+    <!-- 底部操作栏 -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-4 py-3 z-50 flex gap-3 justify-end" style="padding-bottom: calc(12px + env(safe-area-inset-bottom, 16px));">
+      <template v-if="order.status === '待支付'">
+        <van-button round @click="cancelOrder">取消订单</van-button>
+        <van-button type="primary" round @click="payOrder">去支付</van-button>
+      </template>
+      <template v-else-if="order.status === '待出库'">
+        <van-button type="primary" plain round @click="applyReturn">申请退货</van-button>
+      </template>
+      <template v-else-if="order.status === '出库中'">
+        <van-button type="primary" round @click="confirmReceive">确认收货</van-button>
+        <van-button plain round @click="applyReturn">申请退货</van-button>
+      </template>
+      <template v-else-if="order.status === '已完成'">
+        <van-button type="primary" round @click="reBuy">再次购买</van-button>
+        <van-button plain round @click="applyReturn">申请退货</van-button>
+      </template>
+    </div>
+
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+  <script>
+    const { createApp, ref, computed } = Vue;
+    createApp({
+      setup() {
+        const order = ref({
+          orderNo: '20232343443A',
+          status: '已完成',
+          orderTime: '2026-10-10 10:23:34',
+          payMethod: '微信',
+          payTime: '2025-08-08 10:34:34',
+          receiver: '张三', receiverPhone: '15626270708',
+          receiverAddress: '广东省广州市西乡街道',
+          goodsTotal: '100.00', couponAmount: '10.00', freight: '20.00', paidTotal: '110.00',
+          logisticsNo: '8127287182',
+          remark: '',
+          products: [
+            { name: '冷鲜瘦肉', unit: '千克', price: '50.00', qty: 1 },
+            { name: '优鲜带颈通排', unit: '千克', price: '25.00', qty: 2 },
+          ],
+        });
+
+        const statusIcon = computed(() => {
+          const map = { '待支付': '⏳', '待出库': '📦', '出库中': '🚚', '已完成': '✅', '已取消': '❌' };
+          return map[order.value.status] || '📋';
+        });
+        const statusText = computed(() => {
+          const map = { '待支付': '请您尽快付款，超时订单将自动取消', '待出库': '订单正在准备出库', '出库中': '您的订单正在配送中', '已完成': '订单已送达，感谢您的购买' };
+          return map[order.value.status] || '';
+        });
+
+        function copy(text) {
+          navigator.clipboard ? navigator.clipboard.writeText(text).then(() => vant.showToast('已复制')) : vant.showToast(text);
+        }
+        function cancelOrder() {
+          vant.showConfirmDialog({ title: '取消订单', message: '确定要取消该订单吗？', confirmButtonColor: '#dc2626' })
+            .then(() => { order.value.status = '已取消'; vant.showSuccessToast('订单已取消'); }).catch(() => {});
+        }
+        function payOrder() { vant.showToast('调起微信支付'); }
+        function confirmReceive() {
+          vant.showConfirmDialog({ title: '确认收货', message: '确认已收到商品？', confirmButtonColor: '#dc2626' })
+            .then(() => { order.value.status = '已完成'; vant.showSuccessToast('已确认收货'); }).catch(() => {});
+        }
+        function applyReturn() { vant.showToast('跳转退货申请'); }
+        function reBuy() { vant.showToast('已加入购物车'); }
+
+        return { order, statusIcon, statusText, copy, cancelOrder, payOrder, confirmReceive, applyReturn, reBuy };
+      }
+    }).use(vant).mount('#prd-root');
+  </script>
+</body>
+</html>

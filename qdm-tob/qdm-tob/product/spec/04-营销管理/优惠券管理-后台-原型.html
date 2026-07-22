@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>优惠券管理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 10px;
+        }
+        .query-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+            padding-bottom: 0px;
+            margin-bottom: 10px;
+        }
+        .data-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .overview-cards {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 10px;
+        }
+        .overview-item {
+            flex: 1;
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px 20px;
+            text-align: center;
+        }
+        .overview-item .label {
+            font-size: 13px;
+            color: #909399;
+            margin-bottom: 8px;
+        }
+        .overview-item .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #303133;
+        }
+        .progress-bar-wrap {
+            width: 100%;
+            height: 6px;
+            background: #ebeef5;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: #409eff;
+            border-radius: 3px;
+        }
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .warn-text {
+            color: #f56c6c;
+            font-size: 13px;
+        }
+        .distribute-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0 0 0;
+            border-top: 1px solid #ebeef5;
+            margin-top: 12px;
+        }
+        .footer-left {
+            font-size: 13px;
+            color: #606266;
+        }
+        .paste-area {
+            width: 100%;
+            min-height: 200px;
+            border: 1px dashed #dcdfe6;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 13px;
+            resize: vertical;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .paste-tips {
+            font-size: 12px;
+            color: #909399;
+            margin-bottom: 10px;
+            line-height: 1.8;
+        }
+        .detail-stats {
+            display: flex;
+            gap: 0;
+            background: #f5f7fa;
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin-bottom: 16px;
+        }
+        .detail-stat-item {
+            flex: 1;
+            text-align: center;
+            border-right: 1px solid #e4e7ed;
+        }
+        .detail-stat-item:last-child {
+            border-right: none;
+        }
+        .detail-stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #303133;
+            margin-bottom: 6px;
+        }
+        .detail-stat-label {
+            font-size: 13px;
+            color: #909399;
+        }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+        <!-- 页签切换 -->
+        <div style="margin-bottom:10px;">
+            <el-tabs v-model="activeTab" @tab-click="onTabClick">
+                <el-tab-pane label="优惠券管理" name="manage"></el-tab-pane>
+                <el-tab-pane label="优惠券数据" name="data"></el-tab-pane>
+            </el-tabs>
+        </div>
+
+        <!-- ==================== Tab1: 优惠券管理 ==================== -->
+        <div v-show="activeTab==='manage'">
+            <!-- 操作&数据区 -->
+            <div class="data-card">
+                <div style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+                    <el-button type="primary" @click="showCreateDialog=true">新建优惠券</el-button>
+                    <span style="font-size:13px;color:#909399;">共 {{ couponList.length }} 条记录</span>
+                </div>
+                <el-table :data="couponList" stripe :header-cell-style="{background:'#f5f7fa',color:'#606266',fontWeight:500}">
+                    <el-table-column prop="name" label="优惠券名称" min-width="120"></el-table-column>
+                    <el-table-column label="适用品类" min-width="140">
+                        <template #default="scope">
+                            <div class="tag-list">
+                                <el-tag size="small" type="info" v-for="cat in scope.row.categories" :key="cat" style="margin:1px;">{{ cat }}</el-tag>
+                            </div>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="券额" min-width="100">
+                        <template #default="scope">满{{ scope.row.threshold }}减{{ scope.row.discount }}</template>
+                    </el-table-column>
+                    <el-table-column label="发放数" min-width="200">
+                        <template #default="scope">
+                            <div style="font-size:13px;">已发放 {{ scope.row.claimed }} 张 / 剩余 {{ scope.row.total - scope.row.claimed }} 张</div>
+                            <div class="progress-bar-wrap">
+                                <div class="progress-bar-fill" :style="{width: (scope.row.claimed/scope.row.total*100)+'%'}"></div>
+                            </div>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="使用时间" min-width="160">
+                        <template #default="scope">{{ scope.row.startDate }} ~ {{ scope.row.endDate }}</template>
+                    </el-table-column>
+                    <el-table-column label="操作" min-width="160" fixed="right">
+                        <template #default="scope">
+                            <el-button type="primary" link size="small" @click="openModify(scope.row)">修改</el-button>
+                            <el-button type="primary" link size="small" @click="openDistribute(scope.row)">指定发放</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+                <el-empty v-if="couponList.length===0" description="暂无优惠券，点击上方按钮创建"></el-empty>
+                <div style="margin-top:10px;">
+                    <el-pagination
+                        v-if="couponList.length>0"
+                        v-model:current-page="managePage"
+                        :page-size="10"
+                        :total="couponList.length"
+                        layout="total, prev, pager, next"
+                        style="justify-content:flex-start;">
+                    </el-pagination>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== Tab2: 优惠券数据 ==================== -->
+        <div v-show="activeTab==='data'">
+            <!-- 信息总览 -->
+            <div class="overview-cards">
+                <div class="overview-item">
+                    <div class="label">累计发券数</div>
+                    <div class="value">{{ fmtNum(overview.totalIssued) }} 张</div>
+                </div>
+                <div class="overview-item">
+                    <div class="label">累计用券数</div>
+                    <div class="value">{{ fmtNum(overview.totalUsed) }} 张</div>
+                </div>
+                <div class="overview-item">
+                    <div class="label">带动交易额</div>
+                    <div class="value">¥ {{ fmtMoney(overview.totalAmount) }}</div>
+                </div>
+                <div class="overview-item">
+                    <div class="label">券核销率</div>
+                    <div class="value">{{ overview.useRate }}%</div>
+                </div>
+            </div>
+            <!-- 查询区 -->
+            <div class="query-card">
+                <div style="display:flex;align-items:center;flex-wrap:wrap;">
+                    <el-form :inline="true" :model="dataFilter" style="flex:1;padding-bottom:0;">
+                        <el-form-item label="优惠券名称">
+                            <el-input v-model="dataFilter.name" placeholder="请输入" clearable size="default"></el-input>
+                        </el-form-item>
+                        <el-form-item label="品类">
+                            <el-select v-model="dataFilter.category" placeholder="全部" clearable size="default">
+                                <el-option label="海鲜类" value="海鲜类"></el-option>
+                                <el-option label="冻品类" value="冻品类"></el-option>
+                                <el-option label="蔬菜类" value="蔬菜类"></el-option>
+                                <el-option label="水果类" value="水果类"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="使用时间">
+                            <el-date-picker v-model="dataFilter.dateRange" type="daterange" range-separator="~" start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" size="default"></el-date-picker>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="queryData">查询</el-button>
+                            <el-button @click="resetDataFilter">重置</el-button>
+                        </el-form-item>
+                    </el-form>
+                    <el-button type="default" @click="exportData" style="margin-left:auto;margin-bottom:18px;">📥 导出</el-button>
+                </div>
+            </div>
+            <!-- 数据列表 -->
+            <div class="data-card">
+                <el-table :data="filteredDataList" stripe :header-cell-style="{background:'#f5f7fa',color:'#606266',fontWeight:500}" @row-click="openDataDetail" style="cursor:pointer;">
+                    <el-table-column prop="name" label="优惠券名称" min-width="120"></el-table-column>
+                    <el-table-column label="品类" min-width="120">
+                        <template #default="scope">
+                            <div class="tag-list">
+                                <el-tag size="small" type="info" v-for="cat in scope.row.categories" :key="cat" style="margin:1px;">{{ cat }}</el-tag>
+                            </div>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="券额" min-width="100">
+                        <template #default="scope">满{{ scope.row.threshold }}减{{ scope.row.discount }}</template>
+                    </el-table-column>
+                    <el-table-column label="发放数量" min-width="100">
+                        <template #default="scope">{{ scope.row.claimed }} / {{ scope.row.total }}</template>
+                    </el-table-column>
+                    <el-table-column prop="used" label="使用数量" min-width="90"></el-table-column>
+                    <el-table-column prop="orderCount" label="触发交易笔数" min-width="110"></el-table-column>
+                    <el-table-column label="带动交易额" min-width="120">
+                        <template #default="scope">¥{{ fmtMoney(scope.row.tradeAmount) }}</template>
+                    </el-table-column>
+                </el-table>
+                <el-empty v-if="filteredDataList.length===0" description="暂无优惠券数据"></el-empty>
+                <div style="margin-top:10px;">
+                    <el-pagination
+                        v-if="filteredDataList.length>0"
+                        v-model:current-page="dataPage"
+                        :page-size="10"
+                        :total="filteredDataList.length"
+                        layout="total, prev, pager, next"
+                        style="justify-content:flex-start;">
+                    </el-pagination>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 新建优惠券弹窗 ==================== -->
+        <el-dialog v-model="showCreateDialog" title="新建优惠券" width="600px" :close-on-click-modal="false">
+            <el-form :model="createForm" label-width="100px" :rules="createRules" ref="createFormRef">
+                <el-form-item label="销售大区" prop="region">
+                    <el-select v-model="createForm.region" placeholder="请选择销售大区" style="width:100%;">
+                        <el-option label="华东大区" value="华东大区"></el-option>
+                        <el-option label="华南大区" value="华南大区"></el-option>
+                        <el-option label="华北大区" value="华北大区"></el-option>
+                        <el-option label="西南大区" value="西南大区"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="优惠券名称" prop="name">
+                    <el-input v-model="createForm.name" placeholder="请输入优惠券名称" maxlength="50"></el-input>
+                </el-form-item>
+                <el-form-item label="优惠规则" prop="threshold" required>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span>满</span>
+                        <el-input-number v-model="createForm.threshold" :min="10" :step="10" placeholder="金额" style="width:140px;"></el-input-number>
+                        <span>元&nbsp;减</span>
+                        <el-input-number v-model="createForm.discount" :min="10" :step="10" placeholder="金额" style="width:140px;"></el-input-number>
+                        <span>元</span>
+                    </div>
+                </el-form-item>
+                <el-form-item label="适用品类" prop="categories">
+                    <el-select v-model="createForm.categories" multiple placeholder="请选择适用品类" style="width:100%;" filterable>
+                        <el-option label="海鲜类" value="海鲜类"></el-option>
+                        <el-option label="冻品类" value="冻品类"></el-option>
+                        <el-option label="蔬菜类" value="蔬菜类"></el-option>
+                        <el-option label="水果类" value="水果类"></el-option>
+                        <el-option label="肉禽类" value="肉禽类"></el-option>
+                        <el-option label="调味品类" value="调味品类"></el-option>
+                    </el-select>
+                    <div style="margin-top:6px;">
+                        <el-tag
+                            v-for="cat in createForm.categories"
+                            :key="cat"
+                            closable
+                            size="small"
+                            @close="removeCreateCategory(cat)"
+                            style="margin:2px;">{{ cat }}</el-tag>
+                    </div>
+                </el-form-item>
+                <el-form-item label="使用期限" prop="dateRange">
+                    <el-date-picker v-model="createForm.dateRange" type="daterange" range-separator="~" start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" style="width:100%;"></el-date-picker>
+                </el-form-item>
+                <el-form-item label="发放总量" prop="total">
+                    <el-input-number v-model="createForm.total" :min="1" :step="10" placeholder="请输入发放总量" style="width:100%;"></el-input-number>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="showCreateDialog=false">取消</el-button>
+                <el-button type="primary" @click="confirmCreate">确认创建</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 修改优惠券弹窗（右侧滑出） ==================== -->
+        <el-drawer v-model="showModifyDrawer" title="修改优惠券" direction="rtl" size="480px">
+            <template v-if="modifyRow">
+                <div style="padding:0 20px;">
+                    <el-descriptions :column="1" border size="default">
+                        <el-descriptions-item label="销售大区">{{ modifyRow.region }}</el-descriptions-item>
+                        <el-descriptions-item label="优惠券名称">{{ modifyRow.name }}</el-descriptions-item>
+                        <el-descriptions-item label="优惠规则">满{{ modifyRow.threshold }}减{{ modifyRow.discount }}</el-descriptions-item>
+                        <el-descriptions-item label="适用品类">
+                            <el-tag size="small" type="info" v-for="cat in modifyRow.categories" :key="cat" style="margin:1px;">{{ cat }}</el-tag>
+                        </el-descriptions-item>
+                        <el-descriptions-item label="使用期限">{{ modifyRow.startDate }} ~ {{ modifyRow.endDate }}</el-descriptions-item>
+                        <el-descriptions-item label="当前已领取">{{ modifyRow.claimed }} 张</el-descriptions-item>
+                    </el-descriptions>
+                    <div style="margin-top:20px;">
+                        <el-form label-width="100px">
+                            <el-form-item label="发放总量">
+                                <el-input-number v-model="modifyNewTotal" :min="modifyRow.claimed" :step="10" style="width:100%;"></el-input-number>
+                            </el-form-item>
+                        </el-form>
+                        <p style="font-size:12px;color:#909399;">修改发放总量仅影响后续可发放数量，已领取的券不受影响。</p>
+                    </div>
+                </div>
+            </template>
+            <template #footer>
+                <el-button @click="showModifyDrawer=false">取消</el-button>
+                <el-button type="primary" @click="confirmModify">确认修改</el-button>
+            </template>
+        </el-drawer>
+
+        <!-- ==================== 指定发券弹窗 ==================== -->
+        <el-dialog v-model="showDistributeDialog" :title="'指定发放 — ' + (distributeRow ? distributeRow.name : '')" width="900px" :close-on-click-modal="false">
+            <el-tabs v-model="distributeTab">
+                <el-tab-pane label="指定用户" name="user">
+                    <!-- 搜索筛选区 -->
+                    <el-form :inline="true" :model="distributeFilter">
+                        <el-form-item label="客户名称/手机号">
+                            <el-input v-model="distributeFilter.keyword" placeholder="请输入" clearable size="default"></el-input>
+                        </el-form-item>
+                        <el-form-item label="所属大区">
+                            <el-select v-model="distributeFilter.region" placeholder="全部" clearable size="default">
+                                <el-option label="全部" value=""></el-option>
+                                <el-option label="华东大区" value="华东大区"></el-option>
+                                <el-option label="华南大区" value="华南大区"></el-option>
+                                <el-option label="华北大区" value="华北大区"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="queryCustomers">查询</el-button>
+                            <el-button @click="resetDistributeFilter">重置</el-button>
+                        </el-form-item>
+                    </el-form>
+                    <p style="font-size:12px;color:#909399;margin-bottom:10px;">💡 列表展示该券销售大区内的全部客户，可重复发放；搜索为后端实时查询</p>
+                    <!-- 客户列表 -->
+                    <el-table :data="availableCustomers" stripe ref="distributeTableRef" @selection-change="onDistributeSelect" :header-cell-style="{background:'#f5f7fa',color:'#606266',fontWeight:500}">
+                        <el-table-column type="selection" width="50"></el-table-column>
+                        <el-table-column prop="name" label="客户名称" min-width="160"></el-table-column>
+                        <el-table-column prop="phone" label="手机号" min-width="130"></el-table-column>
+                        <el-table-column prop="region" label="所属大区" min-width="110"></el-table-column>
+                    </el-table>
+                    <!-- 底部操作区 -->
+                    <div class="distribute-footer">
+                        <div class="footer-left">
+                            已选择 <strong>{{ selectedCustomers.length }}</strong> 位客户 &nbsp;|&nbsp; 剩余可发 <strong>{{ distributeRow ? distributeRow.total - distributeRow.claimed : 0 }}</strong> 张
+                        </div>
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <span class="warn-text" v-if="selectedCustomers.length > 0 && selectedCustomers.length > (distributeRow ? distributeRow.total - distributeRow.claimed : 0)">
+                                ⚠ 剩余优惠券不足（指定 {{ selectedCustomers.length }} 人 / 剩余 {{ distributeRow ? distributeRow.total - distributeRow.claimed : 0 }} 张）
+                            </span>
+                            <el-button type="primary" :disabled="selectedCustomers.length===0 || (distributeRow && selectedCustomers.length > distributeRow.total - distributeRow.claimed)" @click="confirmDistribute">一键发放</el-button>
+                        </div>
+                    </div>
+                </el-tab-pane>
+                <el-tab-pane label="粘贴表格" name="paste">
+                    <div class="paste-tips">
+                        <strong>粘贴说明：</strong><br>
+                        从 Excel 复制客户数据（含：客户名称、手机号码、地址、所属大区），粘贴到下方输入框，系统将逐列解析后按手机号精确匹配平台客户。<br>
+                        支持的表头关键词：客户名称/公司名称/姓名、手机号/电话/联系方式、地址/收货地址、大区/所属大区/区域
+                    </div>
+                    <textarea class="paste-area" v-model="pasteContent" placeholder="在此粘贴 Excel 内容..."></textarea>
+                    <div style="margin-top:10px;">
+                        <el-button type="primary" @click="parsePaste">解析并预览</el-button>
+                    </div>
+                    <!-- 解析结果 -->
+                    <div v-if="pasteResults.length>0" style="margin-top:16px;">
+                        <el-table :data="pasteResults" stripe :header-cell-style="{background:'#f5f7fa',color:'#606266',fontWeight:500}">
+                            <el-table-column type="index" label="序号" width="60"></el-table-column>
+                            <el-table-column prop="name" label="客户名称" min-width="120"></el-table-column>
+                            <el-table-column prop="phone" label="手机号" min-width="120"></el-table-column>
+                            <el-table-column prop="address" label="地址" min-width="140"></el-table-column>
+                            <el-table-column prop="region" label="大区" min-width="90"></el-table-column>
+                            <el-table-column label="匹配状态" min-width="100">
+                                <template #default="scope">
+                                    <el-tag :type="scope.row.matched ? 'success' : 'danger'" size="small">{{ scope.row.matched ? '✓ 已匹配' : '✗ 未注册' }}</el-tag>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <div style="margin-top:10px;font-size:13px;color:#606266;">
+                            匹配成功 {{ pasteResults.filter(r=>r.matched).length }} 条 / 匹配失败 {{ pasteResults.filter(r=>!r.matched).length }} 条（未注册客户将不会收到优惠券）
+                        </div>
+                        <div style="margin-top:10px;text-align:right;">
+                            <el-button type="primary" :disabled="pasteResults.filter(r=>r.matched).length===0" @click="confirmBatchDistribute">一键发放 (仅发放已匹配的客户)</el-button>
+                        </div>
+                    </div>
+                </el-tab-pane>
+            </el-tabs>
+        </el-dialog>
+
+        <!-- ==================== 二次确认弹窗 ==================== -->
+        <el-dialog v-model="showConfirmDialog" title="确认发放" width="400px">
+            <p>确认向已选择的 <strong>{{ selectedCustomers.length }}</strong> 位客户发放优惠券？</p>
+            <template #footer>
+                <el-button @click="showConfirmDialog=false">取消</el-button>
+                <el-button type="primary" @click="doDistribute">确认</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 优惠券详情抽屉（数据页右侧滑出） ==================== -->
+        <el-drawer v-model="showDetailDrawer" :title="'优惠券详情 — ' + (detailRow ? detailRow.name : '')" direction="rtl" size="1300px">
+            <template v-if="detailRow">
+                <div style="padding:0 20px;">
+                    <!-- 统计摘要（券额 + 发放 + 使用 + 交易额 并排） -->
+                    <div class="detail-stats">
+                        <div class="detail-stat-item">
+                            <div class="detail-stat-value">满{{ detailRow.threshold }}减{{ detailRow.discount }}</div>
+                            <div class="detail-stat-label">券额</div>
+                        </div>
+                        <div class="detail-stat-item">
+                            <div class="detail-stat-value">{{ fmtNum(detailRow.claimed) }} 张</div>
+                            <div class="detail-stat-label">已发放</div>
+                        </div>
+                        <div class="detail-stat-item">
+                            <div class="detail-stat-value">{{ fmtNum(detailRow.used) }} 张</div>
+                            <div class="detail-stat-label">已使用</div>
+                        </div>
+                        <div class="detail-stat-item">
+                            <div class="detail-stat-value">¥{{ fmtMoney(detailRow.tradeAmount) }}</div>
+                            <div class="detail-stat-label">带动交易额</div>
+                        </div>
+                    </div>
+                    <!-- 筛选区 -->
+                    <div class="query-card">
+                        <div style="display:flex;align-items:center;flex-wrap:wrap;">
+                            <el-form :inline="true" :model="detailFilter" style="flex:1;padding-bottom:0;">
+                                <el-form-item label="客户名称/手机号">
+                                    <el-input v-model="detailFilter.keyword" placeholder="请输入" clearable size="default"></el-input>
+                                </el-form-item>
+                                <el-form-item label="状态">
+                                    <el-select v-model="detailFilter.status" placeholder="全部" clearable size="default" style="width:120px;">
+                                        <el-option label="全部" value=""></el-option>
+                                        <el-option label="已使用" value="used"></el-option>
+                                        <el-option label="未使用" value="unused"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button type="primary" @click="queryDetailCustomers">查询</el-button>
+                                    <el-button @click="resetDetailFilter">重置</el-button>
+                                </el-form-item>
+                            </el-form>
+                            <el-button type="default" @click="exportDetail" style="margin-left:auto;margin-bottom:18px;">📥 导出</el-button>
+                        </div>
+                    </div>
+                    <!-- 客户明细列表 -->
+                    <div class="data-card">
+                        <el-table :data="detailCustomers" stripe :header-cell-style="{background:'#f5f7fa',color:'#606266',fontWeight:500}">
+                            <el-table-column type="index" label="序号" width="60"></el-table-column>
+                            <el-table-column label="状态" min-width="90">
+                                <template #default="scope">
+                                    <el-tag :type="scope.row.status==='used' ? 'success' : 'info'" size="small">{{ scope.row.status==='used' ? '已使用' : '未使用' }}</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="订单编号" min-width="150">
+                                <template #default="scope">{{ scope.row.status==='used' ? scope.row.orderNo : '--' }}</template>
+                            </el-table-column>
+                            <el-table-column label="订单总金额" min-width="120">
+                                <template #default="scope">{{ scope.row.status==='used' ? '¥'+fmtMoney(scope.row.orderAmount) : '--' }}</template>
+                            </el-table-column>
+                            <el-table-column prop="customerName" label="客户名称" min-width="140"></el-table-column>
+                            <el-table-column prop="phone" label="手机号" min-width="130"></el-table-column>
+                            <el-table-column prop="address" label="详细地址" min-width="160"></el-table-column>
+                            <el-table-column prop="region" label="归属大区" min-width="100"></el-table-column>
+                        </el-table>
+                        <el-empty v-if="detailCustomers.length===0" description="暂无数据"></el-empty>
+                        <div style="margin-top:10px;">
+                            <el-pagination
+                                v-if="detailCustomers.length>0"
+                                v-model:current-page="detailPage"
+                                :page-size="10"
+                                :total="detailCustomers.length"
+                                layout="total, prev, pager, next"
+                                style="justify-content:flex-start;">
+                            </el-pagination>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </el-drawer>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+    <script>
+        const { createApp, ref, reactive, computed } = Vue;
+        const app = createApp({
+            setup() {
+                // ============ Tab ============
+                const activeTab = ref('manage');
+
+                // ============ Tab1: 优惠券管理列表 ============
+                const managePage = ref(1);
+                const couponList = ref([
+                    { id:1, name:'新春促销海鲜券', region:'华东大区', categories:['海鲜类','冻品类'], threshold:100, discount:20, total:1000, claimed:45, startDate:'2026-07-01', endDate:'2026-07-31', used:32, orderCount:62, tradeAmount:25600 },
+                    { id:2, name:'蔬菜季优惠券', region:'华南大区', categories:['蔬菜类','水果类'], threshold:50, discount:10, total:500, claimed:120, startDate:'2026-07-01', endDate:'2026-08-31', used:85, orderCount:98, tradeAmount:18500 },
+                    { id:3, name:'冻品专享券', region:'华东大区', categories:['冻品类'], threshold:200, discount:30, total:800, claimed:200, startDate:'2026-06-15', endDate:'2026-09-15', used:150, orderCount:120, tradeAmount:42000 },
+                    { id:4, name:'调味品满减券', region:'华北大区', categories:['调味品类'], threshold:30, discount:5, total:2000, claimed:560, startDate:'2026-07-01', endDate:'2026-12-31', used:320, orderCount:280, tradeAmount:16800 },
+                    { id:5, name:'肉禽类大促券', region:'西南大区', categories:['肉禽类'], threshold:150, discount:25, total:600, claimed:88, startDate:'2026-07-05', endDate:'2026-08-05', used:40, orderCount:35, tradeAmount:12500 },
+                ]);
+
+                // ============ 新建弹窗 ============
+                const showCreateDialog = ref(false);
+                const createFormRef = ref(null);
+                const createForm = reactive({
+                    region: '', name: '', threshold: null, discount: null,
+                    categories: [], dateRange: [], total: null
+                });
+                const createRules = {
+                    region: [{ required: true, message: '请选择销售大区', trigger: 'change' }],
+                    name: [{ required: true, message: '请输入优惠券名称', trigger: 'blur' }],
+                    categories: [{ type: 'array', required: true, message: '请至少选择一个适用品类', trigger: 'change' }],
+                    dateRange: [{ required: true, message: '请选择使用期限', trigger: 'change' }],
+                    total: [{ required: true, message: '请输入发放总量', trigger: 'blur' }],
+                };
+                function removeCreateCategory(cat) {
+                    const idx = createForm.categories.indexOf(cat);
+                    if (idx > -1) createForm.categories.splice(idx, 1);
+                }
+                function confirmCreate() {
+                    if (!createForm.region || !createForm.name || !createForm.threshold || !createForm.discount
+                        || createForm.categories.length===0 || !createForm.dateRange || createForm.dateRange.length<2 || !createForm.total) {
+                        ElementPlus.ElMessage.warning('请完善所有必填项');
+                        return;
+                    }
+                    if (createForm.discount >= createForm.threshold) {
+                        ElementPlus.ElMessage.warning('优惠金额不能大于或等于门槛金额');
+                        return;
+                    }
+                    if (couponList.value.some(c => c.name === createForm.name)) {
+                        ElementPlus.ElMessage.warning('该优惠券名称已存在，请更换');
+                        return;
+                    }
+                    couponList.value.push({
+                        id: Date.now(),
+                        name: createForm.name,
+                        region: createForm.region,
+                        categories: [...createForm.categories],
+                        threshold: createForm.threshold,
+                        discount: createForm.discount,
+                        total: createForm.total,
+                        claimed: 0,
+                        startDate: createForm.dateRange[0],
+                        endDate: createForm.dateRange[1],
+                        used: 0, orderCount: 0, tradeAmount: 0
+                    });
+                    ElementPlus.ElMessage.success('创建成功');
+                    showCreateDialog.value = false;
+                    Object.assign(createForm, { region:'', name:'', threshold:null, discount:null, categories:[], dateRange:[], total:null });
+                }
+
+                // ============ 修改弹窗 ============
+                const showModifyDrawer = ref(false);
+                const modifyRow = ref(null);
+                const modifyNewTotal = ref(0);
+                function openModify(row) {
+                    modifyRow.value = row;
+                    modifyNewTotal.value = row.total;
+                    showModifyDrawer.value = true;
+                }
+                function confirmModify() {
+                    if (modifyNewTotal.value < modifyRow.value.claimed) {
+                        ElementPlus.ElMessage.warning('发放总量不能小于已领取数量（当前已领 ' + modifyRow.value.claimed + ' 张）');
+                        return;
+                    }
+                    modifyRow.value.total = modifyNewTotal.value;
+                    ElementPlus.ElMessage.success('修改成功');
+                    showModifyDrawer.value = false;
+                }
+
+                // ============ 指定发放弹窗 ============
+                const showDistributeDialog = ref(false);
+                const distributeTab = ref('user');
+                const distributeRow = ref(null);
+                const distributeFilter = reactive({ keyword: '', region: '' });
+                const selectedCustomers = ref([]);
+                const pasteContent = ref('');
+                const pasteResults = ref([]);
+                const showConfirmDialog = ref(false);
+                const distributeTableRef = ref(null);
+
+                const allAvailableCustomers = [
+                    { name:'张记食堂', phone:'13812341234', region:'华东大区' },
+                    { name:'李记餐饮有限公司', phone:'13956785678', region:'华南大区' },
+                    { name:'王记食品配送中心', phone:'13690129012', region:'华东大区' },
+                    { name:'赵记生鲜超市', phone:'13765432109', region:'华北大区' },
+                    { name:'钱大妈农贸批发', phone:'13578901234', region:'西南大区' },
+                ];
+                const availableCustomers = ref([...allAvailableCustomers]);
+
+                function openDistribute(row) {
+                    distributeRow.value = row;
+                    distributeFilter.keyword = '';
+                    distributeFilter.region = '';
+                    selectedCustomers.value = [];
+                    pasteContent.value = '';
+                    pasteResults.value = [];
+                    availableCustomers.value = [...allAvailableCustomers];
+                    distributeTab.value = 'user';
+                    showDistributeDialog.value = true;
+                }
+                function queryCustomers() {
+                    availableCustomers.value = allAvailableCustomers.filter(c => {
+                        const kw = distributeFilter.keyword.toLowerCase();
+                        const matchKw = !kw || c.name.toLowerCase().includes(kw) || c.phone.includes(kw);
+                        const matchR = !distributeFilter.region || c.region === distributeFilter.region;
+                        return matchKw && matchR;
+                    });
+                }
+                function resetDistributeFilter() {
+                    distributeFilter.keyword = '';
+                    distributeFilter.region = '';
+                    availableCustomers.value = [...allAvailableCustomers];
+                }
+                function onDistributeSelect(rows) {
+                    selectedCustomers.value = rows;
+                }
+                function confirmDistribute() {
+                    showConfirmDialog.value = true;
+                }
+                function doDistribute() {
+                    if (distributeRow.value) {
+                        distributeRow.value.claimed += selectedCustomers.value.length;
+                    }
+                    ElementPlus.ElMessage.success('发放成功！已向 ' + selectedCustomers.value.length + ' 位客户发放优惠券');
+                    showConfirmDialog.value = false;
+                    showDistributeDialog.value = false;
+                }
+                function parsePaste() {
+                    if (!pasteContent.value.trim()) {
+                        ElementPlus.ElMessage.warning('请先粘贴 Excel 内容');
+                        return;
+                    }
+                    pasteResults.value = [
+                        { name:'张记食堂', phone:'13812341234', address:'XX路1号', region:'华东大区', matched:true },
+                        { name:'李记餐饮', phone:'13956785678', address:'XX路2号', region:'华南大区', matched:true },
+                        { name:'王记食品', phone:'13690129012', address:'XX路3号', region:'华东大区', matched:false },
+                    ];
+                    ElementPlus.ElMessage.success('解析完成');
+                }
+                function confirmBatchDistribute() {
+                    const matched = pasteResults.value.filter(r => r.matched).length;
+                    if (distributeRow.value) {
+                        distributeRow.value.claimed += matched;
+                    }
+                    ElementPlus.ElMessage.success('发放成功！已向 ' + matched + ' 位客户发放优惠券');
+                    showDistributeDialog.value = false;
+                }
+
+                // ============ Tab2: 优惠券数据 ============
+                const dataPage = ref(1);
+                const dataFilter = reactive({ name: '', category: '', dateRange: [] });
+                const filteredDataList = computed(() => {
+                    return couponList.value.filter(c => {
+                        const matchName = !dataFilter.name || c.name.includes(dataFilter.name);
+                        const matchCat = !dataFilter.category || c.categories.includes(dataFilter.category);
+                        return matchName && matchCat;
+                    });
+                });
+                const overview = computed(() => {
+                    let totalIssued = 0, totalUsed = 0, totalAmount = 0;
+                    couponList.value.forEach(c => {
+                        totalIssued += c.claimed;
+                        totalUsed += c.used;
+                        totalAmount += c.tradeAmount;
+                    });
+                    const useRate = totalIssued > 0 ? (totalUsed / totalIssued * 100).toFixed(1) : '0.0';
+                    return { totalIssued, totalUsed, totalAmount, useRate };
+                });
+                function queryData() { /* 触发 computed */ }
+                function resetDataFilter() {
+                    dataFilter.name = '';
+                    dataFilter.category = '';
+                    dataFilter.dateRange = [];
+                }
+                function exportData() {
+                    ElementPlus.ElMessage.success('导出成功');
+                }
+
+                // ============ 详情抽屉 ============
+                const showDetailDrawer = ref(false);
+                const detailRow = ref(null);
+                const detailFilter = reactive({ keyword: '', status: '' });
+                const detailPage = ref(1);
+                const allDetailCustomers = [
+                    { status:'used', orderNo:'OD20260214003', orderAmount:520.00, customerName:'张记食堂', phone:'13812341234', address:'XX路1号', region:'华东大区' },
+                    { status:'unused', orderNo:'', orderAmount:0, customerName:'李记餐饮', phone:'13956785678', address:'XX路2号', region:'华南大区' },
+                    { status:'used', orderNo:'OD20260411005', orderAmount:320.00, customerName:'王记食品配送中心', phone:'13690129012', address:'XX路3号', region:'华东大区' },
+                    { status:'unused', orderNo:'', orderAmount:0, customerName:'赵记生鲜超市', phone:'13765432109', address:'XX路5号', region:'华北大区' },
+                ];
+                const detailCustomers = ref([...allDetailCustomers]);
+                function openDataDetail(row) {
+                    detailRow.value = row;
+                    detailFilter.keyword = '';
+                    detailFilter.status = '';
+                    detailCustomers.value = [...allDetailCustomers];
+                    showDetailDrawer.value = true;
+                }
+                function queryDetailCustomers() {
+                    const kw = detailFilter.keyword.toLowerCase();
+                    const st = detailFilter.status;
+                    detailCustomers.value = allDetailCustomers.filter(c => {
+                        const matchKw = !kw || c.customerName.toLowerCase().includes(kw) || c.phone.includes(kw);
+                        const matchSt = !st || c.status === st;
+                        return matchKw && matchSt;
+                    });
+                }
+                function resetDetailFilter() {
+                    detailFilter.keyword = '';
+                    detailFilter.status = '';
+                    detailCustomers.value = [...allDetailCustomers];
+                }
+                function exportDetail() {
+                    ElementPlus.ElMessage.success('导出成功');
+                }
+
+                // ============ 工具函数 ============
+                function fmtNum(n) { return n.toLocaleString('zh-CN'); }
+                function fmtMoney(n) { return (n||0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+                function onTabClick() {}
+
+                return {
+                    activeTab, onTabClick,
+                    managePage, couponList,
+                    showCreateDialog, createFormRef, createForm, createRules, removeCreateCategory, confirmCreate,
+                    showModifyDrawer, modifyRow, modifyNewTotal, openModify, confirmModify,
+                    showDistributeDialog, distributeTab, distributeRow, distributeFilter,
+                    selectedCustomers, pasteContent, pasteResults, showConfirmDialog, distributeTableRef,
+                    availableCustomers, openDistribute, queryCustomers, resetDistributeFilter,
+                    onDistributeSelect, confirmDistribute, doDistribute,
+                    parsePaste, confirmBatchDistribute,
+                    dataPage, dataFilter, filteredDataList, overview, queryData, resetDataFilter, exportData,
+                    showDetailDrawer, detailRow, detailFilter, detailPage, detailCustomers,
+                    openDataDetail, queryDetailCustomers, resetDetailFilter, exportDetail,
+                    fmtNum, fmtMoney
+                };
+            }
+        });
+        app.use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+    </script>
+</body>
+</html>

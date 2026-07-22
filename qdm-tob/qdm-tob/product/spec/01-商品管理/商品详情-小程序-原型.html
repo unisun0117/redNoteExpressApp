@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>商品详情</title>
+  <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root { --van-primary-color: #dc2626; }
+    body {
+      background-color: #f5f5f5;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      margin: 0; padding: 0; box-sizing: border-box;
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh;
+    }
+    ::-webkit-scrollbar { display: none; }
+
+    .mobile-shell {
+      width: 100%; max-width: 430px; height: 100vh;
+      background: #f5f5f5; display: flex; flex-direction: column;
+      overflow: hidden; position: relative;
+    }
+    @media (min-width: 576px) {
+      .mobile-shell { height: 852px; border-radius: 40px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); border: 8px solid #1e293b; }
+    }
+
+    /* ====== 顶部导航栏 ====== */
+    .navbar {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 44px; padding: 0 12px; background: #fff; flex-shrink: 0;
+      position: relative; z-index: 10;
+    }
+    .navbar-left { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .navbar-back { font-size: 20px; color: #333; line-height: 1; }
+    .navbar-center {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      font-size: 17px; font-weight: 600; color: #1f2937;
+      white-space: nowrap;
+    }
+
+    /* ====== 可滚动内容区 ====== */
+    .content-scroll {
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      padding-bottom: 60px; /* 为底部固定栏留空 */
+    }
+
+    /* ====== 轮播图 ====== */
+    .carousel-wrap {
+      position: relative; width: 100%;
+    }
+    .carousel-wrap .van-swipe { width: 100%; }
+    .carousel-slide {
+      width: 100%; aspect-ratio: 1/1;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 72px;
+    }
+    .carousel-slide.slide-0 { background: linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%); }
+    .carousel-slide.slide-1 { background: linear-gradient(135deg, #f0f9ff 0%, #f5f8ff 100%); }
+    .carousel-slide.slide-2 { background: linear-gradient(135deg, #f5fff5 0%, #f0fdf4 100%); }
+    .carousel-slide.slide-3 { background: linear-gradient(135deg, #fffbf0 0%, #fffdf5 100%); }
+
+    /* 自定义指示器 */
+    .custom-indicators {
+      position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 6px; z-index: 5;
+    }
+    .custom-dot {
+      width: 6px; height: 6px; border-radius: 3px;
+      background: rgba(255,255,255,0.6); transition: all 0.3s;
+    }
+    .custom-dot.active {
+      width: 18px; background: #fff;
+    }
+
+    /* ====== 商品信息区 ====== */
+    .info-card {
+      background: #fff; margin: 0 0 10px; padding: 16px;
+    }
+    .price-row {
+      display: flex; align-items: baseline; gap: 4px; margin-bottom: 8px;
+    }
+    .price-value {
+      font-size: 26px; font-weight: 800; color: #dc2626; line-height: 1.2;
+    }
+    .price-unit {
+      font-size: 13px; color: #999; font-weight: 400;
+    }
+    .price-pending {
+      font-size: 18px; color: #999; font-weight: 500;
+    }
+    .product-name {
+      font-size: 16px; font-weight: 600; color: #1f2937; line-height: 1.4;
+      margin-bottom: 12px;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .meta-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      background: #f9fafb; border-radius: 8px; padding: 12px; gap: 8px 16px;
+    }
+    .meta-item { display: flex; flex-direction: column; gap: 2px; }
+    .meta-label { font-size: 11px; color: #9ca3af; }
+    .meta-value { font-size: 14px; color: #374151; font-weight: 500; }
+    .meta-value.danger { color: #dc2626; font-weight: 700; }
+
+    /* 库存和基数信息辅助 */
+    .stock-row {
+      display: flex; align-items: center; gap: 8px; margin-top: 10px;
+    }
+    .stock-tag {
+      font-size: 12px; padding: 3px 8px; border-radius: 4px;
+      background: #f0fdf4; color: #16a34a; font-weight: 500;
+    }
+    .stock-tag.out { background: #fef2f2; color: #dc2626; }
+
+    /* ====== 服务信息区 ====== */
+    .service-card {
+      background: #fff; margin: 0 0 10px; padding: 16px;
+    }
+    .service-title { font-size: 15px; font-weight: 600; color: #1f2937; margin-bottom: 12px; }
+    .service-list { display: flex; flex-direction: column; gap: 10px; }
+    .service-item { display: flex; align-items: center; gap: 10px; }
+    .service-icon {
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .service-icon.quality { background: #fef2f2; color: #dc2626; }
+    .service-icon.delivery { background: #eff6ff; color: #2563eb; }
+    .service-icon.after-sale { background: #f0fdf4; color: #16a34a; }
+    .service-icon.support { background: #fffbeb; color: #d97706; }
+    .service-text { font-size: 13px; color: #6b7280; line-height: 1.5; }
+    .service-text b { color: #374151; font-weight: 600; }
+
+    /* ====== 商品详情区 ====== */
+    .detail-card {
+      background: #fff; margin: 0 0 10px; padding: 16px;
+    }
+    .detail-title-box {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+    }
+    .detail-title-bar {
+      width: 3px; height: 16px; background: #dc2626; border-radius: 2px;
+    }
+    .detail-title-text { font-size: 15px; font-weight: 600; color: #1f2937; }
+    .detail-content {
+      font-size: 14px; color: #374151; line-height: 1.8;
+    }
+    .detail-content img {
+      max-width: 100%; border-radius: 6px; margin: 8px 0;
+    }
+    .detail-content p { margin: 0 0 8px; }
+
+    /* ====== 底部固定栏 ====== */
+    .bottom-bar {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: #fff; padding: 10px 12px;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.06); z-index: 10;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    /* 购物车图标入口 */
+    .cart-entry {
+      position: relative; display: flex; align-items: center; justify-content: center;
+      width: 44px; height: 44px; flex-shrink: 0; cursor: pointer;
+      font-size: 26px; line-height: 1;
+    }
+    .cart-entry:active { transform: scale(0.9); }
+    .cart-entry-badge {
+      position: absolute; top: 0; right: 0;
+      min-width: 18px; height: 18px; padding: 0 5px;
+      background: #dc2626; color: #fff; font-size: 10px; font-weight: 700;
+      border-radius: 9px; display: flex; align-items: center; justify-content: center;
+      line-height: 1; border: 2px solid #fff;
+    }
+    /* 步进器 */
+    .stepper-group {
+      display: flex; align-items: center; border: 1px solid #e5e7eb;
+      border-radius: 6px; overflow: hidden; flex-shrink: 0;
+    }
+    .stepper-btn {
+      width: 36px; height: 36px; border: none; background: #f9fafb;
+      font-size: 18px; color: #374151; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; font-family: inherit;
+      transition: background 0.15s; user-select: none;
+    }
+    .stepper-btn:active { background: #e5e7eb; }
+    .stepper-btn.disabled { color: #d1d5db; pointer-events: none; background: #f9fafb; }
+    .stepper-value {
+      width: 48px; height: 36px; border: none; border-left: 1px solid #e5e7eb;
+      border-right: 1px solid #e5e7eb; text-align: center;
+      font-size: 15px; font-weight: 600; color: #1f2937;
+      background: #fff; outline: none; font-family: inherit;
+    }
+    .add-cart-btn {
+      flex: 1; height: 44px; border-radius: 22px; border: none;
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center;
+      max-width: 220px; margin-left: auto;
+    }
+    .add-cart-btn:active { transform: scale(0.97); opacity: 0.9; }
+    .add-cart-btn.disabled { background: #d1d5db; pointer-events: none; }
+
+    /* ====== 状态标签 ====== */
+    .status-tag {
+      display: inline-block; font-size: 12px; padding: 2px 8px;
+      border-radius: 4px; font-weight: 600; margin-left: 8px;
+    }
+    .status-tag.on { background: #f0fdf4; color: #16a34a; }
+    .status-tag.off { background: #fef2f2; color: #dc2626; }
+    .status-tag.low-stock { background: #fffbeb; color: #d97706; }
+
+    /* ====== 全屏图片预览遮罩 ====== */
+    .image-preview-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 999;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .image-preview-overlay .preview-emoji { font-size: 100px; }
+    .image-preview-close {
+      position: absolute; top: 16px; right: 16px;
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255,255,255,0.2); color: #fff; border: none;
+      font-size: 20px; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; font-family: inherit;
+    }
+
+    /* ====== 登录引导弹窗 ====== */
+    .login-guide { padding: 24px 20px 30px; text-align: center; }
+    .login-guide .icon { font-size: 48px; margin-bottom: 12px; }
+    .login-guide .hint { font-size: 14px; color: #6b7280; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <div id="prd-root" class="mobile-shell">
+
+    <!-- ==================== 顶部导航栏 ==================== -->
+    <div class="navbar">
+      <div class="navbar-left" @click="goBack">
+        <span class="navbar-back">←</span>
+      </div>
+      <div class="navbar-center">商品详情</div>
+    </div>
+
+    <!-- ==================== 可滚动内容区 ==================== -->
+    <div class="content-scroll">
+
+      <!-- ===== 1. 轮播图 ===== -->
+      <div class="carousel-wrap">
+        <van-swipe
+          :autoplay="carouselImages.length > 1 ? 3000 : 0"
+          indicator-color="transparent"
+          @change="onSwipeChange"
+          :loop="carouselImages.length > 1"
+          :show-indicators="false"
+        >
+          <van-swipe-item v-for="(img, idx) in carouselImages" :key="idx">
+            <div
+              class="carousel-slide"
+              :class="'slide-' + idx"
+              @click="previewImage(idx)"
+            >{{ img.emoji }}</div>
+          </van-swipe-item>
+        </van-swipe>
+        <!-- 自定义指示器 -->
+        <div class="custom-indicators" v-if="carouselImages.length > 1">
+          <span
+            v-for="(img, idx) in carouselImages" :key="idx"
+            class="custom-dot"
+            :class="{ active: idx === currentSlide }"
+          ></span>
+        </div>
+      </div>
+
+      <!-- ===== 2. 商品信息区 ===== -->
+      <div class="info-card">
+        <!-- 价格 + 单位 -->
+        <div class="price-row">
+          <template v-if="product.price !== null">
+            <span class="price-value">¥{{ product.price }}</span>
+            <span class="price-unit">/{{ product.unit }}</span>
+          </template>
+          <template v-else>
+            <span class="price-pending">价格待定</span>
+          </template>
+          <span class="status-tag" :class="product.status === '已上架' ? 'on' : 'off'">
+            {{ product.status }}
+          </span>
+        </div>
+
+        <!-- 商品名称 -->
+        <div class="product-name">{{ product.displayName }}</div>
+
+        <!-- 库存 / 基数 / 起订量 -->
+        <div class="meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">今日可用库存</span>
+            <span class="meta-value" :class="{ danger: product.todayAvailable <= 0 }">
+              {{ product.todayAvailable > 0 ? product.todayAvailable : '库存不足' }}
+            </span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">订购基数</span>
+            <span class="meta-value">{{ product.orderBase }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">起订量</span>
+            <span class="meta-value">{{ product.orderMin }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">最大订购</span>
+            <span class="meta-value">{{ product.orderMax }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 3. 服务信息区 ===== -->
+      <div class="service-card">
+        <div class="service-title">服务信息</div>
+        <div class="service-list">
+          <div class="service-item">
+            <div class="service-icon quality">✓</div>
+            <div class="service-text">
+              <b>品质保障</b> — 源头直采，严格品控，确保食材新鲜安全
+            </div>
+          </div>
+          <div class="service-item">
+            <div class="service-icon delivery">✓</div>
+            <div class="service-text">
+              <b>准时送达</b> — 按约定配送时间准时送达，冷链全程温控
+            </div>
+          </div>
+          <div class="service-item">
+            <div class="service-icon after-sale">✓</div>
+            <div class="service-text">
+              <b>售后无忧</b> — 质量问题支持退换，专属客服快速响应
+            </div>
+          </div>
+          <div class="service-item">
+            <div class="service-icon support">✓</div>
+            <div class="service-text">
+              <b>专属服务</b> — 专属业务员一对一服务，为您解决采购难题
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 4. 商品详情区 ===== -->
+      <div class="detail-card" v-if="product.detailHtml">
+        <div class="detail-title-box">
+          <span class="detail-title-bar"></span>
+          <span class="detail-title-text">商品详情</span>
+        </div>
+        <div class="detail-content" v-html="product.detailHtml"></div>
+      </div>
+
+    </div>
+
+    <!-- ==================== 底部固定栏 ==================== -->
+    <!-- 状态一：商品未加入购物车 → [购物车图标] + [加入购物车按钮] -->
+    <div class="bottom-bar" v-if="!isInCart">
+      <div class="cart-entry" @click="goCart">
+        🛒
+        <span class="cart-entry-badge" v-if="cartLines > 0">{{ cartLines > 99 ? '99+' : cartLines }}</span>
+      </div>
+      <button
+        class="add-cart-btn"
+        :class="{ disabled: !canAddCart }"
+        @click="addToCart"
+      >{{ addCartBtnText }}</button>
+    </div>
+
+    <!-- 状态二：商品已加入购物车 → [购物车图标] + [- N +] 步进器 -->
+    <div class="bottom-bar" v-else>
+      <div class="cart-entry" @click="goCart">
+        🛒
+        <span class="cart-entry-badge" v-if="cartLines > 0">{{ cartLines > 99 ? '99+' : cartLines }}</span>
+      </div>
+      <div style="flex:1;"></div>
+      <div class="stepper-group">
+        <button
+          class="stepper-btn"
+          :class="{ disabled: cartQty - product.orderBase < product.orderMin }"
+          @click="changeCartQty(-1)"
+        >−</button>
+        <input
+          class="stepper-value"
+          :value="cartQty"
+          type="number"
+          @input="onCartQtyInput"
+        />
+        <button
+          class="stepper-btn"
+          :class="{ disabled: cartQty + product.orderBase > cartMax }"
+          @click="changeCartQty(1)"
+        >+</button>
+      </div>
+    </div>
+
+    <!-- ==================== 全屏图片预览 ==================== -->
+    <div class="image-preview-overlay" v-if="previewVisible" @click="closePreview">
+      <button class="image-preview-close" @click="closePreview">✕</button>
+      <span class="preview-emoji">{{ carouselImages[previewIndex]?.emoji || '📦' }}</span>
+    </div>
+
+    <!-- ==================== 登录引导弹窗 ==================== -->
+    <van-popup v-model:show="loginPopup.visible" position="bottom" round>
+      <div class="login-guide">
+        <div class="icon">🔐</div>
+        <div style="font-size:16px;font-weight:600;color:#1f2937;margin-bottom:6px;">请先登录</div>
+        <div class="hint">登录后即可将商品加入购物车</div>
+        <van-button type="primary" block round @click="goLogin" style="margin-bottom:10px;">
+          去登录
+        </van-button>
+        <van-button block round plain @click="loginPopup.visible = false">
+          暂不登录
+        </van-button>
+      </div>
+    </van-popup>
+
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+  <script>
+    var { createApp, ref, reactive, computed } = Vue;
+
+    createApp({
+      setup() {
+        // ================================================================
+        // 登录态 & 价格组（模拟）
+        // ================================================================
+        var isLoggedIn = ref(false);        // 默认未登录，可切换
+        var currentCustomer = ref('');
+        var currentPriceGroup = ref('标准价');
+        var cartLines = ref(0);           // 购物车 SKU 种类数（角标用）
+
+        // 切换登录/未登录态（演示用）
+        function toggleLoginState() {
+          if (isLoggedIn.value) {
+            isLoggedIn.value = false;
+            currentCustomer.value = '';
+            currentPriceGroup.value = '标准价';
+            // 切换为默认价格
+            product.price = product.defaultPrice;
+            cartLines.value = 0;
+            isInCart.value = false;
+            vant.showToast('已切换为未登录状态');
+          } else {
+            isLoggedIn.value = true;
+            currentCustomer.value = '张记食堂';
+            currentPriceGroup.value = 'VIP价';
+            // 切换为VIP价格
+            product.price = product.vipPrice;
+            cartLines.value = 3;
+            vant.showToast('已登录：' + currentCustomer.value + '（' + currentPriceGroup.value + '）');
+          }
+        }
+
+        // ================================================================
+        // 商品数据（模拟）
+        // ================================================================
+        var product = reactive({
+          barcode: '6900001',
+          productName: '红富士苹果',
+          miniappName: '红富士苹果（精选）',
+          defaultPrice: '8.50',
+          vipPrice: '7.80',
+          price: '8.50',           // 当前价格（未登录=默认价，已登录=VIP价）
+          unit: 'kg',
+          todayAvailable: 470,
+          orderBase: 10,
+          orderMin: 10,
+          orderMax: 100,
+          status: '已上架',
+          detailHtml: ''  // 动态生成
+        });
+
+        // 轮播图数据（主图 + 轮播图合并）
+        var carouselImages = ref([
+          { emoji: '🍎', label: '主图' },
+          { emoji: '📦', label: '轮播图2' },
+          { emoji: '🌳', label: '轮播图3' },
+          { emoji: '🏭', label: '轮播图4' },
+        ]);
+
+        // 动态生成商品详情富文本
+        product.detailHtml = [
+          '<p style="text-align:center;font-weight:600;font-size:16px;color:#1f2937;">红富士苹果 — 产地直供</p>',
+          '<p>来自山东烟台优质产区，北纬37°黄金种植带，光照充足、昼夜温差大，造就红富士苹果独特的风味与脆甜口感。</p>',
+          '<p style="text-align:center;"><span style="display:inline-block;font-size:64px;background:#f3f4f6;border-radius:12px;padding:20px 40px;">🍎</span></p>',
+          '<p style="font-weight:600;color:#374151;">产品特点：</p>',
+          '<p>• 果形端正，色泽鲜艳，果面光洁</p>',
+          '<p>• 果肉细腻，汁多味甜，脆爽可口</p>',
+          '<p>• 单果重约200-250g，大小均匀</p>',
+          '<p>• 糖度高达14°-16°，酸甜比例恰到好处</p>',
+          '<br/>',
+          '<p style="font-weight:600;color:#374151;">储存建议：</p>',
+          '<p>• 0-4℃冷藏保存，可保鲜15-20天</p>',
+          '<p>• 常温阴凉通风处保存，建议7天内食用</p>',
+          '<p>• 避免与有异味的食品混放</p>',
+          '<br/>',
+          '<p style="font-weight:600;color:#374151;">配送说明：</p>',
+          '<p>• 冷链配送，全程温控0-4℃</p>',
+          '<p>• 按约定配送时间准时送达</p>',
+          '<p>• 到货后请及时验货，如有问题联系客服</p>',
+        ].join('\n');
+
+        // 计算属性：展示名称
+        var displayName = computed(function() {
+          return product.miniappName || product.productName;
+        });
+        product.displayName = computed(function() { return displayName.value; });
+
+        // ================================================================
+        // 图片预览
+        // ================================================================
+        var previewVisible = ref(false);
+        var previewIndex = ref(0);
+
+        function previewImage(idx) {
+          previewIndex.value = idx;
+          previewVisible.value = true;
+        }
+
+        function closePreview() {
+          previewVisible.value = false;
+        }
+
+        // ================================================================
+        // 轮播图
+        // ================================================================
+        var currentSlide = ref(0);
+
+        function onSwipeChange(index) {
+          currentSlide.value = index;
+        }
+
+        // ================================================================
+        // 购物车状态（当前商品是否在购物车中）
+        // ================================================================
+        var isInCart = ref(false);       // 当前商品是否已在购物车中
+        var cartQty = ref(product.orderBase);  // 当前商品在购物车中的数量
+
+        // 购物车中该商品的最大可购数量
+        var cartMax = computed(function() {
+          return Math.min(product.orderMax, product.todayAvailable > 0 ? product.todayAvailable : 0);
+        });
+
+        function changeCartQty(delta) {
+          var newVal = cartQty.value + delta * product.orderBase;
+          if (newVal < product.orderMin) {
+            // 低于下限 → 从购物车移除，回到"加入购物车"状态
+            removeFromCart();
+            return;
+          }
+          if (newVal > cartMax.value) return;
+          cartQty.value = newVal;
+          // 模拟调用更新接口
+          vant.showToast({ message: '已更新为 ×' + cartQty.value, duration: 800, position: 'top' });
+        }
+
+        function onCartQtyInput(e) {
+          var val = parseInt(e.target.value);
+          if (isNaN(val)) return;
+          if (val < product.orderMin) {
+            removeFromCart();
+            return;
+          }
+          if (val > cartMax.value) { val = cartMax.value; }
+          var remainder = val % product.orderBase;
+          if (remainder !== 0) {
+            val = val - remainder + (remainder >= product.orderBase / 2 ? product.orderBase : 0);
+          }
+          cartQty.value = Math.max(product.orderMin, Math.min(cartMax.value, val));
+        }
+
+        function removeFromCart() {
+          isInCart.value = false;
+          cartLines.value = Math.max(0, cartLines.value - 1);
+          cartQty.value = product.orderBase;
+          vant.showToast({ message: '已从购物车移除', duration: 1000 });
+        }
+
+        // ================================================================
+        // 加购按钮状态（未在购物车中时展示）
+        // ================================================================
+        var canAddCart = computed(function() {
+          return product.status === '已上架'
+            && product.price !== null
+            && product.todayAvailable > 0;
+        });
+
+        var addCartBtnText = computed(function() {
+          if (product.status !== '已上架') return '商品已下架';
+          if (product.price === null) return '价格待定';
+          if (product.todayAvailable <= 0) return '库存不足';
+          return '加入购物车';
+        });
+
+        // ================================================================
+        // 登录引导弹窗
+        // ================================================================
+        var loginPopup = reactive({ visible: false });
+
+        function goLogin() {
+          loginPopup.visible = false;
+          toggleLoginState(); // 模拟登录成功
+        }
+
+        // ================================================================
+        // 加购
+        // ================================================================
+        function addToCart() {
+          if (!isLoggedIn.value) {
+            loginPopup.visible = true;
+            return;
+          }
+          if (!canAddCart.value) return;
+
+          // 首次加购：数量 = 订购基数
+          cartQty.value = product.orderBase;
+          isInCart.value = true;
+          cartLines.value = Math.max(cartLines.value + 1, 1);
+
+          vant.showToast({
+            message: '已加入购物车 ×' + cartQty.value,
+            icon: 'success',
+            duration: 1500,
+          });
+        }
+
+        // ================================================================
+        // 导航操作
+        // ================================================================
+        function goBack() {
+          vant.showToast('返回上一页');
+        }
+
+        function goCart() {
+          if (cartLines.value > 0) {
+            vant.showToast('跳转购物车（共 ' + cartLines.value + ' 种商品）');
+          } else {
+            vant.showToast('购物车为空');
+          }
+        }
+
+        // ================================================================
+        // 长按标题栏切换登录态（演示用）
+        // ================================================================
+        function longPressToggle() {
+          // 在标题上长按3次切换
+        }
+        var toggleCount = 0;
+        function handleTitleClick() {
+          toggleCount++;
+          if (toggleCount >= 3) {
+            toggleCount = 0;
+            toggleLoginState();
+          }
+          setTimeout(function() { toggleCount = 0; }, 1000);
+        }
+
+        return {
+          isLoggedIn, currentCustomer, currentPriceGroup, cartLines,
+          product, carouselImages, currentSlide,
+          previewVisible, previewIndex, previewImage, closePreview,
+          onSwipeChange,
+          isInCart, cartQty, cartMax, changeCartQty, onCartQtyInput,
+          canAddCart, addCartBtnText,
+          loginPopup, addToCart, goLogin,
+          goBack, goCart,
+          toggleLoginState, handleTitleClick,
+        };
+      }
+    }).use(vant).mount('#prd-root');
+  </script>
+</body>
+</html>

@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品价格管理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 10px;
+        }
+        .query-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px 16px 12px 16px;
+            margin-bottom: 10px;
+        }
+        .data-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .toolbar-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .toolbar-left { display: flex; align-items: center; gap: 8px; }
+        .toolbar-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .biz-notice {
+            background: #ecf5ff;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-top: 16px;
+            font-size: 13px;
+            color: #606266;
+        }
+        .approval-warning {
+            background: #fef0f0;
+            border: 1px solid #fde2e2;
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: #e6a23c;
+        }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+
+        <!-- ==================== 主容器 ==================== -->
+        <div class="data-card">
+            <!-- Tab 切换 -->
+            <el-tabs v-model="activeTab" style="margin-bottom:4px;">
+                <el-tab-pane label="价格组" name="group"></el-tab-pane>
+                <el-tab-pane label="价格组明细" name="detail"></el-tab-pane>
+            </el-tabs>
+
+            <!-- ==================== TAB1: 价格组 ==================== -->
+            <template v-if="activeTab === 'group'">
+                <!-- 筛选栏 -->
+                <div class="query-card">
+                    <div class="toolbar-row" style="margin-bottom:10px;">
+                        <div class="toolbar-right">
+                            <span style="font-size:14px;color:#606266;">销售大区：</span>
+                            <el-select v-model="groupQuery.region" style="width:150px;" clearable placeholder="全部">
+                                <el-option v-for="r in regionOptions" :key="r" :label="r" :value="r"></el-option>
+                            </el-select>
+                            <span style="font-size:14px;color:#606266;">价格组名称：</span>
+                            <el-input v-model="groupQuery.name" style="width:180px;" placeholder="请输入" clearable @keyup.enter="doGroupSearch"></el-input>
+                            <el-button type="primary" @click="doGroupSearch">查询</el-button>
+                            <el-button @click="resetGroupSearch">重置</el-button>
+                        </div>
+                    </div>
+                    <div class="toolbar-row">
+                        <div class="toolbar-left">
+                            <el-button type="primary" @click="openGroupAdd">新增</el-button>
+                        </div>
+                        <span style="font-size:13px;color:#909399;">共 {{ groupTotal }} 条记录</span>
+                    </div>
+                </div>
+
+                <!-- 列表 -->
+                <el-table :data="groupPageData" stripe border style="width:100%;"
+                    :header-cell-style="{background:'#f5f7fa',color:'#606266',fontWeight:500}">
+                    <el-table-column prop="regionName" label="销售大区" width="120"></el-table-column>
+                    <el-table-column prop="groupCode" label="价格组编码" width="140"></el-table-column>
+                    <el-table-column prop="groupName" label="价格组名称" width="150"></el-table-column>
+                    <el-table-column prop="description" label="描述说明" min-width="200" show-overflow-tooltip></el-table-column>
+                    <el-table-column prop="updater" label="更新人" width="100"></el-table-column>
+                    <el-table-column prop="updateTime" label="更新时间" width="170"></el-table-column>
+                    <el-table-column label="操作" width="80" fixed="right" align="center">
+                        <template #default="scope">
+                            <el-button type="primary" link size="small" @click="openGroupEdit(scope.row)">编辑</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+
+                <div v-if="groupFilteredData.length === 0" style="text-align:center;padding:60px 0;color:#909399;">
+                    <div style="font-size:48px;margin-bottom:12px;">🏷️</div>
+                    <div style="font-size:14px;">暂无价格组数据</div>
+                </div>
+
+                <div v-if="groupFilteredData.length > 0" style="margin-top:16px;display:flex;justify-content:flex-end;">
+                    <el-pagination v-model:current-page="groupPageNum" v-model:page-size="groupPageSize"
+                        :page-sizes="[10, 20, 50]" :total="groupTotal" layout="total, sizes, prev, pager, next" background></el-pagination>
+                </div>
+            </template>
+
+            <!-- ==================== TAB2: 价格组明细 ==================== -->
+            <template v-if="activeTab === 'detail'">
+                <!-- 筛选栏 -->
+                <div class="query-card">
+                    <div class="toolbar-row" style="margin-bottom:10px;">
+                        <div class="toolbar-right">
+                            <span style="font-size:14px;color:#606266;">销售大区：</span>
+                            <el-select v-model="detailQuery.region" style="width:150px;" clearable placeholder="全部">
+                                <el-option v-for="r in regionOptions" :key="r" :label="r" :value="r"></el-option>
+                            </el-select>
+                            <span style="font-size:14px;color:#606266;">价格组名称：</span>
+                            <el-input v-model="detailQuery.groupName" style="width:160px;" placeholder="请输入" clearable @keyup.enter="doDetailSearch"></el-input>
+                            <span style="font-size:14px;color:#606266;">商品：</span>
+                            <el-input v-model="detailQuery.product" style="width:180px;" placeholder="条码/名称" clearable @keyup.enter="doDetailSearch"></el-input>
+                            <el-button type="primary" @click="doDetailSearch">查询</el-button>
+                            <el-button @click="resetDetailSearch">重置</el-button>
+                        </div>
+                    </div>
+                    <div class="toolbar-row">
+                        <div class="toolbar-left">
+                            <el-button @click="handleDetailExport">导出</el-button>
+                            <el-button @click="handleDetailImportDialog">导入</el-button>
+                            <el-button type="primary" @click="openDetailAdd">新增</el-button>
+                        </div>
+                        <span style="font-size:13px;color:#909399;">共 {{ detailTotal }} 条记录</span>
+                    </div>
+                </div>
+
+                <!-- 列表 -->
+                <el-table :data="detailPageData" stripe border style="width:100%;"
+                    :header-cell-style="{background:'#f5f7fa',color:'#606266',fontWeight:500}">
+                    <el-table-column prop="regionName" label="销售大区" width="110"></el-table-column>
+                    <el-table-column prop="groupCode" label="价格组编码" width="120"></el-table-column>
+                    <el-table-column prop="groupName" label="价格组名称" width="130"></el-table-column>
+                    <el-table-column prop="barcode" label="商品条码" width="140"></el-table-column>
+                    <el-table-column prop="productName" label="商品名称" width="130" show-overflow-tooltip></el-table-column>
+                    <el-table-column prop="price" label="售价(元)" width="110" align="right"></el-table-column>
+                    <el-table-column label="审批状态" width="100" align="center">
+                        <template #default="scope">
+                            <el-tag v-if="scope.row.approvalStatus === '审批中'" type="warning" size="small">审批中</el-tag>
+                            <el-tag v-else-if="scope.row.approvalStatus === '审批通过'" type="success" size="small">审批通过</el-tag>
+                            <el-tag v-else-if="scope.row.approvalStatus === '审批驳回'" type="danger" size="small">审批驳回</el-tag>
+                            <span v-else style="color:#c0c4cc;">-</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="updater" label="更新人" width="100"></el-table-column>
+                    <el-table-column prop="updateTime" label="更新时间" width="170"></el-table-column>
+                    <el-table-column label="操作" width="80" fixed="right" align="center">
+                        <template #default="scope">
+                            <el-button type="primary" link size="small" @click="openDetailEdit(scope.row)">编辑</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+
+                <div v-if="detailFilteredData.length === 0" style="text-align:center;padding:60px 0;color:#909399;">
+                    <div style="font-size:48px;margin-bottom:12px;">💰</div>
+                    <div style="font-size:14px;">暂无价格明细数据</div>
+                </div>
+
+                <div v-if="detailFilteredData.length > 0" style="margin-top:16px;display:flex;justify-content:flex-end;">
+                    <el-pagination v-model:current-page="detailPageNum" v-model:page-size="detailPageSize"
+                        :page-sizes="[10, 20, 50]" :total="detailTotal" layout="total, sizes, prev, pager, next" background></el-pagination>
+                </div>
+
+                <div class="biz-notice">
+                    <strong>💡 业务规则：</strong>
+                    价格变动比率 = |新售价 - 原售价| / 原售价 × 100%；
+                    变动比率 ≤ 阈值（默认30%）→ 直接生效；变动比率 > 阈值 → 生成待审批记录，审批完成后生效。
+                </div>
+            </template>
+        </div>
+
+        <!-- ==================== 价格组-新增弹窗 ==================== -->
+        <el-dialog v-model="groupAddDialog.visible" title="新增价格组" width="480px" :close-on-click-modal="false">
+            <el-form ref="groupAddFormRef" :model="groupAddForm" :rules="groupAddRules" label-width="100px">
+                <el-form-item label="销售大区" prop="regionName">
+                    <el-select v-model="groupAddForm.regionName" placeholder="请选择销售大区" style="width:100%;">
+                        <el-option v-for="r in regionOptions" :key="r" :label="r" :value="r"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="价格组编码" prop="groupCode">
+                    <el-input v-model="groupAddForm.groupCode" placeholder="请输入价格组编码" maxlength="60"></el-input>
+                </el-form-item>
+                <el-form-item label="价格组名称" prop="groupName">
+                    <el-input v-model="groupAddForm.groupName" placeholder="请输入价格组名称" maxlength="100"></el-input>
+                </el-form-item>
+                <el-form-item label="描述说明">
+                    <el-input v-model="groupAddForm.description" type="textarea" :rows="3" placeholder="可为空" maxlength="500"></el-input>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="groupAddDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitGroupAdd" :loading="groupAddDialog.submitting">保存</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 价格组-编辑弹窗 ==================== -->
+        <el-dialog v-model="groupEditDialog.visible" title="编辑价格组" width="480px" :close-on-click-modal="false">
+            <el-form ref="groupEditFormRef" :model="groupEditForm" :rules="groupEditRules" label-width="100px">
+                <el-form-item label="销售大区">
+                    <el-input :model-value="groupEditForm.regionName" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="价格组编码">
+                    <el-input :model-value="groupEditForm.groupCode" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="价格组名称" prop="groupName">
+                    <el-input v-model="groupEditForm.groupName" placeholder="请输入价格组名称" maxlength="100"></el-input>
+                </el-form-item>
+                <el-form-item label="描述说明">
+                    <el-input v-model="groupEditForm.description" type="textarea" :rows="3" placeholder="可为空" maxlength="500"></el-input>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="groupEditDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitGroupEdit" :loading="groupEditDialog.submitting">保存</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 价格组明细-新增弹窗 ==================== -->
+        <el-dialog v-model="detailAddDialog.visible" title="新增价格明细" width="500px" :close-on-click-modal="false">
+            <el-form ref="detailAddFormRef" :model="detailAddForm" :rules="detailAddRules" label-width="110px">
+                <el-form-item label="销售大区" prop="regionName">
+                    <el-select v-model="detailAddForm.regionName" placeholder="请选择销售大区" style="width:100%;" @change="onDetailAddRegionChange">
+                        <el-option v-for="r in regionOptions" :key="r" :label="r" :value="r"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="价格组名称" prop="groupCode">
+                    <el-select v-model="detailAddForm.groupCode" placeholder="请先选择销售大区" style="width:100%;" :disabled="!detailAddForm.regionName">
+                        <el-option v-for="g in availableAddGroups" :key="g.groupCode" :label="g.groupName" :value="g.groupCode"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="商品条码" prop="barcode">
+                    <el-input v-model="detailAddForm.barcode" placeholder="请输入商品条码，回车校验" @keyup.enter="validateBarcode"></el-input>
+                </el-form-item>
+                <el-form-item label="商品名称">
+                    <el-input :model-value="detailAddForm.productName" placeholder="条码校验通过后自动带出" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="售价" prop="price">
+                    <el-input v-model="detailAddForm.price" placeholder="请输入售价">
+                        <template #append>元</template>
+                    </el-input>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="detailAddDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitDetailAdd" :loading="detailAddDialog.submitting">保存</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 价格组明细-编辑弹窗 ==================== -->
+        <el-dialog v-model="detailEditDialog.visible" title="编辑价格明细" width="520px" :close-on-click-modal="false">
+            <el-form ref="detailEditFormRef" :model="detailEditForm" :rules="detailEditRules" label-width="110px">
+                <el-form-item label="销售大区">
+                    <el-input :model-value="detailEditForm.regionName" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="价格组名称">
+                    <el-input :model-value="detailEditForm.groupName" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="商品条码">
+                    <el-input :model-value="detailEditForm.barcode" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="商品名称">
+                    <el-input :model-value="detailEditForm.productName" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="售价" prop="price">
+                    <el-input v-model="detailEditForm.price" placeholder="请输入售价" @input="calcPriceChange">
+                        <template #append>元</template>
+                    </el-input>
+                    <div v-if="detailEditForm.changeRate !== null && detailEditForm.changeRate > 0" style="font-size:12px;margin-top:4px;"
+                        :style="{ color: detailEditForm.changeRate > 30 ? '#f56c6c' : '#67c23a' }">
+                        变动比率：{{ detailEditForm.changeRate }}%
+                        <span v-if="detailEditForm.changeRate > 30">（超过阈值30%，将生成待审批记录）</span>
+                        <span v-else>（未超过阈值，保存后直接生效）</span>
+                    </div>
+                </el-form-item>
+                <el-form-item label="变动原因" prop="reason">
+                    <el-input v-model="detailEditForm.reason" placeholder="必填，最多50字符" maxlength="50" show-word-limit></el-input>
+                </el-form-item>
+                <div v-if="detailEditForm.changeRate > 30" class="approval-warning">
+                    ⚠️ 价格变动比率 <b>{{ detailEditForm.changeRate }}%</b> 超过配置阈值 <b>30%</b>，保存后将生成待审批记录，审批完成后售价变更才生效。
+                </div>
+            </el-form>
+            <template #footer>
+                <el-button @click="detailEditDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitDetailEdit" :loading="detailEditDialog.submitting">保存</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 导入弹窗 ==================== -->
+        <el-dialog v-model="importDialog.visible" title="导入价格明细" width="520px" :close-on-click-modal="false">
+            <div style="margin-bottom:16px;">
+                <div style="font-size:13px;color:#606266;margin-bottom:8px;">
+                    📥 请按导出模板格式上传 Excel 文件，系统将按「销售大区 + 价格组编码 + 商品条码」逐行匹配：
+                </div>
+                <div style="font-size:12px;color:#909399;margin-bottom:4px;">
+                    ✅ <b>匹配到已有记录</b> → 更新售价（变动原因记录为"批量导入"）
+                </div>
+                <div style="font-size:12px;color:#909399;margin-bottom:12px;">
+                    🆕 <b>未匹配到记录</b> → 自动新增
+                </div>
+                <el-upload drag :auto-upload="false" :on-change="handleImportFileChange" :limit="1" accept=".xlsx,.xls">
+                    <div style="padding:20px;">
+                        <div style="font-size:36px;margin-bottom:8px;">📁</div>
+                        <div style="font-size:14px;color:#606266;">将 Excel 文件拖到此处，或<em style="color:#409eff;">点击上传</em></div>
+                        <div style="font-size:12px;color:#909399;margin-top:4px;">仅支持 .xlsx / .xls 格式</div>
+                    </div>
+                </el-upload>
+            </div>
+            <template #footer>
+                <el-button @click="importDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitImport" :loading="importDialog.submitting">开始导入</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 导入结果弹窗 ==================== -->
+        <el-dialog v-model="importResultDialog.visible" title="导入结果" width="440px">
+            <div style="text-align:center;padding:20px 0;">
+                <div style="font-size:16px;margin-bottom:8px;">
+                    新增 <span style="color:#409eff;font-weight:bold;">{{ importResultDialog.inserted }}</span> 条，
+                    更新 <span style="color:#67c23a;font-weight:bold;">{{ importResultDialog.updated }}</span> 条，
+                    失败 <span style="color:#f56c6c;font-weight:bold;">{{ importResultDialog.fail }}</span> 条
+                </div>
+                <div v-if="importResultDialog.errors.length > 0" style="text-align:left;margin-top:12px;">
+                    <div style="font-size:13px;color:#909399;margin-bottom:4px;">失败原因：</div>
+                    <div v-for="(e, i) in importResultDialog.errors" :key="i" style="font-size:12px;color:#f56c6c;line-height:1.8;">{{ e }}</div>
+                </div>
+            </div>
+            <template #footer>
+                <el-button type="primary" @click="importResultDialog.visible = false">知道了</el-button>
+            </template>
+        </el-dialog>
+
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+    <script>
+        var { createApp, ref, reactive, computed, watch, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                // ================================================================
+                // Tab 状态
+                // ================================================================
+                var activeTab = ref('group');
+
+                // ================================================================
+                // 下拉选项
+                // ================================================================
+                var regionOptions = ['海南区', '广深区', '华东区', '华中区', '西南区'];
+
+                // ================================================================
+                // Mock: 价格组数据
+                // ================================================================
+                var allGroupData = ref([
+                    { id: 1, regionName: '海南区', groupCode: 'PG_001', groupName: '标准价', description: '默认标准价格组，适用于普通客户', updater: '张三', updateTime: '2026-07-01 10:30:00' },
+                    { id: 2, regionName: '海南区', groupCode: 'PG_002', groupName: 'VIP价', description: 'VIP客户专属价格，享95折优惠', updater: '李四', updateTime: '2026-07-02 14:20:00' },
+                    { id: 3, regionName: '广深区', groupCode: 'PG_001', groupName: '标准价', description: '广深区标准价格组', updater: '王五', updateTime: '2026-07-01 09:00:00' },
+                    { id: 4, regionName: '广深区', groupCode: 'PG_002', groupName: '大客户价', description: '大客户专属价格组', updater: '赵六', updateTime: '2026-07-03 16:45:00' },
+                    { id: 5, regionName: '华东区', groupCode: 'PG_001', groupName: '标准价', description: '', updater: '张三', updateTime: '2026-06-28 11:10:00' },
+                ]);
+
+                // ================================================================
+                // Mock: 价格组明细数据
+                // ================================================================
+                var allDetailData = ref([
+                    { id: 1, regionName: '海南区', groupCode: 'PG_001', groupName: '标准价', barcode: '6901234567890', productName: '红富士苹果', price: '8.50', approvalStatus: '', updater: '张三', updateTime: '2026-07-01 10:30:00' },
+                    { id: 2, regionName: '海南区', groupCode: 'PG_002', groupName: 'VIP价', barcode: '6901234567890', productName: '红富士苹果', price: '7.80', approvalStatus: '', updater: '李四', updateTime: '2026-07-02 14:20:00' },
+                    { id: 3, regionName: '海南区', groupCode: 'PG_001', groupName: '标准价', barcode: '6901234567891', productName: '脐橙', price: '6.00', approvalStatus: '', updater: '张三', updateTime: '2026-07-01 10:30:00' },
+                    { id: 4, regionName: '海南区', groupCode: 'PG_002', groupName: 'VIP价', barcode: '6901234567891', productName: '脐橙', price: '5.50', approvalStatus: '审批中', updater: '李四', updateTime: '2026-07-04 09:00:00' },
+                    { id: 5, regionName: '广深区', groupCode: 'PG_001', groupName: '标准价', barcode: '6901234567892', productName: '五花肉', price: '25.00', approvalStatus: '', updater: '王五', updateTime: '2026-07-01 09:00:00' },
+                    { id: 6, regionName: '广深区', groupCode: 'PG_002', groupName: '大客户价', barcode: '6901234567892', productName: '五花肉', price: '22.00', approvalStatus: '', updater: '赵六', updateTime: '2026-07-03 16:45:00' },
+                    { id: 7, regionName: '华东区', groupCode: 'PG_001', groupName: '标准价', barcode: '6901234567894', productName: '蓝莓', price: '15.00', approvalStatus: '', updater: '张三', updateTime: '2026-06-28 11:10:00' },
+                    { id: 8, regionName: '华东区', groupCode: 'PG_001', groupName: '标准价', barcode: '6901234567895', productName: '菠菜', price: '4.00', approvalStatus: '', updater: '张三', updateTime: '2026-06-28 11:10:00' },
+                ]);
+
+                // 模拟商品资料库
+                var productBarcodeMap = {
+                    '6901234567890': '红富士苹果',
+                    '6901234567891': '脐橙',
+                    '6901234567892': '五花肉',
+                    '6901234567893': '排骨',
+                    '6901234567894': '蓝莓',
+                    '6901234567895': '菠菜',
+                    '6901234567896': '鸡腿',
+                    '6901234567897': '砂糖橘',
+                };
+
+                // ================================================================
+                // TAB1: 价格组 - 查询 & 分页
+                // ================================================================
+                var groupQuery = reactive({ region: '', name: '' });
+                var groupPageNum = ref(1);
+                var groupPageSize = ref(20);
+
+                var groupFilteredData = computed(function() {
+                    return allGroupData.value.filter(function(row) {
+                        if (groupQuery.region && row.regionName !== groupQuery.region) return false;
+                        if (groupQuery.name && row.groupName.toLowerCase().indexOf(groupQuery.name.toLowerCase()) === -1) return false;
+                        return true;
+                    });
+                });
+                var groupTotal = computed(function() { return groupFilteredData.value.length; });
+                var groupPageData = computed(function() {
+                    var start = (groupPageNum.value - 1) * groupPageSize.value;
+                    return groupFilteredData.value.slice(start, start + groupPageSize.value);
+                });
+                function doGroupSearch() { groupPageNum.value = 1; }
+                function resetGroupSearch() {
+                    groupQuery.region = '';
+                    groupQuery.name = '';
+                    groupPageNum.value = 1;
+                }
+
+                // ================================================================
+                // TAB1: 价格组 - 新增弹窗
+                // ================================================================
+                var groupAddFormRef = ref(null);
+                var groupAddDialog = reactive({ visible: false, submitting: false });
+                var groupAddForm = reactive({ regionName: '', groupCode: '', groupName: '', description: '' });
+                var groupAddRules = {
+                    regionName: [{ required: true, message: '请选择销售大区', trigger: 'change' }],
+                    groupCode: [{ required: true, message: '请输入价格组编码', trigger: 'blur' }],
+                    groupName: [{ required: true, message: '请输入价格组名称', trigger: 'blur' }],
+                };
+
+                function openGroupAdd() {
+                    groupAddForm.regionName = '';
+                    groupAddForm.groupCode = '';
+                    groupAddForm.groupName = '';
+                    groupAddForm.description = '';
+                    groupAddDialog.visible = true;
+                    nextTick(function() { if (groupAddFormRef.value) groupAddFormRef.value.clearValidate(); });
+                }
+
+                function submitGroupAdd() {
+                    groupAddFormRef.value && groupAddFormRef.value.validate(function(valid) {
+                        if (!valid) return;
+                        var exists = allGroupData.value.some(function(r) {
+                            return r.regionName === groupAddForm.regionName && r.groupCode === groupAddForm.groupCode;
+                        });
+                        if (exists) {
+                            ElementPlus.ElMessage.error('该销售大区下已存在相同价格组编码');
+                            return;
+                        }
+                        groupAddDialog.submitting = true;
+                        setTimeout(function() {
+                            allGroupData.value.unshift({
+                                id: Date.now(),
+                                regionName: groupAddForm.regionName,
+                                groupCode: groupAddForm.groupCode,
+                                groupName: groupAddForm.groupName,
+                                description: groupAddForm.description,
+                                updater: '管理员',
+                                updateTime: new Date().toISOString().replace('T', ' ').slice(0, 19),
+                            });
+                            groupAddDialog.submitting = false;
+                            groupAddDialog.visible = false;
+                            ElementPlus.ElMessage.success('价格组新增成功');
+                        }, 300);
+                    });
+                }
+
+                // ================================================================
+                // TAB1: 价格组 - 编辑弹窗
+                // ================================================================
+                var groupEditFormRef = ref(null);
+                var groupEditDialog = reactive({ visible: false, submitting: false });
+                var groupEditingId = ref(null);
+                var groupEditForm = reactive({ regionName: '', groupCode: '', groupName: '', description: '' });
+                var groupEditRules = {
+                    groupName: [{ required: true, message: '请输入价格组名称', trigger: 'blur' }],
+                };
+
+                function openGroupEdit(row) {
+                    groupEditingId.value = row.id;
+                    groupEditForm.regionName = row.regionName;
+                    groupEditForm.groupCode = row.groupCode;
+                    groupEditForm.groupName = row.groupName;
+                    groupEditForm.description = row.description;
+                    groupEditDialog.visible = true;
+                    nextTick(function() { if (groupEditFormRef.value) groupEditFormRef.value.clearValidate(); });
+                }
+
+                function submitGroupEdit() {
+                    groupEditFormRef.value && groupEditFormRef.value.validate(function(valid) {
+                        if (!valid) return;
+                        groupEditDialog.submitting = true;
+                        setTimeout(function() {
+                            var target = allGroupData.value.find(function(r) { return r.id === groupEditingId.value; });
+                            if (target) {
+                                target.groupName = groupEditForm.groupName;
+                                target.description = groupEditForm.description;
+                                target.updater = '管理员';
+                                target.updateTime = new Date().toISOString().replace('T', ' ').slice(0, 19);
+                            }
+                            groupEditDialog.submitting = false;
+                            groupEditDialog.visible = false;
+                            ElementPlus.ElMessage.success('价格组编辑成功');
+                        }, 300);
+                    });
+                }
+
+                // ================================================================
+                // TAB2: 价格组明细 - 查询 & 分页
+                // ================================================================
+                var detailQuery = reactive({ region: '', groupName: '', product: '' });
+                var detailPageNum = ref(1);
+                var detailPageSize = ref(20);
+
+                var detailFilteredData = computed(function() {
+                    return allDetailData.value.filter(function(row) {
+                        if (detailQuery.region && row.regionName !== detailQuery.region) return false;
+                        if (detailQuery.groupName && row.groupName.toLowerCase().indexOf(detailQuery.groupName.toLowerCase()) === -1) return false;
+                        if (detailQuery.product) {
+                            var kw = detailQuery.product.toLowerCase();
+                            if (row.barcode.indexOf(kw) === -1 && row.productName.toLowerCase().indexOf(kw) === -1) return false;
+                        }
+                        return true;
+                    });
+                });
+                var detailTotal = computed(function() { return detailFilteredData.value.length; });
+                var detailPageData = computed(function() {
+                    var start = (detailPageNum.value - 1) * detailPageSize.value;
+                    return detailFilteredData.value.slice(start, start + detailPageSize.value);
+                });
+                function doDetailSearch() { detailPageNum.value = 1; }
+                function resetDetailSearch() {
+                    detailQuery.region = '';
+                    detailQuery.groupName = '';
+                    detailQuery.product = '';
+                    detailPageNum.value = 1;
+                }
+
+                // ================================================================
+                // TAB2: 价格组明细 - 新增弹窗
+                // ================================================================
+                var detailAddFormRef = ref(null);
+                var detailAddDialog = reactive({ visible: false, submitting: false });
+                var detailAddForm = reactive({ regionName: '', groupCode: '', barcode: '', productName: '', price: '' });
+                var detailAddRules = {
+                    regionName: [{ required: true, message: '请选择销售大区', trigger: 'change' }],
+                    groupCode: [{ required: true, message: '请选择价格组名称', trigger: 'change' }],
+                    barcode: [{ required: true, message: '请输入商品条码', trigger: 'blur' }],
+                    price: [
+                        { required: true, message: '请输入售价', trigger: 'blur' },
+                        { pattern: /^\d+(\.\d{1,2})?$/, message: '最多两位小数', trigger: 'blur' },
+                        { validator: function(rule, value, callback) { if (parseFloat(value) <= 0) callback(new Error('售价必须大于0')); else callback(); }, trigger: 'blur' },
+                    ],
+                };
+
+                var availableAddGroups = computed(function() {
+                    if (!detailAddForm.regionName) return [];
+                    return allGroupData.value.filter(function(g) { return g.regionName === detailAddForm.regionName; });
+                });
+
+                function onDetailAddRegionChange() {
+                    detailAddForm.groupCode = '';
+                }
+
+                function validateBarcode() {
+                    if (!detailAddForm.barcode) { detailAddForm.productName = ''; return; }
+                    var name = productBarcodeMap[detailAddForm.barcode];
+                    if (name) {
+                        detailAddForm.productName = name;
+                        ElementPlus.ElMessage.success('商品条码校验通过');
+                    } else {
+                        detailAddForm.productName = '';
+                        ElementPlus.ElMessage.warning('该商品条码在商品资料中不存在，请检查');
+                    }
+                }
+
+                function openDetailAdd() {
+                    detailAddForm.regionName = '';
+                    detailAddForm.groupCode = '';
+                    detailAddForm.barcode = '';
+                    detailAddForm.productName = '';
+                    detailAddForm.price = '';
+                    detailAddDialog.visible = true;
+                    nextTick(function() { if (detailAddFormRef.value) detailAddFormRef.value.clearValidate(); });
+                }
+
+                function submitDetailAdd() {
+                    detailAddFormRef.value && detailAddFormRef.value.validate(function(valid) {
+                        if (!valid) return;
+                        if (!detailAddForm.productName) {
+                            ElementPlus.ElMessage.warning('请先校验商品条码');
+                            return;
+                        }
+                        var group = allGroupData.value.find(function(g) { return g.groupCode === detailAddForm.groupCode && g.regionName === detailAddForm.regionName; });
+                        var exists = allDetailData.value.some(function(r) {
+                            return r.regionName === detailAddForm.regionName && r.groupCode === detailAddForm.groupCode && r.barcode === detailAddForm.barcode;
+                        });
+                        if (exists) {
+                            ElementPlus.ElMessage.error('该价格组下已存在相同商品条码的价格明细');
+                            return;
+                        }
+                        detailAddDialog.submitting = true;
+                        setTimeout(function() {
+                            allDetailData.value.unshift({
+                                id: Date.now(),
+                                regionName: detailAddForm.regionName,
+                                groupCode: detailAddForm.groupCode,
+                                groupName: group ? group.groupName : '',
+                                barcode: detailAddForm.barcode,
+                                productName: detailAddForm.productName,
+                                price: parseFloat(detailAddForm.price).toFixed(2),
+                                approvalStatus: '',
+                                updater: '管理员',
+                                updateTime: new Date().toISOString().replace('T', ' ').slice(0, 19),
+                            });
+                            detailAddDialog.submitting = false;
+                            detailAddDialog.visible = false;
+                            ElementPlus.ElMessage.success('价格明细新增成功');
+                        }, 300);
+                    });
+                }
+
+                // ================================================================
+                // TAB2: 价格组明细 - 编辑弹窗
+                // ================================================================
+                var detailEditFormRef = ref(null);
+                var detailEditDialog = reactive({ visible: false, submitting: false });
+                var detailEditingId = ref(null);
+                var detailEditForm = reactive({
+                    regionName: '', groupName: '', barcode: '', productName: '',
+                    price: '', originalPrice: '', reason: '', changeRate: null,
+                });
+                var detailEditRules = {
+                    price: [
+                        { required: true, message: '请输入售价', trigger: 'blur' },
+                        { pattern: /^\d+(\.\d{1,2})?$/, message: '最多两位小数', trigger: 'blur' },
+                        { validator: function(rule, value, callback) { if (parseFloat(value) <= 0) callback(new Error('售价必须大于0')); else callback(); }, trigger: 'blur' },
+                    ],
+                    reason: [
+                        { required: true, message: '请输入变动原因', trigger: 'blur' },
+                        { max: 50, message: '最多50个字符', trigger: 'blur' },
+                    ],
+                };
+
+                function calcPriceChange() {
+                    var original = parseFloat(detailEditForm.originalPrice) || 0;
+                    var current = parseFloat(detailEditForm.price) || 0;
+                    if (original > 0 && current > 0) {
+                        detailEditForm.changeRate = Math.abs(current - original) / original * 100;
+                        detailEditForm.changeRate = Math.round(detailEditForm.changeRate * 100) / 100;
+                    } else {
+                        detailEditForm.changeRate = null;
+                    }
+                }
+
+                function openDetailEdit(row) {
+                    detailEditingId.value = row.id;
+                    detailEditForm.regionName = row.regionName;
+                    detailEditForm.groupName = row.groupName;
+                    detailEditForm.barcode = row.barcode;
+                    detailEditForm.productName = row.productName;
+                    detailEditForm.price = row.price;
+                    detailEditForm.originalPrice = row.price;
+                    detailEditForm.reason = '';
+                    detailEditForm.changeRate = null;
+                    detailEditDialog.visible = true;
+                    nextTick(function() { if (detailEditFormRef.value) detailEditFormRef.value.clearValidate(); });
+                }
+
+                function submitDetailEdit() {
+                    detailEditFormRef.value && detailEditFormRef.value.validate(function(valid) {
+                        if (!valid) return;
+                        detailEditDialog.submitting = true;
+                        setTimeout(function() {
+                            var target = allDetailData.value.find(function(r) { return r.id === detailEditingId.value; });
+                            if (target) {
+                                var rate = detailEditForm.changeRate || 0;
+                                if (rate > 30) {
+                                    target.approvalStatus = '审批中';
+                                    ElementPlus.ElMessage.warning('价格变动比率 ' + rate.toFixed(2) + '% 超过阈值30%，已生成待审批记录，审批完成后售价变更才生效。当前售价保持原值。');
+                                } else {
+                                    target.price = parseFloat(detailEditForm.price).toFixed(2);
+                                    target.approvalStatus = '';
+                                    ElementPlus.ElMessage.success('售价修改成功，已直接生效');
+                                }
+                                target.updater = '管理员';
+                                target.updateTime = new Date().toISOString().replace('T', ' ').slice(0, 19);
+                            }
+                            detailEditDialog.submitting = false;
+                            detailEditDialog.visible = false;
+                        }, 400);
+                    });
+                }
+
+                // ================================================================
+                // TAB2: 导出
+                // ================================================================
+                function handleDetailExport() {
+                    if (detailFilteredData.value.length === 0) {
+                        ElementPlus.ElMessage.warning('当前无数据可导出');
+                        return;
+                    }
+                    ElementPlus.ElMessage.success('导出成功！共导出 ' + detailFilteredData.value.length + ' 条价格明细记录');
+                }
+
+                // ================================================================
+                // TAB2: 导入
+                // ================================================================
+                var importDialog = reactive({ visible: false, submitting: false, file: null });
+                var importResultDialog = reactive({ visible: false, inserted: 0, updated: 0, fail: 0, errors: [] });
+
+                function handleDetailImportDialog() {
+                    importDialog.file = null;
+                    importDialog.visible = true;
+                }
+                function handleImportFileChange(file) { importDialog.file = file; }
+                function submitImport() {
+                    if (!importDialog.file) { ElementPlus.ElMessage.warning('请先选择要上传的 Excel 文件'); return; }
+                    importDialog.submitting = true;
+                    setTimeout(function() {
+                        importResultDialog.inserted = 1;
+                        importResultDialog.updated = 4;
+                        importResultDialog.fail = 0;
+                        importResultDialog.errors = [];
+                        importDialog.submitting = false;
+                        importDialog.visible = false;
+                        importResultDialog.visible = true;
+                    }, 800);
+                }
+
+                // ================================================================
+                // 分页监听
+                // ================================================================
+                watch([groupPageNum, groupPageSize], function() {});
+                watch([detailPageNum, detailPageSize], function() {});
+
+                return {
+                    activeTab, regionOptions,
+                    // 价格组
+                    groupQuery, groupPageNum, groupPageSize, groupFilteredData, groupTotal, groupPageData,
+                    doGroupSearch, resetGroupSearch,
+                    groupAddFormRef, groupAddDialog, groupAddForm, groupAddRules, openGroupAdd, submitGroupAdd,
+                    groupEditFormRef, groupEditDialog, groupEditForm, groupEditRules, openGroupEdit, submitGroupEdit,
+                    // 价格组明细
+                    detailQuery, detailPageNum, detailPageSize, detailFilteredData, detailTotal, detailPageData,
+                    doDetailSearch, resetDetailSearch,
+                    detailAddFormRef, detailAddDialog, detailAddForm, detailAddRules, availableAddGroups,
+                    onDetailAddRegionChange, validateBarcode, openDetailAdd, submitDetailAdd,
+                    detailEditFormRef, detailEditDialog, detailEditForm, detailEditRules,
+                    calcPriceChange, openDetailEdit, submitDetailEdit,
+                    handleDetailExport,
+                    // 导入
+                    importDialog, importResultDialog, handleDetailImportDialog, handleImportFileChange, submitImport,
+                };
+            }
+        }).use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+    </script>
+</body>
+</html>

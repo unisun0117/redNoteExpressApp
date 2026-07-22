@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>价格审批记录</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5; margin: 0; padding: 10px;
+        }
+        .query-card {
+            background: #fff; border-radius: 8px;
+            padding: 16px 16px 8px 16px; margin-bottom: 10px;
+        }
+        .data-card { background: #fff; border-radius: 8px; padding: 16px; }
+        .query-row {
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .price-up { color: #f56c6c; font-weight: 600; }
+        .price-down { color: #67c23a; font-weight: 600; }
+        .price-zero { color: #909399; }
+        .rate-over-threshold { font-weight: 700; }
+        .biz-notice {
+            background: #ecf5ff; border-radius: 8px;
+            padding: 12px 16px; margin-top: 16px;
+            font-size: 13px; color: #606266;
+        }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+
+        <!-- ==================== 查询区 ==================== -->
+        <div class="query-card">
+            <div class="query-row">
+                <span style="font-size:14px;color:#606266;">销售大区：</span>
+                <el-select v-model="query.region" style="width:150px;" clearable placeholder="请选择">
+                    <el-option v-for="r in regionOptions" :key="r" :label="r" :value="r"></el-option>
+                </el-select>
+                <span style="font-size:14px;color:#606266;">价格组：</span>
+                <el-select v-model="query.priceGroup" style="width:150px;" clearable placeholder="请选择价格组">
+                    <el-option v-for="g in priceGroupOptions" :key="g" :label="g" :value="g"></el-option>
+                </el-select>
+                <span style="font-size:14px;color:#606266;">商品信息：</span>
+                <el-input v-model="query.product" style="width:200px;" placeholder="请输入商品名称/编码" clearable @keyup.enter="doSearch"></el-input>
+                <span style="font-size:14px;color:#606266;">状态：</span>
+                <el-select v-model="query.status" style="width:130px;" clearable placeholder="请选择">
+                    <el-option label="待审批" value="待审批"></el-option>
+                    <el-option label="已通过" value="已通过"></el-option>
+                    <el-option label="已驳回" value="已驳回"></el-option>
+                </el-select>
+                <el-button type="primary" @click="doSearch">查询</el-button>
+                <el-button @click="resetSearch">重置</el-button>
+            </div>
+            <div class="query-row">
+                <span style="font-size:14px;color:#606266;">申请时间：</span>
+                <el-radio-group v-model="datePreset" size="small" @change="onDatePresetChange">
+                    <el-radio-button value="7d">近7天</el-radio-button>
+                    <el-radio-button value="30d">近30天</el-radio-button>
+                    <el-radio-button value="90d">近90天</el-radio-button>
+                    <el-radio-button value="custom">自定义</el-radio-button>
+                </el-radio-group>
+                <el-date-picker
+                    v-if="datePreset === 'custom'"
+                    v-model="query.dateRange"
+                    type="daterange"
+                    range-separator="至"
+                    start-placeholder="开始日期"
+                    end-placeholder="结束日期"
+                    format="YYYY-MM-DD"
+                    value-format="YYYY-MM-DD"
+                    size="small"
+                ></el-date-picker>
+            </div>
+        </div>
+
+        <!-- ==================== 列表区 ==================== -->
+        <div class="data-card">
+            <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;color:#909399;">共 {{ total }} 条记录</span>
+            </div>
+
+            <el-table
+                :data="pageData" stripe border style="width:100%;"
+                :header-cell-style="{background:'#f5f7fa',color:'#606266',fontWeight:500}"
+            >
+                <el-table-column label="序号" width="55" align="center">
+                    <template #default="scope">
+                        {{ (pageNum - 1) * pageSize + scope.$index + 1 }}
+                    </template>
+                </el-table-column>
+                <el-table-column prop="regionName" label="销售大区" width="100"></el-table-column>
+                <el-table-column prop="priceGroupName" label="价格组名称" width="110"></el-table-column>
+                <el-table-column prop="barcode" label="商品条码" width="140"></el-table-column>
+                <el-table-column prop="productName" label="商品名称" width="130" show-overflow-tooltip></el-table-column>
+                <el-table-column label="状态" width="85" align="center">
+                    <template #default="scope">
+                        <el-tag
+                            :type="scope.row.status === '待审批' ? 'warning' : scope.row.status === '已通过' ? 'success' : 'danger'"
+                            size="small"
+                        >{{ scope.row.status }}</el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column label="变更后价格" width="110" align="right">
+                    <template #default="scope">¥{{ scope.row.newPrice }}</template>
+                </el-table-column>
+                <el-table-column label="变更前价格" width="110" align="right">
+                    <template #default="scope">¥{{ scope.row.oldPrice }}</template>
+                </el-table-column>
+                <el-table-column label="价格差" width="95" align="right">
+                    <template #default="scope">
+                        <span :class="getPriceDiffClass(scope.row.priceDiff)">
+                            {{ formatPriceDiff(scope.row.priceDiff) }}
+                        </span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="价格变动比率" width="110" align="right">
+                    <template #default="scope">
+                        <span :class="[getPriceDiffClass(scope.row.priceDiff), scope.row.changeRate > 30 ? 'rate-over-threshold' : '']">
+                            {{ formatRate(scope.row.priceDiff, scope.row.oldPrice) }}
+                        </span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="reason" label="调整理由" min-width="160" show-overflow-tooltip></el-table-column>
+                <el-table-column prop="applicant" label="申请人" width="90"></el-table-column>
+                <el-table-column prop="applyTime" label="申请时间" width="170"></el-table-column>
+                <el-table-column label="审批人" width="90">
+                    <template #default="scope">{{ scope.row.approver || '-' }}</template>
+                </el-table-column>
+                <el-table-column label="审批时间" width="170">
+                    <template #default="scope">{{ scope.row.approvalTime || '-' }}</template>
+                </el-table-column>
+            </el-table>
+
+            <div v-if="filteredData.length === 0" style="text-align:center;padding:60px 0;color:#909399;">
+                <div style="font-size:48px;margin-bottom:12px;">📋</div>
+                <div style="font-size:14px;">{{ queryAny ? '未找到匹配的审批记录' : '暂无审批记录' }}</div>
+            </div>
+
+            <div v-if="filteredData.length > 0" style="margin-top:16px;display:flex;justify-content:flex-end;">
+                <el-pagination
+                    v-model:current-page="pageNum" v-model:page-size="pageSize"
+                    :page-sizes="[10, 20, 50]" :total="total"
+                    layout="total, sizes, prev, pager, next" background
+                ></el-pagination>
+            </div>
+
+            <div class="biz-notice">
+                <strong>💡 业务规则：</strong>
+                审批记录由价格管理模块编辑售价超阈值时自动生成，不可手动新增/编辑/删除；
+                价格差 = 变更后价格 - 变更前价格（<span class="price-up">红色+号</span>=涨价，<span class="price-down">绿色-号</span>=降价）；
+                价格变动比率超30%加粗标注；待审批记录的审批人/审批时间为空；
+                审批通过售价生效，审批驳回售价不变。
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+    <script>
+        var { createApp, ref, reactive, computed, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                // ================================================================
+                // 下拉选项
+                // ================================================================
+                var regionOptions = ['海南区', '广深区', '华东区', '华中区', '西南区'];
+                var priceGroupOptions = ['标准价', 'VIP价', '大客户价'];
+
+                // ================================================================
+                // 申请时间 - 默认近7天
+                // ================================================================
+                function getLast7Days() {
+                    var end = new Date();
+                    var start = new Date();
+                    start.setDate(start.getDate() - 6);
+                    var fmt = function(d) { return d.toISOString().slice(0, 10); };
+                    return [fmt(start), fmt(end)];
+                }
+                function getLastNDays(n) {
+                    var end = new Date();
+                    var start = new Date();
+                    start.setDate(start.getDate() - (n - 1));
+                    var fmt = function(d) { return d.toISOString().slice(0, 10); };
+                    return [fmt(start), fmt(end)];
+                }
+
+                var datePreset = ref('7d');
+
+                function onDatePresetChange(val) {
+                    if (val === '7d') { query.dateRange = getLastNDays(7); }
+                    else if (val === '30d') { query.dateRange = getLastNDays(30); }
+                    else if (val === '90d') { query.dateRange = getLastNDays(90); }
+                    // 'custom' - keep current value, user manually picks
+                }
+
+                function onDateCustomChange() {
+                    // User manually changed the date, switch to custom mode
+                }
+
+                // ================================================================
+                // Mock 数据
+                // ================================================================
+                var allData = ref([
+                    { id: 1, regionName: '海南区', priceGroupName: 'VIP价', barcode: '6901234567890', productName: '红富士苹果', status: '已通过', newPrice: '8.50', oldPrice: '7.80', priceDiff: '0.70', changeRate: 8.97, reason: '品质升级，成本上涨，调整售价', applicant: '张三', applyTime: '2026-07-06 09:30:00', approver: '李四', approvalTime: '2026-07-06 14:00:00' },
+                    { id: 2, regionName: '海南区', priceGroupName: '标准价', barcode: '6901234567891', productName: '脐橙', status: '待审批', newPrice: '7.00', oldPrice: '6.00', priceDiff: '1.00', changeRate: 16.67, reason: '市场行情上涨', applicant: '李四', applyTime: '2026-07-06 10:15:00', approver: '', approvalTime: '' },
+                    { id: 3, regionName: '广深区', priceGroupName: 'VIP价', barcode: '6901234567892', productName: '五花肉', status: '已驳回', newPrice: '20.00', oldPrice: '22.00', priceDiff: '-2.00', changeRate: 9.09, reason: '促销活动结束恢复原价', applicant: '王五', applyTime: '2026-07-05 14:20:00', approver: '张三', approvalTime: '2026-07-05 17:30:00' },
+                    { id: 4, regionName: '广深区', priceGroupName: '标准价', barcode: '6901234567893', productName: '排骨', status: '已通过', newPrice: '48.00', oldPrice: '45.00', priceDiff: '3.00', changeRate: 6.67, reason: '供应商调价', applicant: '赵六', applyTime: '2026-07-05 11:00:00', approver: '张三', approvalTime: '2026-07-05 16:00:00' },
+                    { id: 5, regionName: '华东区', priceGroupName: '大客户价', barcode: '6901234567894', productName: '蓝莓', status: '已通过', newPrice: '15.00', oldPrice: '13.50', priceDiff: '1.50', changeRate: 11.11, reason: '进口蓝莓成本增加', applicant: '张三', applyTime: '2026-07-04 16:45:00', approver: '李四', approvalTime: '2026-07-05 09:00:00' },
+                    { id: 6, regionName: '华中区', priceGroupName: '标准价', barcode: '6901234567895', productName: '菠菜', status: '待审批', newPrice: '3.50', oldPrice: '4.00', priceDiff: '-0.50', changeRate: 12.50, reason: '季节性降价促销', applicant: '李四', applyTime: '2026-07-04 09:10:00', approver: '', approvalTime: '' },
+                    { id: 7, regionName: '西南区', priceGroupName: 'VIP价', barcode: '6901234567896', productName: '鸡腿', status: '已通过', newPrice: '18.00', oldPrice: '16.00', priceDiff: '2.00', changeRate: 12.50, reason: '成本上涨，统一调价', applicant: '王五', applyTime: '2026-07-03 13:30:00', approver: '张三', approvalTime: '2026-07-04 10:00:00' },
+                    { id: 8, regionName: '海南区', priceGroupName: '标准价', barcode: '6901234567897', productName: '砂糖橘', status: '已驳回', newPrice: '4.00', oldPrice: '5.00', priceDiff: '-1.00', changeRate: 20.00, reason: '申请降价理由不充分', applicant: '赵六', applyTime: '2026-07-03 10:00:00', approver: '李四', approvalTime: '2026-07-03 15:30:00' },
+                    { id: 9, regionName: '海南区', priceGroupName: 'VIP价', barcode: '6901234567890', productName: '红富士苹果', status: '已通过', newPrice: '18.00', oldPrice: '8.50', priceDiff: '9.50', changeRate: 111.76, reason: '全国统一大幅调价，成本翻倍', applicant: '张三', applyTime: '2026-07-02 15:00:00', approver: '李四', approvalTime: '2026-07-03 08:30:00' },
+                    { id: 10, regionName: '华东区', priceGroupName: '标准价', barcode: '6901234567894', productName: '蓝莓', status: '待审批', newPrice: '19.00', oldPrice: '15.00', priceDiff: '4.00', changeRate: 26.67, reason: '促销活动调价，临时降价后恢复', applicant: '李四', applyTime: '2026-07-02 08:30:00', approver: '', approvalTime: '' },
+                ]);
+
+                // ================================================================
+                // 查询条件
+                // ================================================================
+                var defaultRange = getLast7Days();
+                var query = reactive({
+                    region: '',
+                    priceGroup: '',
+                    product: '',
+                    status: '',
+                    dateRange: [defaultRange[0], defaultRange[1]],
+                });
+                var pageNum = ref(1);
+                var pageSize = ref(20);
+
+                // ================================================================
+                // 筛选 & 分页
+                // ================================================================
+                var queryAny = computed(function() {
+                    return query.region || query.priceGroup || query.product || query.status;
+                });
+
+                var filteredData = computed(function() {
+                    return allData.value.filter(function(row) {
+                        if (query.region && row.regionName !== query.region) return false;
+                        if (query.priceGroup && row.priceGroupName !== query.priceGroup) return false;
+                        if (query.product) {
+                            var kw = query.product.toLowerCase();
+                            if (row.barcode.indexOf(kw) === -1 && row.productName.toLowerCase().indexOf(kw) === -1) return false;
+                        }
+                        if (query.status && row.status !== query.status) return false;
+                        if (query.dateRange && query.dateRange.length === 2) {
+                            var rowDate = row.applyTime.slice(0, 10);
+                            if (rowDate < query.dateRange[0] || rowDate > query.dateRange[1]) return false;
+                        }
+                        return true;
+                    }).sort(function(a, b) {
+                        return b.applyTime.localeCompare(a.applyTime);
+                    });
+                });
+
+                var total = computed(function() { return filteredData.value.length; });
+
+                var pageData = computed(function() {
+                    var start = (pageNum.value - 1) * pageSize.value;
+                    return filteredData.value.slice(start, start + pageSize.value);
+                });
+
+                function doSearch() { pageNum.value = 1; }
+
+                function resetSearch() {
+                    query.region = '';
+                    query.priceGroup = '';
+                    query.product = '';
+                    query.status = '';
+                    var d = getLast7Days();
+                    query.dateRange = [d[0], d[1]];
+                    datePreset.value = '7d';
+                    pageNum.value = 1;
+                }
+
+                // ================================================================
+                // 价格差展示
+                // ================================================================
+                function getPriceDiffClass(diff) {
+                    var val = parseFloat(diff);
+                    if (val > 0) return 'price-up';
+                    if (val < 0) return 'price-down';
+                    return 'price-zero';
+                }
+
+                function formatPriceDiff(diff) {
+                    var val = parseFloat(diff);
+                    if (val > 0) return '+' + val.toFixed(2);
+                    if (val < 0) return val.toFixed(2);
+                    return '0.00';
+                }
+
+                function formatRate(diff, oldPrice) {
+                    var d = parseFloat(diff);
+                    var o = parseFloat(oldPrice);
+                    if (!o || o === 0) return '—';
+                    var rate = Math.abs(d) / o * 100;
+                    var sign = d > 0 ? '+' : d < 0 ? '-' : '';
+                    return sign + rate.toFixed(2) + '%';
+                }
+
+                return {
+                    regionOptions, priceGroupOptions,
+                    datePreset, onDatePresetChange, onDateCustomChange,
+                    query, queryAny, pageNum, pageSize, total, filteredData, pageData,
+                    doSearch, resetSearch,
+                    getPriceDiffClass, formatPriceDiff, formatRate,
+                };
+            }
+        }).use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+    </script>
+</body>
+</html>

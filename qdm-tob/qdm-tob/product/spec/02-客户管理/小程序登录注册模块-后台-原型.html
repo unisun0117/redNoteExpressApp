@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户账号管理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 10px;
+        }
+        .query-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+            padding-bottom: 0px;
+            margin-bottom: 10px;
+        }
+        .data-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .toolbar-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+        <!-- ========== 查询区 ========== -->
+        <div class="query-card">
+            <el-form :model="search" inline>
+                <el-form-item label="姓名/手机号">
+                    <el-input v-model="search.keyword" placeholder="姓名或手机号" clearable style="width:200px;"></el-input>
+                </el-form-item>
+                <el-form-item label="注册来源">
+                    <el-select v-model="search.source" placeholder="全部" clearable style="width:130px;">
+                        <el-option label="小程序" value="小程序"></el-option>
+                        <el-option label="后台" value="后台"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="账号状态">
+                    <el-select v-model="search.status" placeholder="全部" clearable style="width:120px;">
+                        <el-option label="正常" value="正常"></el-option>
+                        <el-option label="已禁用" value="已禁用"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" @click="doSearch">查询</el-button>
+                    <el-button @click="resetSearch">重置</el-button>
+                </el-form-item>
+            </el-form>
+        </div>
+
+        <!-- ========== 操作&数据区 ========== -->
+        <div class="data-card">
+            <div class="toolbar-row">
+                <el-button type="primary" @click="openAdd">新增客户</el-button>
+                <span style="font-size:13px;color:#909399;">共 {{ total }} 条记录</span>
+            </div>
+
+            <el-table
+                :data="tableData"
+                stripe
+                v-loading="loading"
+                style="width:100%;"
+                :header-cell-style="{background:'#f5f7fa', color:'#606266', fontWeight:500}"
+                @selection-change="handleSelectionChange"
+            >
+                <el-table-column type="selection" width="50"></el-table-column>
+                <el-table-column prop="customerId" label="客户ID" width="120" show-overflow-tooltip></el-table-column>
+                <el-table-column prop="name" label="姓名" width="80"></el-table-column>
+                <el-table-column prop="phone" label="手机号" width="110"></el-table-column>
+                <el-table-column label="注册来源" width="100" align="center">
+                    <template #default="scope">
+                        <el-tag :type="scope.row.source === '后台' ? 'info' : ''" size="small">{{ scope.row.source }}</el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column label="已绑定客户" width="100" align="center">
+                    <template #default="scope">
+                        <span v-if="scope.row.boundCount > 0" style="color:#409eff;cursor:pointer;" @click="viewBoundCustomers(scope.row)">{{ scope.row.boundCount }} 家</span>
+                        <span v-else style="color:#c0c4cc;">0</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="微信绑定" width="100" align="center">
+                    <template #default="scope">
+                        <el-tag :type="scope.row.wechatOpenid ? 'success' : 'info'" size="small">{{ scope.row.wechatOpenid ? '已绑定' : '未绑定' }}</el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="wechatNickname" label="微信昵称" width="100" show-overflow-tooltip></el-table-column>
+                <el-table-column label="账号状态" width="100" align="center">
+                    <template #default="scope">
+                        <el-tag :type="scope.row.status === '正常' ? 'success' : 'danger'" size="small">{{ scope.row.status }}</el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="createTime" label="注册时间" min-width="150"></el-table-column>
+                <el-table-column prop="lastLoginTime" label="最近登录" min-width="150"></el-table-column>
+                <el-table-column label="操作" width="200" fixed="right">
+                    <template #default="scope">
+                        <el-button type="primary" link @click="openEdit(scope.row)">编辑</el-button>
+                        <el-button
+                            :type="scope.row.status === '正常' ? 'warning' : 'success'"
+                            link
+                            @click="toggleStatus(scope.row)"
+                        >{{ scope.row.status === '正常' ? '禁用' : '启用' }}</el-button>
+                        <el-button type="danger" link @click="confirmDelete(scope.row)">删除</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+
+            <div style="margin-top:16px;display:flex;justify-content:flex-start;">
+                <el-pagination
+                    v-model:current-page="pageNum"
+                    v-model:page-size="pageSize"
+                    :page-sizes="[10, 20, 50]"
+                    :total="total"
+                    layout="total, sizes, prev, pager, next"
+                    background
+                ></el-pagination>
+            </div>
+        </div>
+
+        <!-- ========== 新增/编辑弹窗 ========== -->
+        <el-dialog
+            v-model="dialog.visible"
+            :title="dialog.isEdit ? '编辑客户' : '新增客户'"
+            width="460px"
+            :close-on-click-modal="false"
+            @close="resetForm"
+        >
+            <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+                <el-form-item label="姓名" prop="name">
+                    <el-input v-model="form.name" placeholder="请输入姓名" maxlength="50"></el-input>
+                </el-form-item>
+                <el-form-item label="手机号" prop="phone">
+                    <el-input v-model="form.phone" :disabled="dialog.isEdit" placeholder="请输入11位手机号" maxlength="11"></el-input>
+                </el-form-item>
+                <el-form-item v-if="!dialog.isEdit" label="">
+                    <span style="font-size:12px;color:#909399;">后台新增免短信验证码，wechat_openid=NULL，注册来源="后台"</span>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="dialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitForm">确定</el-button>
+            </template>
+        </el-dialog>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+    <script>
+        const { createApp, ref, reactive, nextTick, watch } = Vue;
+
+        createApp({
+            setup() {
+                const loading = ref(false);
+                const pageNum = ref(1);
+                const pageSize = ref(20);
+                const total = ref(0);
+                const tableData = ref([]);
+                const selectedRows = ref([]);
+                const formRef = ref(null);
+
+                const search = reactive({ keyword: '', source: '', status: '' });
+                const dialog = reactive({ visible: false, isEdit: false });
+                const form = reactive({ id: null, name: '', phone: '' });
+
+                const rules = {
+                    name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+                    phone: [
+                        { required: true, message: '请输入手机号', trigger: 'blur' },
+                        { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
+                    ],
+                };
+
+                const allData = [
+                    { id: 1, customerId: 'C001', name: '陈经理', phone: '138****1234', source: '小程序', boundCount: 3, wechatOpenid: 'oxxxx001', wechatNickname: '陈***', status: '正常', createTime: '2026-06-20 09:15:00', lastLoginTime: '2026-07-01 08:30:00' },
+                    { id: 2, customerId: 'C002', name: '林采购', phone: '139****5678', source: '小程序', boundCount: 1, wechatOpenid: 'oxxxx002', wechatNickname: 'Lin***', status: '正常', createTime: '2026-06-22 14:20:00', lastLoginTime: '2026-06-30 10:15:00' },
+                    { id: 3, customerId: 'C003', name: '王店长', phone: '136****9012', source: '后台', boundCount: 0, wechatOpenid: '', wechatNickname: '', status: '正常', createTime: '2026-06-25 11:00:00', lastLoginTime: '-' },
+                    { id: 4, customerId: 'C004', name: '刘总', phone: '137****3456', source: '小程序', boundCount: 2, wechatOpenid: 'oxxxx003', wechatNickname: '刘总', status: '已禁用', createTime: '2026-06-18 16:40:00', lastLoginTime: '2026-06-20 12:00:00' },
+                    { id: 5, customerId: 'C005', name: '周主任', phone: '135****7890', source: '后台', boundCount: 0, wechatOpenid: '', wechatNickname: '', status: '正常', createTime: '2026-06-28 10:30:00', lastLoginTime: '-' },
+                ];
+
+                const loadData = function() {
+                    loading.value = true;
+                    setTimeout(function() {
+                        var filtered = allData.slice();
+                        if (search.keyword) {
+                            var kw = search.keyword.toLowerCase();
+                            filtered = filtered.filter(function(i) { return i.name.toLowerCase().indexOf(kw) > -1 || i.phone.indexOf(kw) > -1; });
+                        }
+                        if (search.source) filtered = filtered.filter(function(i) { return i.source === search.source; });
+                        if (search.status) filtered = filtered.filter(function(i) { return i.status === search.status; });
+                        total.value = filtered.length;
+                        var start = (pageNum.value - 1) * pageSize.value;
+                        tableData.value = filtered.slice(start, start + pageSize.value);
+                        loading.value = false;
+                    }, 300);
+                };
+
+                const doSearch = function() { pageNum.value = 1; loadData(); };
+                const resetSearch = function() { search.keyword = ''; search.source = ''; search.status = ''; pageNum.value = 1; loadData(); };
+                const handleSelectionChange = function(rows) { selectedRows.value = rows; };
+
+                const openAdd = function() {
+                    dialog.isEdit = false;
+                    resetForm();
+                    dialog.visible = true;
+                };
+
+                const openEdit = function(row) {
+                    dialog.isEdit = true;
+                    form.id = row.id;
+                    form.name = row.name;
+                    form.phone = row.phone;
+                    dialog.visible = true;
+                    nextTick(function() { formRef.value && formRef.value.clearValidate(); });
+                };
+
+                const resetForm = function() {
+                    form.id = null; form.name = ''; form.phone = '';
+                    nextTick(function() { formRef.value && formRef.value.clearValidate(); });
+                };
+
+                const submitForm = function() {
+                    formRef.value && formRef.value.validate(function(valid) {
+                        if (!valid) return;
+                        if (dialog.isEdit) {
+                            var item = allData.find(function(i) { return i.id === form.id; });
+                            if (item) { item.name = form.name; }
+                            ElementPlus.ElMessage.success('客户信息更新成功');
+                        } else {
+                            var exist = allData.some(function(i) { return i.phone === form.phone; });
+                            if (exist) { ElementPlus.ElMessage.warning('该手机号已被注册'); return; }
+                            var now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+                            allData.unshift({
+                                id: Date.now(), customerId: 'C' + String(Date.now()).slice(-6), name: form.name,
+                                phone: form.phone.slice(0, 3) + '****' + form.phone.slice(7),
+                                source: '后台', boundCount: 0, wechatOpenid: '', wechatNickname: '', status: '正常',
+                                createTime: now, lastLoginTime: '-',
+                            });
+                            ElementPlus.ElMessage.success('后台新增成功（wechat_openid=NULL，注册来源="后台"）');
+                        }
+                        dialog.visible = false;
+                        loadData();
+                    });
+                };
+
+                const toggleStatus = function(row) {
+                    var newStatus = row.status === '正常' ? '已禁用' : '正常';
+                    var action = newStatus === '已禁用' ? '禁用' : '启用';
+                    ElementPlus.ElMessageBox.confirm('确定' + action + '该账号？', '操作确认', {
+                        confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning',
+                    }).then(function() {
+                        row.status = newStatus;
+                        ElementPlus.ElMessage.success('账号已' + action);
+                        loadData();
+                    }).catch(function() {});
+                };
+
+                const viewBoundCustomers = function(row) {
+                    if (row.boundCount > 0) {
+                        ElementPlus.ElMessage.info('「' + row.name + '」已绑定 ' + row.boundCount + ' 家公司客户资料（动态查询 address_member_binding 表）');
+                    }
+                };
+
+                const confirmDelete = function(row) {
+                    ElementPlus.ElMessageBox.confirm('确定硬删除客户「' + row.name + '」？数据物理删除不可恢复，手机号将被释放。', '删除确认', {
+                        confirmButtonText: '确定删除', cancelButtonText: '取消', type: 'warning',
+                    }).then(function() {
+                        var idx = allData.findIndex(function(i) { return i.id === row.id; });
+                        if (idx > -1) allData.splice(idx, 1);
+                        ElementPlus.ElMessage.success('删除成功（硬删除，手机号已释放）');
+                        loadData();
+                    }).catch(function() {});
+                };
+
+                loadData();
+                watch([pageNum, pageSize], function() { loadData(); });
+
+                return {
+                    search, loading, pageNum, pageSize, total, tableData, selectedRows,
+                    dialog, form, formRef, rules,
+                    doSearch, resetSearch, handleSelectionChange,
+                    openAdd, openEdit, resetForm, submitForm, toggleStatus, confirmDelete, viewBoundCustomers,
+                };
+            }
+        }).use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+    </script>
+</body>
+</html>

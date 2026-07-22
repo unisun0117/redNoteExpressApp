@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>菜单管理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 10px;
+        }
+        .main-layout { display: flex; gap: 10px; height: calc(100vh - 20px); }
+
+        /* 左侧面板 */
+        .left-panel {
+            width: 340px; min-width: 340px;
+            background: #fff; border-radius: 8px; padding: 10px;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .left-toolbar {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 8px; gap: 8px;
+        }
+        .tree-container {
+            flex: 1; overflow-y: auto;
+            border: 1px solid #ebeef5; border-radius: 6px; padding: 8px;
+            background: #fafafa;
+        }
+        .tree-empty {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; color: #909399; font-size: 14px;
+        }
+        .tree-node-row {
+            display: flex; align-items: center; width: 100%;
+        }
+        .tree-node-row .node-icon { margin-right: 4px; font-size: 14px; }
+        .tree-node-row .node-name { flex: 1; font-size: 14px; }
+        .tree-node-row .node-actions { display: none; margin-left: 4px; white-space: nowrap; }
+        .tree-node-row:hover .node-actions { display: inline-flex; align-items: center; }
+
+        /* 右侧面板 */
+        .right-panel {
+            flex: 1; background: #fff; border-radius: 8px; padding: 10px;
+            overflow-y: auto; min-width: 0;
+        }
+        .right-empty {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; color: #909399;
+        }
+        .right-empty .empty-icon { font-size: 56px; margin-bottom: 12px; }
+        .right-empty .empty-text { font-size: 14px; }
+
+        .section-title {
+            font-size: 15px; font-weight: 600; color: #303133;
+            margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #ebeef5;
+        }
+
+        /* 按钮内嵌表单 */
+        .btn-inline-form {
+            background: #fafafa; border: 1px solid #ebeef5; border-radius: 6px;
+            padding: 12px; margin-top: 10px;
+        }
+
+        /* 权限组标签 */
+        .perm-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+        <div class="main-layout">
+            <!-- ========== 左侧面板 ========== -->
+            <div class="left-panel">
+                <div class="left-toolbar">
+                    <el-select v-model="activeGroup" style="width:130px;" @change="onGroupChange">
+                        <el-option label="后台菜单" value="WEB"></el-option>
+                        <el-option label="企微菜单" value="WECOM"></el-option>
+                    </el-select>
+                    <el-button type="primary" size="small" @click="openMenuDialog(null)">新增菜单</el-button>
+                </div>
+                <div class="tree-container">
+                    <div v-if="treeData.length === 0" class="tree-empty">
+                        <div style="font-size:48px; margin-bottom:8px;">📁</div>
+                        <div>暂无菜单数据</div>
+                        <div style="font-size:12px; margin-top:4px;">点击"新增菜单"创建第一条</div>
+                    </div>
+                    <el-tree
+                        v-else
+                        ref="treeRef"
+                        :data="treeData"
+                        node-key="id"
+                        default-expand-all
+                        :expand-on-click-node="false"
+                        :props="{ children: 'children', label: 'name' }"
+                        highlight-current
+                        @node-click="onNodeClick"
+                    >
+                        <template #default="{ node, data }">
+                            <span class="tree-node-row">
+                                <span class="node-icon">{{ data.type === 'MENU' ? '📁' : '📄' }}</span>
+                                <span class="node-name" :style="{ color: data.status === 'INACTIVE' ? '#c0c4cc' : '#303133', fontWeight: data.type === 'MENU' ? '600' : '400' }">{{ data.name }}</span>
+                                <span class="node-actions">
+                                    <el-button
+                                        v-if="data.type === 'MENU'"
+                                        type="primary" link size="small"
+                                        @click.stop="openPageDialog(null, data)"
+                                    >+页面</el-button>
+                                    <el-button
+                                        type="warning" link size="small"
+                                        @click.stop="data.type === 'MENU' ? openMenuDialog(data) : openPageDialog(data)"
+                                    >编辑</el-button>
+                                </span>
+                            </span>
+                        </template>
+                    </el-tree>
+                </div>
+            </div>
+
+            <!-- ========== 右侧面板 ========== -->
+            <div class="right-panel">
+                <!-- 未选中页面 -->
+                <div v-if="!selectedPage" class="right-empty">
+                    <div class="empty-icon">📋</div>
+                    <div class="empty-text">请在左侧菜单树中选择一个页面</div>
+                </div>
+
+                <!-- 选中页面：展示按钮列表 -->
+                <template v-if="selectedPage">
+                    <div class="section-title">
+                        <span>{{ selectedPage.name }} — 按钮列表</span>
+                        <span style="font-size:12px; color:#909399; font-weight:400; margin-left:8px;">
+                            所属菜单：{{ getParentMenuName(selectedPage) }}
+                        </span>
+                    </div>
+
+                    <div style="margin-bottom:10px;">
+                        <el-button type="success" size="small" @click="openButtonDialog(null)">+ 新增按钮</el-button>
+                    </div>
+
+                    <el-table
+                        :data="buttonList"
+                        stripe
+                        style="width:100%;"
+                        :header-cell-style="{background:'#f5f7fa', color:'#606266', fontWeight:500}"
+                    >
+                        <el-table-column prop="code" label="按钮编码" width="140"></el-table-column>
+                        <el-table-column prop="name" label="按钮名称" width="120"></el-table-column>
+                        <el-table-column label="权限组" min-width="180">
+                            <template #default="scope">
+                                <div class="perm-tags">
+                                    <el-tag
+                                        v-for="pg in scope.row.permissionGroups"
+                                        :key="pg"
+                                        size="small"
+                                    >{{ getPermName(pg) }}</el-tag>
+                                    <span v-if="!scope.row.permissionGroups || scope.row.permissionGroups.length === 0" style="color:#909399;">-</span>
+                                </div>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="状态" width="80" align="center">
+                            <template #default="scope">
+                                <el-tag
+                                    :type="scope.row.status === 'ACTIVE' ? 'success' : 'info'"
+                                    size="small"
+                                >{{ scope.row.status === 'ACTIVE' ? '启用' : '禁用' }}</el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="操作" width="130" fixed="right">
+                            <template #default="scope">
+                                <el-button type="primary" link size="small" @click="openButtonDialog(scope.row)">编辑</el-button>
+                                <el-button type="danger" link size="small" @click="confirmDelete(scope.row)">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+
+                    <div v-if="buttonList.length === 0" style="text-align:center; padding:40px 0; color:#909399;">
+                        <div style="font-size:32px; margin-bottom:8px;">🔘</div>
+                        <div style="font-size:13px;">暂无按钮，点击"新增按钮"添加</div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- ==================== 菜单弹窗 ==================== -->
+        <el-dialog
+            v-model="menuDialog.visible"
+            :title="menuDialog.isEdit ? '编辑菜单' : '新增菜单'"
+            width="500px"
+            :close-on-click-modal="false"
+            @close="menuDialogClose"
+        >
+            <el-form ref="menuFormRef" :model="menuForm" :rules="menuRules" label-width="90px">
+                <el-form-item label="菜单编码" prop="code">
+                    <el-input v-model="menuForm.code" placeholder="请输入菜单编码" maxlength="60" :disabled="menuDialog.isEdit"></el-input>
+                    <div style="font-size:12px; color:#909399; margin-top:4px;">仅允许字母、数字、下划线，菜单级别唯一，创建后不可修改</div>
+                </el-form-item>
+                <el-form-item label="菜单名称" prop="name">
+                    <el-input v-model="menuForm.name" placeholder="请输入菜单名称" maxlength="60"></el-input>
+                </el-form-item>
+                <el-form-item label="顺序" prop="order">
+                    <el-input-number v-model="menuForm.order" :min="0" :max="9999"></el-input-number>
+                    <span style="font-size:12px; color:#909399; margin-left:8px;">整数，越小越靠前</span>
+                </el-form-item>
+                <el-form-item label="状态">
+                    <el-radio-group v-model="menuForm.status">
+                        <el-radio value="ACTIVE">启用</el-radio>
+                        <el-radio value="INACTIVE">禁用</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <el-form-item label="所属分组">
+                    <span style="color:#606266;">{{ activeGroup === 'WEB' ? '后台菜单' : '企微菜单' }}</span>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="menuDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitMenuForm" :loading="menuSubmitting">保存</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 按钮弹窗 ==================== -->
+        <el-dialog
+            v-model="btnDialog.visible"
+            :title="btnDialog.isEdit ? '编辑按钮' : '新增按钮'"
+            width="500px"
+            :close-on-click-modal="false"
+            @close="btnDialogClose"
+        >
+            <el-form ref="btnFormRef" :model="btnForm" :rules="buttonRules" label-width="90px">
+                <el-form-item label="按钮编码" prop="code">
+                    <el-input v-model="btnForm.code" placeholder="请输入按钮编码" maxlength="60" :disabled="btnDialog.isEdit"></el-input>
+                    <div style="font-size:12px; color:#909399; margin-top:4px;">当前页面下唯一，创建后不可修改</div>
+                </el-form-item>
+                <el-form-item label="按钮名称" prop="name">
+                    <el-input v-model="btnForm.name" placeholder="请输入按钮名称" maxlength="60"></el-input>
+                </el-form-item>
+                <el-form-item label="状态">
+                    <el-radio-group v-model="btnForm.status">
+                        <el-radio value="ACTIVE">启用</el-radio>
+                        <el-radio value="INACTIVE">禁用</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <el-form-item label="所属页面">
+                    <span style="color:#606266;">{{ selectedPage ? selectedPage.name : '' }}</span>
+                </el-form-item>
+                <el-form-item label="权限组" prop="permissionGroups">
+                    <div style="border:1px solid #dcdfe6; border-radius:6px; padding:10px 14px; max-height:200px; overflow-y:auto;">
+                        <el-checkbox-group v-model="btnForm.permissionGroups">
+                            <div v-for="pg in allPermissionGroups" :key="pg.code" style="margin-bottom:4px;">
+                                <el-checkbox :label="pg.code" :value="pg.code">{{ pg.name }}</el-checkbox>
+                            </div>
+                        </el-checkbox-group>
+                        <div v-if="allPermissionGroups.length === 0" style="color:#909399; font-size:13px;">暂无可用权限组</div>
+                    </div>
+                    <div style="font-size:12px; color:#909399; margin-top:4px;">可多选</div>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="btnDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitBtnDialog" :loading="btnSubmitting">保存</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 页面弹窗 ==================== -->
+        <el-dialog
+            v-model="pageDialog.visible"
+            :title="pageDialog.isEdit ? '编辑页面' : '新增页面'"
+            width="500px"
+            :close-on-click-modal="false"
+            @close="pageDialogClose"
+        >
+            <el-form ref="pageFormRef" :model="pageForm" :rules="pageRules" label-width="90px">
+                <el-form-item label="页面编码" prop="code">
+                    <el-input v-model="pageForm.code" placeholder="请输入页面编码" maxlength="60" :disabled="pageDialog.isEdit"></el-input>
+                    <div style="font-size:12px; color:#909399; margin-top:4px;">页面级别唯一，创建后不可修改</div>
+                </el-form-item>
+                <el-form-item label="页面名称" prop="name">
+                    <el-input v-model="pageForm.name" placeholder="请输入页面名称" maxlength="60"></el-input>
+                </el-form-item>
+                <el-form-item label="顺序" prop="order">
+                    <el-input-number v-model="pageForm.order" :min="0" :max="9999"></el-input-number>
+                </el-form-item>
+                <el-form-item label="状态">
+                    <el-radio-group v-model="pageForm.status">
+                        <el-radio value="ACTIVE">启用</el-radio>
+                        <el-radio value="INACTIVE">禁用</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <el-form-item label="所属菜单">
+                    <span style="color:#606266;">{{ pageDialog.parentMenuName }}</span>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="pageDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitPageForm" :loading="pageSubmitting">保存</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 删除确认弹窗 ==================== -->
+        <el-dialog
+            v-model="deleteDialog.visible"
+            title="确认删除"
+            width="460px"
+            :close-on-click-modal="false"
+        >
+            <div style="text-align:center; padding:10px 0;">
+                <div style="font-size:40px; margin-bottom:16px;">⚠️</div>
+                <div style="font-size:15px; color:#303133; line-height:1.8;">{{ deleteDialog.message }}</div>
+            </div>
+            <template #footer>
+                <el-button @click="deleteDialog.visible = false">取消</el-button>
+                <el-button type="danger" @click="doDelete" :loading="deleteDialog.submitting">确认删除</el-button>
+            </template>
+        </el-dialog>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+    <script>
+        var { createApp, ref, reactive, computed, watch, nextTick } = Vue;
+
+        var app = createApp({
+            setup() {
+                // ================================================================
+                // Mock 权限组
+                // ================================================================
+                var allPermissionGroups = ref([
+                    { code: 'WORKSPACE_VIEW', name: '工作台查看' },
+                    { code: 'WORKSPACE_APPROVE', name: '工作台审批' },
+                    { code: 'PRODUCT_VIEW', name: '商品查看' },
+                    { code: 'PRODUCT_EDIT', name: '商品编辑' },
+                    { code: 'PRODUCT_DELETE', name: '商品删除' },
+                    { code: 'CUSTOMER_VIEW', name: '客户查看' },
+                    { code: 'CUSTOMER_EDIT', name: '客户编辑' },
+                    { code: 'ORDER_VIEW', name: '订单查看' },
+                    { code: 'ORDER_EDIT', name: '订单编辑' },
+                    { code: 'FINANCE_VIEW', name: '财务查看' },
+                    { code: 'FINANCE_APPROVE', name: '财务审批' },
+                    { code: 'SYSTEM_VIEW', name: '系统查看' },
+                    { code: 'SYSTEM_EDIT', name: '系统编辑' },
+                ]);
+
+                function getPermName(code) {
+                    var found = allPermissionGroups.value.find(function(p) { return p.code === code; });
+                    return found ? found.name : code;
+                }
+
+                // ================================================================
+                // Mock 数据（仅菜单和页面，按钮是页面的子节点）
+                // ================================================================
+                var idCounter = 30000;
+                function nid() { return idCounter++; }
+
+                function makeMenu(id, code, name, order, status, children) {
+                    return { id: id || nid(), code: code, name: name, type: 'MENU', order: order, status: status, children: children || [] };
+                }
+                function makePage(id, code, name, order, status) {
+                    // children 始终为空，按钮存在独立的 pageButtonsMap 中
+                    return { id: id || nid(), code: code, name: name, type: 'PAGE', order: order, status: status, children: [] };
+                }
+                function makeBtn(id, code, name, order, status, permissionGroups) {
+                    return { id: id || nid(), code: code, name: name, type: 'BUTTON', order: order, status: status, permissionGroups: permissionGroups || [] };
+                }
+                function makeBtnFromObj(b) {
+                    return { id: b.id || nid(), code: b.code, name: b.name, type: 'BUTTON', order: b.order, status: b.status, permissionGroups: b.permissionGroups || [] };
+                }
+
+                // 按钮不放在树中，独立存储：{ pageId: [btn1, btn2, ...] }
+                function buildPageButtonsMap(tree) {
+                    var map = {};
+                    function walk(nodes) {
+                        for (var i = 0; i < nodes.length; i++) {
+                            if (nodes[i].type === 'PAGE') {
+                                map[nodes[i].id] = (nodes[i]._buttons || []).map(function(b) { return makeBtnFromObj(b); });
+                            }
+                            if (nodes[i].children && nodes[i].children.length > 0) walk(nodes[i].children);
+                        }
+                    }
+                    walk(tree);
+                    return map;
+                }
+
+                function buildWebTree() {
+                    return [
+                        makeMenu(1, 'WORKSPACE', '工作台', 1, 'ACTIVE', [
+                            makePage(11, 'HOME', '首页', 1, 'ACTIVE'),
+                            makePage(12, 'APPROVE_TODO', '待办处理', 2, 'ACTIVE'),
+                        ]),
+                        makeMenu(2, 'PRODUCT', '商品管理', 2, 'ACTIVE', [
+                            makePage(21, 'PRODUCT_LIST', '商品资料', 1, 'ACTIVE'),
+                            makePage(22, 'PRODUCT_CATEGORY', '商品分类', 2, 'ACTIVE'),
+                            makePage(23, 'PRODUCT_PRICE', '商品价格', 3, 'ACTIVE'),
+                        ]),
+                        makeMenu(3, 'CUSTOMER', '客户管理', 3, 'ACTIVE', [
+                            makePage(31, 'CUSTOMER_PROFILE', '客户档案', 1, 'ACTIVE'),
+                        ]),
+                        makeMenu(4, 'SYSTEM', '系统管理', 4, 'ACTIVE', [
+                            makePage(41, 'SYS_ACCOUNT', '账户管理', 1, 'ACTIVE'),
+                            makePage(42, 'SYS_ROLE', '角色管理', 2, 'ACTIVE'),
+                        ]),
+                    ];
+                }
+
+                function buildWecomTree() {
+                    return [
+                        makeMenu(2001, 'WECOM_OFFICE', '办公', 1, 'ACTIVE', [
+                            makePage(2011, 'WECOM_HOME', '首页', 1, 'ACTIVE'),
+                            makePage(2012, 'WECOM_TODO', '待办列表', 2, 'ACTIVE'),
+                        ]),
+                        makeMenu(2002, 'WECOM_CUSTOMER', '客户管理', 2, 'ACTIVE', [
+                            makePage(2021, 'WECOM_PROFILE', '客户资料审核', 1, 'ACTIVE'),
+                        ]),
+                    ];
+                }
+
+                var rawWebTree = buildWebTree();
+                var rawWecomTree = buildWecomTree();
+
+                // 注入按钮 Mock 数据（通过 _buttons 临时字段）
+                var webBtnData = {
+                    11: [{ id:111, code:'HOME_VIEW', name:'查看', order:1, status:'ACTIVE', permissionGroups:['WORKSPACE_VIEW'] }],
+                    12: [
+                        { id:121, code:'APPROVE_VIEW', name:'查看', order:1, status:'ACTIVE', permissionGroups:['WORKSPACE_VIEW','WORKSPACE_APPROVE'] },
+                        { id:122, code:'APPROVE_DO', name:'审批', order:2, status:'ACTIVE', permissionGroups:['WORKSPACE_APPROVE'] },
+                    ],
+                    21: [
+                        { id:211, code:'PRODUCT_VIEW', name:'查看', order:1, status:'ACTIVE', permissionGroups:['PRODUCT_VIEW'] },
+                        { id:212, code:'PRODUCT_CREATE', name:'新增', order:2, status:'ACTIVE', permissionGroups:['PRODUCT_EDIT'] },
+                        { id:213, code:'PRODUCT_EDIT', name:'编辑', order:3, status:'ACTIVE', permissionGroups:['PRODUCT_EDIT'] },
+                        { id:214, code:'PRODUCT_DELETE', name:'删除', order:4, status:'ACTIVE', permissionGroups:['PRODUCT_DELETE'] },
+                    ],
+                    22: [
+                        { id:221, code:'CATEGORY_VIEW', name:'查看', order:1, status:'ACTIVE', permissionGroups:['PRODUCT_VIEW'] },
+                    ],
+                    23: [
+                        { id:231, code:'PRICE_VIEW', name:'查看', order:1, status:'ACTIVE', permissionGroups:['PRODUCT_VIEW'] },
+                        { id:232, code:'PRICE_EDIT', name:'编辑', order:2, status:'ACTIVE', permissionGroups:['PRODUCT_EDIT'] },
+                    ],
+                    31: [
+                        { id:311, code:'CUSTOMER_VIEW', name:'查看', order:1, status:'ACTIVE', permissionGroups:['CUSTOMER_VIEW'] },
+                        { id:312, code:'CUSTOMER_EDIT', name:'编辑', order:2, status:'ACTIVE', permissionGroups:['CUSTOMER_EDIT'] },
+                    ],
+                    41: [
+                        { id:411, code:'ACCOUNT_VIEW', name:'查看', order:1, status:'ACTIVE', permissionGroups:['SYSTEM_VIEW'] },
+                        { id:412, code:'ACCOUNT_EDIT', name:'编辑', order:2, status:'ACTIVE', permissionGroups:['SYSTEM_EDIT'] },
+                    ],
+                    42: [
+                        { id:421, code:'ROLE_VIEW', name:'查看', order:1, status:'ACTIVE', permissionGroups:['SYSTEM_VIEW'] },
+                        { id:422, code:'ROLE_EDIT', name:'编辑', order:2, status:'ACTIVE', permissionGroups:['SYSTEM_EDIT'] },
+                    ],
+                };
+                var wecomBtnData = {
+                    2011: [],
+                    2012: [
+                        { id:20121, code:'WECOM_TODO_VIEW', name:'查看', order:1, status:'ACTIVE', permissionGroups:['WORKSPACE_VIEW'] },
+                        { id:20122, code:'WECOM_TODO_APPROVE', name:'审批', order:2, status:'ACTIVE', permissionGroups:['WORKSPACE_APPROVE'] },
+                    ],
+                    2021: [
+                        { id:20211, code:'WECOM_CUS_VIEW', name:'查看', order:1, status:'ACTIVE', permissionGroups:['CUSTOMER_VIEW'] },
+                        { id:20212, code:'WECOM_CUS_APPROVE', name:'审核', order:2, status:'ACTIVE', permissionGroups:['CUSTOMER_EDIT'] },
+                    ],
+                };
+
+                function injectButtons(tree, btnData) {
+                    function walk(nodes) {
+                        for (var i = 0; i < nodes.length; i++) {
+                            if (nodes[i].type === 'PAGE' && btnData[nodes[i].id]) {
+                                nodes[i]._buttons = btnData[nodes[i].id];
+                            }
+                            if (nodes[i].children && nodes[i].children.length > 0) walk(nodes[i].children);
+                        }
+                    }
+                    walk(tree);
+                }
+                injectButtons(rawWebTree, webBtnData);
+                injectButtons(rawWecomTree, wecomBtnData);
+
+                // 独立按钮存储
+                var pageButtonsMap = {
+                    WEB: buildPageButtonsMap(rawWebTree),
+                    WECOM: buildPageButtonsMap(rawWecomTree),
+                };
+
+                var allData = { WEB: rawWebTree, WECOM: rawWecomTree };
+
+                // ================================================================
+                // 全局状态
+                // ================================================================
+                var activeGroup = ref('WEB');
+                var treeData = ref(allData.WEB);
+                var treeRef = ref(null);
+                var selectedPage = ref(null);
+
+                // ================================================================
+                // 按钮列表（选中页面的子节点）
+                // ================================================================
+                var buttonList = computed(function() {
+                    if (!selectedPage.value) return [];
+                    var map = pageButtonsMap[activeGroup.value];
+                    return map[selectedPage.value.id] || [];
+                });
+
+                // ================================================================
+                // 面包屑 / 辅助
+                // ================================================================
+                function getParentMenuName(pageNode) {
+                    if (!pageNode || !treeData.value) return '';
+                    var result = '';
+                    function findParent(tree, targetId, parent) {
+                        for (var i = 0; i < tree.length; i++) {
+                            if (tree[i].id === targetId) { result = parent ? parent.name : ''; return true; }
+                            if (tree[i].children && tree[i].children.length > 0) {
+                                if (findParent(tree[i].children, targetId, tree[i])) return true;
+                            }
+                        }
+                        return false;
+                    }
+                    findParent(treeData.value, pageNode.id, null);
+                    return result;
+                }
+
+                function findNodeById(tree, id) {
+                    for (var i = 0; i < tree.length; i++) {
+                        if (tree[i].id === id) return tree[i];
+                        if (tree[i].children && tree[i].children.length > 0) {
+                            var found = findNodeById(tree[i].children, id);
+                            if (found) return found;
+                        }
+                    }
+                    return null;
+                }
+
+                function isCodeDup(code, excludeId, type) {
+                    // 菜单/页面：同级唯一；按钮：当前页面下唯一
+                    if (type === 'BUTTON') {
+                        var pid = selectedPage.value ? selectedPage.value.id : null;
+                        if (!pid) return false;
+                        var map = pageButtonsMap[activeGroup.value];
+                        var btns = map[pid] || [];
+                        for (var j = 0; j < btns.length; j++) {
+                            if (btns[j].code === code && btns[j].id !== excludeId) return true;
+                        }
+                        return false;
+                    }
+                    // 菜单/页面：同级节点唯一
+                    var dup = false;
+                    function checkTree(tree) {
+                        for (var i = 0; i < tree.length; i++) {
+                            if (tree[i].type === type && tree[i].code === code && tree[i].id !== excludeId) { dup = true; return; }
+                            if (tree[i].children && tree[i].children.length > 0) checkTree(tree[i].children);
+                        }
+                    }
+                    checkTree(treeData.value);
+                    return dup;
+                }
+
+                function isNameDup(name, excludeId, type) {
+                    if (type === 'BUTTON') {
+                        var pid = selectedPage.value ? selectedPage.value.id : null;
+                        if (!pid) return false;
+                        var map = pageButtonsMap[activeGroup.value];
+                        var btns = map[pid] || [];
+                        for (var j = 0; j < btns.length; j++) {
+                            if (btns[j].name === name && btns[j].id !== excludeId) return true;
+                        }
+                        return false;
+                    }
+                    var dup = false;
+                    function checkTree(tree) {
+                        for (var i = 0; i < tree.length; i++) {
+                            if (tree[i].type === type && tree[i].name === name && tree[i].id !== excludeId) { dup = true; return; }
+                            if (tree[i].children && tree[i].children.length > 0) checkTree(tree[i].children);
+                        }
+                    }
+                    checkTree(treeData.value);
+                    return dup;
+                }
+
+                // ================================================================
+                // 树交互
+                // ================================================================
+                function onGroupChange() {
+                    treeData.value = allData[activeGroup.value];
+                    selectedPage.value = null;
+                }
+
+                function onNodeClick(data) {
+                    if (data.type === 'PAGE') {
+                        selectedPage.value = data;
+                    }
+                }
+
+                // ================================================================
+                // 菜单弹窗
+                // ================================================================
+                var menuFormRef = ref(null);
+                var menuSubmitting = ref(false);
+                var menuDialog = reactive({ visible: false, isEdit: false, editId: null });
+                var menuForm = reactive({ code: '', name: '', order: 0, status: 'ACTIVE' });
+
+                var codePattern = /^[A-Za-z0-9_]+$/;
+                var menuRules = {
+                    code: [
+                        { required: true, message: '请输入菜单编码', trigger: 'blur' },
+                        { pattern: codePattern, message: '仅允许字母、数字、下划线', trigger: 'blur' },
+                    ],
+                    name: [{ required: true, message: '请输入菜单名称', trigger: 'blur' }],
+                    order: [{ required: true, message: '请输入顺序', trigger: 'blur' }],
+                };
+
+                function openMenuDialog(data) {
+                    if (data) {
+                        menuDialog.isEdit = true;
+                        menuDialog.editId = data.id;
+                        menuForm.code = data.code;
+                        menuForm.name = data.name;
+                        menuForm.order = data.order;
+                        menuForm.status = data.status;
+                    } else {
+                        menuDialog.isEdit = false;
+                        menuDialog.editId = null;
+                        menuForm.code = '';
+                        menuForm.name = '';
+                        menuForm.order = treeData.value.length > 0 ? treeData.value[treeData.value.length - 1].order + 1 : 1;
+                        menuForm.status = 'ACTIVE';
+                    }
+                    menuDialog.visible = true;
+                    nextTick(function() { if (menuFormRef.value) menuFormRef.value.clearValidate(); });
+                }
+
+                function menuDialogClose() {
+                    menuDialog.editId = null;
+                }
+
+                function submitMenuForm() {
+                    if (!menuFormRef.value) return;
+                    menuFormRef.value.validate(function(valid) {
+                        if (!valid) return;
+                        var excludeId = menuDialog.isEdit ? menuDialog.editId : null;
+                        if (!menuDialog.isEdit && isCodeDup(menuForm.code, excludeId, 'MENU')) {
+                            ElementPlus.ElMessage.error('该菜单编码已存在');
+                            return;
+                        }
+                        if (isNameDup(menuForm.name, excludeId, 'MENU')) {
+                            ElementPlus.ElMessage.error('该菜单名称已存在');
+                            return;
+                        }
+                        menuSubmitting.value = true;
+                        setTimeout(function() {
+                            if (menuDialog.isEdit) {
+                                var m = findNodeById(treeData.value, menuDialog.editId);
+                                if (m) { m.name = menuForm.name; m.order = menuForm.order; m.status = menuForm.status; }
+                                ElementPlus.ElMessage.success('菜单更新成功');
+                            } else {
+                                treeData.value.push(makeMenu(null, menuForm.code, menuForm.name, menuForm.order, menuForm.status, []));
+                                treeData.value.sort(function(a, b) { return a.order - b.order; });
+                                ElementPlus.ElMessage.success('菜单创建成功');
+                            }
+                            menuSubmitting.value = false;
+                            menuDialog.visible = false;
+                        }, 400);
+                    });
+                }
+
+                // ================================================================
+                // 页面弹窗
+                // ================================================================
+                var pageFormRef = ref(null);
+                var pageSubmitting = ref(false);
+                var pageDialog = reactive({ visible: false, isEdit: false, editId: null, parentMenuId: null, parentMenuName: '' });
+                var pageForm = reactive({ code: '', name: '', order: 0, status: 'ACTIVE' });
+
+                var pageRules = {
+                    code: [
+                        { required: true, message: '请输入页面编码', trigger: 'blur' },
+                        { pattern: codePattern, message: '仅允许字母、数字、下划线', trigger: 'blur' },
+                    ],
+                    name: [{ required: true, message: '请输入页面名称', trigger: 'blur' }],
+                    order: [{ required: true, message: '请输入顺序', trigger: 'blur' }],
+                };
+
+                function openPageDialog(data, parentMenu) {
+                    // data: existing page node for edit; parentMenu: parent menu node (for new page)
+                    if (data) {
+                        pageDialog.isEdit = true;
+                        pageDialog.editId = data.id;
+                        pageForm.code = data.code;
+                        pageForm.name = data.name;
+                        pageForm.order = data.order;
+                        pageForm.status = data.status;
+                        pageDialog.parentMenuName = getParentMenuName(data);
+                    } else if (parentMenu) {
+                        pageDialog.isEdit = false;
+                        pageDialog.editId = null;
+                        pageDialog.parentMenuId = parentMenu.id;
+                        pageDialog.parentMenuName = parentMenu.name;
+                        pageForm.code = '';
+                        pageForm.name = '';
+                        pageForm.order = parentMenu.children.length > 0 ? parentMenu.children[parentMenu.children.length - 1].order + 1 : 1;
+                        pageForm.status = 'ACTIVE';
+                    }
+                    pageDialog.visible = true;
+                    nextTick(function() { if (pageFormRef.value) pageFormRef.value.clearValidate(); });
+                }
+
+                function pageDialogClose() {
+                    pageDialog.editId = null;
+                }
+
+                function submitPageForm() {
+                    if (!pageFormRef.value) return;
+                    pageFormRef.value.validate(function(valid) {
+                        if (!valid) return;
+                        var excludeId = pageDialog.isEdit ? pageDialog.editId : null;
+                        if (!pageDialog.isEdit && isCodeDup(pageForm.code, excludeId, 'PAGE')) {
+                            ElementPlus.ElMessage.error('该页面编码已存在');
+                            return;
+                        }
+                        if (isNameDup(pageForm.name, excludeId, 'PAGE')) {
+                            ElementPlus.ElMessage.error('该页面名称已存在');
+                            return;
+                        }
+                        pageSubmitting.value = true;
+                        setTimeout(function() {
+                            if (pageDialog.isEdit) {
+                                var p = findNodeById(treeData.value, pageDialog.editId);
+                                if (p) { p.name = pageForm.name; p.order = pageForm.order; p.status = pageForm.status; }
+                                // 刷新选中页面
+                                if (selectedPage.value && selectedPage.value.id === pageDialog.editId) {
+                                    selectedPage.value = p;
+                                }
+                                ElementPlus.ElMessage.success('页面更新成功');
+                            } else {
+                                var pm = findNodeById(treeData.value, pageDialog.parentMenuId);
+                                if (pm) {
+                                    var newPage = makePage(null, pageForm.code, pageForm.name, pageForm.order, pageForm.status, []);
+                                    pm.children.push(newPage);
+                                    pm.children.sort(function(a, b) { return a.order - b.order; });
+                                }
+                                ElementPlus.ElMessage.success('页面创建成功');
+                            }
+                            pageSubmitting.value = false;
+                            pageDialog.visible = false;
+                        }, 400);
+                    });
+                }
+
+                // ================================================================
+                // 按钮弹窗
+                // ================================================================
+                var btnFormRef = ref(null);
+                var btnSubmitting = ref(false);
+                var btnDialog = reactive({ visible: false, isEdit: false, editId: null });
+                var btnForm = reactive({ code: '', name: '', status: 'ACTIVE', permissionGroups: [] });
+
+                var buttonRules = {
+                    code: [
+                        { required: true, message: '请输入按钮编码', trigger: 'blur' },
+                        { pattern: codePattern, message: '仅允许字母、数字、下划线', trigger: 'blur' },
+                    ],
+                    name: [{ required: true, message: '请输入按钮名称', trigger: 'blur' }],
+                    permissionGroups: [{ type: 'array', required: true, message: '请至少选择一个权限组', trigger: 'change' }],
+                };
+
+                function openButtonDialog(data) {
+                    if (data) {
+                        btnDialog.isEdit = true;
+                        btnDialog.editId = data.id;
+                        btnForm.code = data.code;
+                        btnForm.name = data.name;
+                        btnForm.status = data.status;
+                        btnForm.permissionGroups = (data.permissionGroups || []).slice();
+                    } else {
+                        btnDialog.isEdit = false;
+                        btnDialog.editId = null;
+                        btnForm.code = '';
+                        btnForm.name = '';
+                        btnForm.status = 'ACTIVE';
+                        btnForm.permissionGroups = [];
+                    }
+                    btnDialog.visible = true;
+                    nextTick(function() { if (btnFormRef.value) btnFormRef.value.clearValidate(); });
+                }
+
+                function btnDialogClose() {
+                    btnDialog.editId = null;
+                }
+
+                function submitBtnDialog() {
+                    if (!btnFormRef.value) return;
+                    btnFormRef.value.validate(function(valid) {
+                        if (!valid) return;
+                        var excludeId = btnDialog.isEdit ? btnDialog.editId : null;
+                        if (!btnDialog.isEdit && isCodeDup(btnForm.code, excludeId, 'BUTTON')) {
+                            ElementPlus.ElMessage.error('该按钮编码已存在');
+                            return;
+                        }
+                        if (isNameDup(btnForm.name, excludeId, 'BUTTON')) {
+                            ElementPlus.ElMessage.error('该按钮名称已存在');
+                            return;
+                        }
+                        btnSubmitting.value = true;
+                        setTimeout(function() {
+                            var map = pageButtonsMap[activeGroup.value];
+                            var pid = selectedPage.value.id;
+                            if (!map[pid]) map[pid] = [];
+                            if (btnDialog.isEdit) {
+                                var b = null;
+                                var btns = map[pid];
+                                for (var i = 0; i < btns.length; i++) {
+                                    if (btns[i].id === btnDialog.editId) { b = btns[i]; break; }
+                                }
+                                if (b) {
+                                    b.name = btnForm.name;
+                                    b.status = btnForm.status;
+                                    b.permissionGroups = btnForm.permissionGroups.slice();
+                                }
+                                ElementPlus.ElMessage.success('按钮更新成功');
+                            } else {
+                                var newBtn = makeBtn(null, btnForm.code, btnForm.name, 0, btnForm.status, btnForm.permissionGroups.slice());
+                                map[pid].push(newBtn);
+                                ElementPlus.ElMessage.success('按钮创建成功');
+                            }
+                            btnSubmitting.value = false;
+                            btnDialog.visible = false;
+                        }, 400);
+                    });
+                }
+
+                // ================================================================
+                // 删除逻辑（仅按钮支持删除）
+                // ================================================================
+                var deleteDialog = reactive({
+                    visible: false, submitting: false, message: '',
+                    targetId: null,
+                });
+
+                function confirmDelete(data) {
+                    deleteDialog.visible = true;
+                    deleteDialog.targetId = data.id;
+                    deleteDialog.message = '确认删除按钮「' + data.name + '」？';
+                }
+
+                function doDelete() {
+                    deleteDialog.submitting = true;
+                    setTimeout(function() {
+                        var id = deleteDialog.targetId;
+                        var map = pageButtonsMap[activeGroup.value];
+                        var pid = selectedPage.value ? selectedPage.value.id : null;
+                        if (pid && map[pid]) {
+                            map[pid] = map[pid].filter(function(b) { return b.id !== id; });
+                        }
+                        deleteDialog.submitting = false;
+                        deleteDialog.visible = false;
+                        ElementPlus.ElMessage.success('按钮删除成功');
+                    }, 400);
+                }
+
+                // ================================================================
+                return {
+                    activeGroup, treeData, treeRef, selectedPage, buttonList,
+                    allPermissionGroups, getPermName, getParentMenuName,
+                    onGroupChange, onNodeClick,
+                    menuDialog, menuFormRef, menuForm, menuRules, menuSubmitting,
+                    openMenuDialog, menuDialogClose, submitMenuForm,
+                    pageDialog, pageFormRef, pageForm, pageRules, pageSubmitting,
+                    openPageDialog, pageDialogClose, submitPageForm,
+                    btnDialog, btnFormRef, btnForm, buttonRules, btnSubmitting,
+                    openButtonDialog, btnDialogClose, submitBtnDialog,
+                    deleteDialog, confirmDelete, doDelete,
+                };
+            }
+        });
+
+        app.use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+    </script>
+</body>
+</html>

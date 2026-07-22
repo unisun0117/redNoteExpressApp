@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>资金流水</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            margin: 0; padding: 10px;
+        }
+        .search-card {
+            background: #fff; border-radius: 8px;
+            padding: 10px; padding-bottom: 0px; margin-bottom: 10px;
+            position: relative;
+        }
+        .search-card.collapsed .search-extra { display: none; }
+        .toggle-btn {
+            position: absolute; right: 10px; bottom: 8px;
+            font-size: 12px; color: #409eff; cursor: pointer; border: none; background: none;
+        }
+        .summary-row {
+            display: flex; gap: 16px; margin-bottom: 10px;
+        }
+        .summary-card {
+            flex: 1; background: #fff; border-radius: 8px; padding: 16px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .summary-card .s-info { display: flex; flex-direction: column; gap: 4px; }
+        .summary-card .s-label { font-size: 13px; color: #909399; }
+        .summary-card .s-amount { font-size: 24px; font-weight: 700; }
+        .summary-card .s-count { font-size: 12px; color: #909399; }
+        .summary-income .s-amount { color: #67c23a; }
+        .summary-expense .s-amount { color: #f56c6c; }
+        .detail-link { font-size: 13px; color: #409eff; cursor: pointer; }
+        .detail-link:hover { text-decoration: underline; }
+        .data-card {
+            background: #fff; border-radius: 8px; padding: 10px;
+        }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .toolbar-left { display: flex; gap: 8px; align-items: center; }
+        .empty-state { text-align: center; padding: 60px 0; color: #909399; }
+        .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+        .tag-processing { background:#fdf6ec; color:#e6a23c; border:1px solid #faecd8; }
+        .tag-success { background:#f0f9eb; color:#67c23a; border:1px solid #e1f3d8; }
+        .tag-fail { background:#fef0f0; color:#f56c6c; border:1px solid #fde2e2; }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+        <!-- ========== 查询区 ========== -->
+        <div class="search-card" :class="{collapsed:collapsed}">
+            <el-form :inline="true" :model="search">
+                <el-form-item label="微信商户号">
+                    <el-select v-model="search.merchantNo" placeholder="请选择" clearable style="width:160px;">
+                        <el-option label="SH1001 钱鲜达主商户" value="SH1001"></el-option>
+                        <el-option label="SH1002 钱鲜达华南" value="SH1002"></el-option>
+                        <el-option label="SH1003 钱鲜达华东" value="SH1003"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="收支类型">
+                    <el-radio-group v-model="search.direction" @change="doSearch">
+                        <el-radio-button label="">全部</el-radio-button>
+                        <el-radio-button label="income">收入</el-radio-button>
+                        <el-radio-button label="expense">支出</el-radio-button>
+                    </el-radio-group>
+                </el-form-item>
+            </el-form>
+            <el-form :inline="true" :model="search">
+                <el-form-item label="查询时间">
+                    <el-date-picker
+                        v-model="search.dateRange" type="datetimerange"
+                        range-separator="~" start-placeholder="开始" end-placeholder="结束"
+                        value-format="YYYY-MM-DD HH:mm:ss" style="width:380px;"
+                    ></el-date-picker>
+                </el-form-item>
+                <el-form-item>
+                    <el-button size="small" @click="quickDate('today')">今日</el-button>
+                    <el-button size="small" @click="quickDate('yesterday')">昨日</el-button>
+                    <el-button size="small" @click="quickDate('7d')">7日</el-button>
+                    <el-button size="small" type="primary" plain @click="quickDate('30d')">30日</el-button>
+                </el-form-item>
+            </el-form>
+            <div class="search-extra">
+                <el-form :inline="true" :model="search">
+                    <el-form-item label="客户信息">
+                        <el-input v-model="search.customer" placeholder="客户名称/编码" clearable style="width:200px;"></el-input>
+                    </el-form-item>
+                    <el-form-item label="结算账户">
+                        <el-input v-model="search.account" placeholder="账户名称/编号" clearable style="width:200px;"></el-input>
+                    </el-form-item>
+                    <el-form-item label="付款方式">
+                        <el-select v-model="search.payMethod" placeholder="全部" clearable style="width:130px;">
+                            <el-option label="微信" value="微信"></el-option>
+                            <el-option label="预付款" value="预付款"></el-option>
+                            <el-option label="账期" value="账期"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="账务类型">
+                        <el-select v-model="search.bizType" placeholder="全部" clearable style="width:130px;">
+                            <el-option label="充值" value="充值"></el-option>
+                            <el-option label="转账" value="转账"></el-option>
+                            <el-option label="退款" value="退款"></el-option>
+                            <el-option label="提现" value="提现"></el-option>
+                            <el-option label="下单" value="下单"></el-option>
+                        </el-select>
+                    </el-form-item>
+                </el-form>
+                <el-form :inline="true" :model="search">
+                    <el-form-item label="第三方流水号">
+                        <el-input v-model="search.thirdPartyNo" placeholder="微信/支付宝流水号" clearable style="width:200px;"></el-input>
+                    </el-form-item>
+                    <el-form-item label="业务单号">
+                        <el-input v-model="search.bizNo" placeholder="业务单据编号" clearable style="width:180px;"></el-input>
+                    </el-form-item>
+                </el-form>
+                <el-form :inline="true" :model="search">
+                    <el-form-item label="流水号">
+                        <el-input v-model="search.flowNo" placeholder="系统流水号" clearable style="width:180px;"></el-input>
+                    </el-form-item>
+                    <el-form-item label="订单号">
+                        <el-input v-model="search.orderNo" placeholder="销售订单号" clearable style="width:180px;"></el-input>
+                    </el-form-item>
+                    <el-form-item label="操作人">
+                        <el-input v-model="search.operator" placeholder="姓名/手机号" clearable style="width:180px;"></el-input>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button @click="resetSearch">重置</el-button>
+                        <el-button type="primary" @click="doSearch">查询</el-button>
+                    </el-form-item>
+                </el-form>
+            </div>
+            <button class="toggle-btn" @click="collapsed=!collapsed">{{ collapsed ? '展开 ▼' : '收起 ^' }}</button>
+        </div>
+
+        <!-- ========== 汇总区 ========== -->
+        <div class="summary-row">
+            <div class="summary-card summary-income">
+                <div class="s-info">
+                    <span class="s-label">收入</span>
+                    <span class="s-amount">+{{ formatMoney(summary.income) }} 元</span>
+                    <span class="s-count">{{ summary.incomeCount }}笔</span>
+                </div>
+                <span class="detail-link" @click="drillDown('income')">详细</span>
+            </div>
+            <div class="summary-card summary-expense">
+                <div class="s-info">
+                    <span class="s-label">支出</span>
+                    <span class="s-amount">-{{ formatMoney(summary.expense) }} 元</span>
+                    <span class="s-count">{{ summary.expenseCount }}笔</span>
+                </div>
+                <span class="detail-link" @click="drillDown('expense')">详细</span>
+            </div>
+        </div>
+
+        <!-- ========== 操作&数据区 ========== -->
+        <div class="data-card">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <el-button @click="handleExport">导出</el-button>
+                    <el-button @click="handlePrint">打印</el-button>
+                    <el-button @click="handleColumnSetting">列设置</el-button>
+                </div>
+                <span style="font-size:14px;color:#909399;">共 <b style="color:#303133;">{{ total }}</b> 条记录</span>
+            </div>
+
+            <el-table
+                :data="tableData" v-loading="loading" stripe style="width:100%;"
+                :header-cell-style="{background:'#f5f7fa',color:'#606266',fontWeight:500}"
+                @sort-change="handleSort"
+            >
+                <el-table-column type="selection" width="40" fixed="left"></el-table-column>
+                <el-table-column prop="flowTime" label="入账时间" width="160" fixed="left" sortable="custom"></el-table-column>
+                <el-table-column prop="flowNo" label="流水号" width="140" show-overflow-tooltip></el-table-column>
+                <el-table-column label="账务类型" width="90" align="center">
+                    <template #default="scope">
+                        <el-tag size="small" type="info">{{ scope.row.bizType }}</el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="payMethod" label="付款方式" width="90" align="center"></el-table-column>
+                <el-table-column prop="customerName" label="客户" width="130" show-overflow-tooltip>
+                    <template #default="scope">{{ scope.row.customerName || '-' }}</template>
+                </el-table-column>
+                <el-table-column prop="accountName" label="结算账户" width="110" show-overflow-tooltip>
+                    <template #default="scope">{{ scope.row.accountName || '-' }}</template>
+                </el-table-column>
+                <el-table-column prop="operatorName" label="操作人" width="90">
+                    <template #default="scope">{{ scope.row.operatorName || '-' }}</template>
+                </el-table-column>
+                <el-table-column label="收支金额" width="120" align="right" sortable="custom">
+                    <template #default="scope">
+                        <span :style="{color:scope.row.direction==='income'?'#67c23a':'#f56c6c',fontWeight:600}">
+                            {{ scope.row.direction==='income'?'+':'-' }}{{ formatMoney(scope.row.amount) }}
+                        </span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="账户余额" width="110" align="right">
+                    <template #default="scope">{{ scope.row.balance != null ? formatMoney(scope.row.balance) : '-' }}</template>
+                </el-table-column>
+                <el-table-column prop="bizNo" label="业务单号" width="130" show-overflow-tooltip></el-table-column>
+                <el-table-column prop="orderNo" label="订单号" width="130" show-overflow-tooltip>
+                    <template #default="scope">{{ scope.row.orderNo || '-' }}</template>
+                </el-table-column>
+                <el-table-column prop="thirdPartyNo" label="第三方流水号" width="160" show-overflow-tooltip>
+                    <template #default="scope">{{ scope.row.thirdPartyNo || '-' }}</template>
+                </el-table-column>
+                <el-table-column label="状态" width="80" align="center">
+                    <template #default="scope">
+                        <el-tag :class="statusTag(scope.row.status)" size="small" disable-transitions>{{ statusText(scope.row.status) }}</el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="remark" label="备注" width="120" show-overflow-tooltip>
+                    <template #default="scope">{{ scope.row.remark || '-' }}</template>
+                </el-table-column>
+            </el-table>
+
+            <div v-if="tableData.length===0 && !loading" class="empty-state">
+                <div class="empty-state-icon">💰</div>
+                <div>暂无流水记录</div>
+            </div>
+
+            <div style="margin-top:16px;display:flex;justify-content:flex-start;" v-if="total>0">
+                <el-pagination
+                    v-model:current-page="pageNum" v-model:page-size="pageSize"
+                    :page-sizes="[10,20,50]" :total="total"
+                    layout="total,sizes,prev,pager,next" background
+                ></el-pagination>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+    <script>
+        const { createApp, ref, reactive, computed, watch } = Vue;
+        const app = createApp({
+            setup() {
+                const collapsed = ref(false);
+                const loading = ref(false);
+                const pageNum = ref(1);
+                const pageSize = ref(20);
+
+                const allData = ref([
+                    { id:1, flowTime:'2026-07-02 08:30:00', flowNo:'20260702000001', bizType:'下单', payMethod:'微信', customerName:'万科公司', accountName:'-', operatorName:'张三', direction:'expense', amount:500.00, balance:null, bizNo:'SL001', orderNo:'ORD20260702001', thirdPartyNo:'WX20260702083000', status:'success', remark:'' },
+                    { id:2, flowTime:'2026-07-02 08:25:00', flowNo:'20260702000002', bizType:'下单', payMethod:'预付款', customerName:'万科公司', accountName:'王博A', operatorName:'张三', direction:'expense', amount:500.00, balance:3500.00, bizNo:'SL002', orderNo:'ORD20260702002', thirdPartyNo:'', status:'success', remark:'代付' },
+                    { id:3, flowTime:'2026-07-01 16:10:00', flowNo:'20260701000003', bizType:'充值', payMethod:'微信', customerName:'-', accountName:'王博A', operatorName:'财务李', direction:'income', amount:5000.00, balance:5000.00, bizNo:'CZ001', orderNo:'', thirdPartyNo:'WX20260701161000', status:'success', remark:'' },
+                    { id:4, flowTime:'2026-07-01 14:20:00', flowNo:'20260701000004', bizType:'提现', payMethod:'银行卡', customerName:'-', accountName:'王博A', operatorName:'财务李', direction:'expense', amount:2000.00, balance:3000.00, bizNo:'TX001', orderNo:'', thirdPartyNo:'TRN20260701', status:'success', remark:'' },
+                    { id:5, flowTime:'2026-07-01 11:00:00', flowNo:'20260701000005', bizType:'退款', payMethod:'预付款', customerName:'万科公司', accountName:'王博A', operatorName:'张三', direction:'income', amount:300.00, balance:3300.00, bizNo:'RF001', orderNo:'ORD20260701003', thirdPartyNo:'', status:'success', remark:'' },
+                    { id:6, flowTime:'2026-07-01 09:45:00', flowNo:'20260701000006', bizType:'下单', payMethod:'微信', customerName:'金鹏食堂', accountName:'-', operatorName:'李四', direction:'expense', amount:800.00, balance:null, bizNo:'SL003', orderNo:'ORD20260701004', thirdPartyNo:'WX20260701094500', status:'processing', remark:'' },
+                    { id:7, flowTime:'2026-06-30 18:30:00', flowNo:'20260630000007', bizType:'下单', payMethod:'账期', customerName:'宝利发餐厅', accountName:'-', operatorName:'王五', direction:'expense', amount:650.00, balance:null, bizNo:'SL004', orderNo:'ORD20260630005', thirdPartyNo:'', status:'success', remark:'' },
+                    { id:8, flowTime:'2026-06-30 15:00:00', flowNo:'20260630000008', bizType:'充值', payMethod:'微信', customerName:'-', accountName:'李四公司', operatorName:'财务张', direction:'income', amount:10000.00, balance:10000.00, bizNo:'CZ002', orderNo:'', thirdPartyNo:'WX20260630150000', status:'success', remark:'' },
+                ]);
+
+                const search = reactive({
+                    merchantNo:'', direction:'', dateRange:null,
+                    customer:'', account:'', payMethod:'', bizType:'',
+                    thirdPartyNo:'', bizNo:'', flowNo:'', orderNo:'', operator:'',
+                });
+
+                const filteredData = computed(() => {
+                    let list = allData.value;
+                    if (search.direction) list = list.filter(r => r.direction === search.direction);
+                    if (search.payMethod) list = list.filter(r => r.payMethod === search.payMethod);
+                    if (search.bizType) list = list.filter(r => r.bizType === search.bizType);
+                    if (search.customer){ const kw=search.customer.toLowerCase(); list=list.filter(r=>r.customerName.toLowerCase().includes(kw)); }
+                    if (search.account){ const kw=search.account.toLowerCase(); list=list.filter(r=>r.accountName.toLowerCase().includes(kw)); }
+                    if (search.thirdPartyNo){ const kw=search.thirdPartyNo.toLowerCase(); list=list.filter(r=>(r.thirdPartyNo||'').toLowerCase().includes(kw)); }
+                    if (search.bizNo){ const kw=search.bizNo.toLowerCase(); list=list.filter(r=>r.bizNo.toLowerCase().includes(kw)); }
+                    if (search.flowNo){ const kw=search.flowNo.toLowerCase(); list=list.filter(r=>r.flowNo.toLowerCase().includes(kw)); }
+                    if (search.orderNo){ const kw=search.orderNo.toLowerCase(); list=list.filter(r=>(r.orderNo||'').toLowerCase().includes(kw)); }
+                    if (search.operator){ const kw=search.operator.toLowerCase(); list=list.filter(r=>r.operatorName.toLowerCase().includes(kw)); }
+                    if (search.dateRange && search.dateRange.length===2){
+                        const [s,e]=search.dateRange;
+                        list=list.filter(r=>r.flowTime>=s && r.flowTime<=e);
+                    }
+                    return list;
+                });
+
+                const total = computed(() => filteredData.value.length);
+                const tableData = computed(() => {
+                    const s = (pageNum.value-1)*pageSize.value;
+                    return filteredData.value.slice(s, s+pageSize.value);
+                });
+
+                const summary = computed(() => {
+                    let income=0, expense=0, ic=0, ec=0;
+                    allData.value.forEach(r => {
+                        if (r.direction==='income'){ income+=r.amount; ic++; }
+                        else{ expense+=r.amount; ec++; }
+                    });
+                    return { income, expense, incomeCount:ic, expenseCount:ec };
+                });
+
+                watch([()=>search.direction],()=>{pageNum.value=1;});
+
+                function doSearch(){ pageNum.value=1; }
+                function resetSearch(){
+                    Object.keys(search).forEach(k=>{ if(k==='direction') search[k]=''; else if(k==='dateRange') search[k]=null; else search[k]=''; });
+                    pageNum.value=1;
+                }
+                function quickDate(type){
+                    const now=new Date();
+                    let s=new Date(now);
+                    if(type==='today') s=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+                    else if(type==='yesterday') s=new Date(now.getFullYear(),now.getMonth(),now.getDate()-1);
+                    else if(type==='7d') s=new Date(now.getTime()-7*86400000);
+                    else if(type==='30d') s=new Date(now.getTime()-30*86400000);
+                    const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' 00:00:00';
+                    search.dateRange=[fmt(s), fmt(now).replace('00:00:00','23:59:59')];
+                    doSearch();
+                }
+                function drillDown(type){ search.direction=type; doSearch(); }
+
+                function formatMoney(v){ if(v==null) return '0.00'; return Number(v).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+                function statusTag(s){ return s==='processing'?'tag-processing':s==='success'?'tag-success':'tag-fail'; }
+                function statusText(s){ return s==='processing'?'处理中':s==='success'?'成功':'失败'; }
+                function handleSort(col){ if(col.prop==='flowTime'){ allData.value.sort((a,b)=>col.order==='ascending'?a.flowTime.localeCompare(b.flowTime):b.flowTime.localeCompare(a.flowTime)); } }
+                function handleExport(){ ElementPlus.ElMessage.success('导出中（模拟）'); }
+                function handlePrint(){ ElementPlus.ElMessage.info('打印（模拟）'); }
+                function handleColumnSetting(){ ElementPlus.ElMessage.info('列设置（模拟）'); }
+
+                return {
+                    collapsed, search, pageNum, pageSize, loading, tableData, total, summary,
+                    doSearch, resetSearch, quickDate, drillDown, formatMoney, statusTag, statusText,
+                    handleSort, handleExport, handlePrint, handleColumnSetting,
+                };
+            }
+        });
+        app.use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+    </script>
+</body>
+</html>

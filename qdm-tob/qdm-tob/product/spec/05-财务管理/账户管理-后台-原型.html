@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>账户管理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 10px;
+        }
+        .search-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+            padding-bottom: 0px;
+            margin-bottom: 10px;
+        }
+        .data-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .toolbar-left { display: flex; gap: 8px; align-items: center; }
+        .empty-state { text-align: center; padding: 60px 0; color: #909399; }
+        .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+        .tag-prepaid { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; }
+        .tag-credit { background: #fdf6ec; color: #e6a23c; border: 1px solid #faecd8; }
+        .biz-license-link { color: #409eff; cursor: pointer; font-size: 20px; }
+        .biz-license-link:hover { color: #337ecc; }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+        <!-- ========== 查询区 ========== -->
+        <div class="search-card">
+            <el-form :inline="true" :model="search">
+                <el-form-item label="客户信息">
+                    <el-input v-model="search.customerInfo" placeholder="客户编号/名称" clearable style="width:200px;"></el-input>
+                </el-form-item>
+                <el-form-item label="营业执照编号">
+                    <el-input v-model="search.licenseNo" placeholder="统一社会信用代码" clearable style="width:200px;"></el-input>
+                </el-form-item>
+                <el-form-item label="账户类型">
+                    <el-select v-model="search.accountType" placeholder="全部" clearable style="width:140px;">
+                        <el-option label="预付款" value="PREPAID"></el-option>
+                        <el-option label="账期" value="CREDIT"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" @click="doSearch">查询</el-button>
+                    <el-button @click="resetSearch">重置</el-button>
+                </el-form-item>
+            </el-form>
+        </div>
+
+        <!-- ========== 操作&数据区 ========== -->
+        <div class="data-card">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <el-button type="primary" @click="openAdd">新增</el-button>
+                </div>
+                <span style="font-size:14px; color:#909399;">共 <b style="color:#303133;">{{ total }}</b> 条记录</span>
+            </div>
+
+            <el-table
+                :data="tableData"
+                v-loading="loading"
+                stripe
+                style="width:100%;"
+                :header-cell-style="{background:'#f5f7fa', color:'#606266', fontWeight:500}"
+            >
+                <el-table-column type="selection" width="50"></el-table-column>
+                <el-table-column label="序号" width="60" align="center">
+                    <template #default="scope">{{ (pageNum-1)*pageSize + scope.$index + 1 }}</template>
+                </el-table-column>
+                <el-table-column prop="customerId" label="客户编号" width="110" show-overflow-tooltip></el-table-column>
+                <el-table-column prop="customerName" label="客户名称" width="130" show-overflow-tooltip></el-table-column>
+                <el-table-column label="账户金额" width="130" align="right">
+                    <template #default="scope">
+                        <span style="font-weight:600;">{{ formatMoney(scope.row.balance) }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="账户类型" width="100" align="center">
+                    <template #default="scope">
+                        <el-tag :class="scope.row.accountType === 'PREPAID' ? 'tag-prepaid' : 'tag-credit'" size="small" disable-transitions>
+                            {{ scope.row.accountType === 'PREPAID' ? '预付款' : '账期' }}
+                        </el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column label="账期天数" width="100" align="center">
+                    <template #default="scope">{{ scope.row.creditDays || '-' }}</template>
+                </el-table-column>
+                <el-table-column prop="nextReconcileDate" label="下一对账日期" width="130" align="center">
+                    <template #default="scope">{{ scope.row.nextReconcileDate || '-' }}</template>
+                </el-table-column>
+                <el-table-column prop="remark" label="备注" width="140" show-overflow-tooltip>
+                    <template #default="scope">{{ scope.row.remark || '-' }}</template>
+                </el-table-column>
+                <el-table-column prop="licenseNo" label="营业执照编号" width="180" show-overflow-tooltip></el-table-column>
+                <el-table-column prop="companyName" label="公司名称" width="160" show-overflow-tooltip></el-table-column>
+                <el-table-column label="营业执照照片" min-width="100" align="center">
+                    <template #default="scope">
+                        <span class="biz-license-link" @click="viewLicense(scope.row)">📄</span>
+                    </template>
+                </el-table-column>
+            </el-table>
+
+            <div v-if="tableData.length === 0 && !loading" class="empty-state">
+                <div class="empty-state-icon">💳</div>
+                <div>暂无账户数据</div>
+            </div>
+
+            <div style="margin-top:16px; display:flex; justify-content:flex-start;" v-if="total > 0">
+                <el-pagination
+                    v-model:current-page="pageNum"
+                    v-model:page-size="pageSize"
+                    :page-sizes="[10, 20, 50]"
+                    :total="total"
+                    layout="total, sizes, prev, pager, next"
+                    background
+                ></el-pagination>
+            </div>
+        </div>
+
+        <!-- ========== 新增弹窗 ========== -->
+        <el-dialog
+            v-model="dialog.visible"
+            title="新增"
+            width="500px"
+            :close-on-click-modal="false"
+            @close="resetForm"
+        >
+            <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+                <el-form-item label="客户编码" prop="customerCode" required>
+                    <el-input v-model="form.customerCode" placeholder="客户编码" maxlength="50" @blur="queryCustomer">
+                        <template #prepend><span style="font-weight:700;color:#409eff;">①</span></template>
+                    </el-input>
+                </el-form-item>
+                <el-form-item label="客户名称" prop="customerName">
+                    <el-input v-model="form.customerName" placeholder="根据编码自动带出" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="账户类型" prop="accountType" required>
+                    <el-radio-group v-model="form.accountType">
+                        <el-radio label="PREPAID">预充值</el-radio>
+                        <el-radio label="CREDIT">账期</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <el-form-item label="流水类型" prop="txType" required>
+                    <el-radio-group v-model="form.txType">
+                        <el-radio label="RECHARGE">充值</el-radio>
+                        <el-radio label="WITHDRAW">提现</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <el-form-item label="流水金额" prop="amount" required>
+                    <el-input-number v-model="form.amount" :min="0.01" :precision="2" style="width:100%;" placeholder="请输入金额">
+                        <template #prepend><span style="font-weight:700;color:#409eff;">②</span></template>
+                    </el-input-number>
+                    <div style="font-size:12px;color:#909399;margin-top:4px;">单位：元</div>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="dialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitForm" :loading="dialog.submitting">确定</el-button>
+            </template>
+        </el-dialog>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+    <script>
+        const { createApp, ref, reactive, computed, watch, nextTick } = Vue;
+
+        const app = createApp({
+            setup() {
+                const allData = ref([
+                    { id: 1, customerId: 'C001', customerName: '金鹏员工食堂', balance: 1280.00, accountType: 'PREPAID', creditDays: null, nextReconcileDate: null, remark: '', licenseNo: '91440101MA5ABCD12E', companyName: '广州金鹏餐饮管理有限公司' },
+                    { id: 2, customerId: 'C002', customerName: '恒信客家王', balance: 5600.00, accountType: 'PREPAID', creditDays: null, nextReconcileDate: null, remark: '长期合作客户', licenseNo: '91440101MA5EFGH34K', companyName: '广州恒信餐饮有限公司' },
+                    { id: 3, customerId: 'C003', customerName: '宝利发餐厅', balance: 320.00, accountType: 'CREDIT', creditDays: 30, nextReconcileDate: '2026-08-01', remark: '', licenseNo: '91440101MA5IJKL56M', companyName: '深圳宝利发餐饮服务有限公司' },
+                    { id: 4, customerId: 'C004', customerName: '啫火啫啫煲', balance: 0.00, accountType: 'CREDIT', creditDays: 45, nextReconcileDate: '2026-08-15', remark: '新开通账期', licenseNo: '91440101MA5MNOP78N', companyName: '广州啫火餐饮管理有限公司' },
+                    { id: 5, customerId: 'C005', customerName: '深耕食堂', balance: 8200.00, accountType: 'PREPAID', creditDays: null, nextReconcileDate: null, remark: '', licenseNo: '91440101MA5QRST90P', companyName: '广州深耕餐饮有限公司' },
+                    { id: 6, customerId: 'C006', customerName: '农家土猪', balance: 0.00, accountType: 'CREDIT', creditDays: 30, nextReconcileDate: '2026-07-31', remark: '', licenseNo: '91440101MA5UVWX12Q', companyName: '广东农家土猪食品有限公司' },
+                ]);
+
+                // ================================================================
+                // 搜索 & 分页
+                // ================================================================
+                const search = reactive({ customerInfo: '', licenseNo: '', accountType: '' });
+                const pageNum = ref(1);
+                const pageSize = ref(20);
+                const loading = ref(false);
+
+                const filteredData = computed(() => {
+                    let list = allData.value;
+                    if (search.customerInfo) {
+                        const kw = search.customerInfo.toLowerCase();
+                        list = list.filter(r => r.customerId.toLowerCase().includes(kw) || r.customerName.toLowerCase().includes(kw));
+                    }
+                    if (search.licenseNo) {
+                        list = list.filter(r => r.licenseNo.toLowerCase().includes(search.licenseNo.toLowerCase()));
+                    }
+                    if (search.accountType) {
+                        list = list.filter(r => r.accountType === search.accountType);
+                    }
+                    return list;
+                });
+
+                const total = computed(() => filteredData.value.length);
+
+                const tableData = computed(() => {
+                    const start = (pageNum.value - 1) * pageSize.value;
+                    return filteredData.value.slice(start, start + pageSize.value);
+                });
+
+                watch([() => search.customerInfo, () => search.licenseNo, () => search.accountType], () => { pageNum.value = 1; });
+
+                function doSearch() { pageNum.value = 1; }
+                function resetSearch() {
+                    search.customerInfo = '';
+                    search.licenseNo = '';
+                    search.accountType = '';
+                    pageNum.value = 1;
+                }
+
+                // ================================================================
+                // 工具
+                // ================================================================
+                function formatMoney(val) {
+                    if (val == null) return '0.00';
+                    return Number(val).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+
+                function viewLicense(row) {
+                    ElementPlus.ElMessage.info('查看营业执照：' + row.companyName + '（模拟）');
+                }
+
+                // ================================================================
+                // 新增弹窗
+                // ================================================================
+                const dialog = reactive({ visible: false, submitting: false });
+                const formRef = ref(null);
+                const form = reactive({ customerCode: '', customerName: '', accountType: 'PREPAID', txType: 'RECHARGE', amount: null });
+
+                const rules = {
+                    customerCode: [{ required: true, message: '请输入客户编码', trigger: 'blur' }],
+                    accountType: [{ required: true, message: '请选择账户类型', trigger: 'change' }],
+                    txType: [{ required: true, message: '请选择流水类型', trigger: 'change' }],
+                    amount: [{ required: true, message: '请输入流水金额', trigger: 'blur' }],
+                };
+
+                const customerDb = [
+                    { code: 'C001', name: '金鹏员工食堂' },
+                    { code: 'C002', name: '恒信客家王' },
+                    { code: 'C003', name: '宝利发餐厅' },
+                    { code: 'C004', name: '啫火啫啫煲' },
+                    { code: 'C005', name: '深耕食堂' },
+                    { code: 'C006', name: '农家土猪' },
+                ];
+
+                function queryCustomer() {
+                    if (!form.customerCode) { form.customerName = ''; return; }
+                    const found = customerDb.find(c => c.code === form.customerCode);
+                    if (found) {
+                        form.customerName = found.name;
+                    } else {
+                        form.customerName = '';
+                        ElementPlus.ElMessage.warning('客户编码不存在，请确认后重新输入');
+                    }
+                }
+
+                function openAdd() {
+                    dialog.submitting = false;
+                    form.customerCode = '';
+                    form.customerName = '';
+                    form.accountType = 'PREPAID';
+                    form.txType = 'RECHARGE';
+                    form.amount = null;
+                    dialog.visible = true;
+                    nextTick(() => { if (formRef.value) formRef.value.clearValidate(); });
+                }
+
+                function resetForm() {}
+
+                function submitForm() {
+                    if (!formRef.value) return;
+                    formRef.value.validate((valid) => {
+                        if (!valid) return;
+
+                        // 额外校验：客户编码必须存在
+                        const found = customerDb.find(c => c.code === form.customerCode);
+                        if (!found) {
+                            ElementPlus.ElMessage.error('客户编码不存在，请确认后重新输入');
+                            return;
+                        }
+
+                        dialog.submitting = true;
+                        setTimeout(() => {
+                            const acct = allData.value.find(a => a.customerId === form.customerCode);
+                            if (acct) {
+                                const txAmount = form.amount || 0;
+                                if (form.txType === 'RECHARGE' && form.accountType === 'PREPAID') {
+                                    acct.balance += txAmount;
+                                }
+                                if (form.txType === 'WITHDRAW' && form.accountType === 'PREPAID') {
+                                    if (acct.balance < txAmount) {
+                                        ElementPlus.ElMessage.error('余额不足，当前余额：' + formatMoney(acct.balance) + '元');
+                                        dialog.submitting = false;
+                                        return;
+                                    }
+                                    acct.balance -= txAmount;
+                                }
+                                ElementPlus.ElMessage.success('流水新增成功');
+                            } else {
+                                ElementPlus.ElMessage.warning('未找到该客户的账户记录');
+                            }
+                            dialog.submitting = false;
+                            dialog.visible = false;
+                        }, 400);
+                    });
+                }
+
+                return {
+                    search, pageNum, pageSize, loading, tableData, total,
+                    dialog, formRef, form, rules,
+                    doSearch, resetSearch, formatMoney, viewLicense,
+                    queryCustomer, openAdd, resetForm, submitForm,
+                };
+            }
+        });
+
+        app.use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+    </script>
+</body>
+</html>

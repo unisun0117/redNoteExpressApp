@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品资料管理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 10px;
+        }
+        .query-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px 16px 12px 16px;
+            margin-bottom: 10px;
+        }
+        .data-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .toolbar-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .toolbar-left { display: flex; align-items: center; gap: 8px; }
+        .toolbar-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+        /* 子页面 */
+        .subpage-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .subpage-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #303133;
+        }
+
+        /* 上传组件模拟 */
+        .upload-box {
+            width: 100px; height: 100px;
+            border: 1px dashed #dcdfe6;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #c0c4cc;
+            font-size: 28px;
+            transition: border-color .2s;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        .upload-box:hover { border-color: #409eff; color: #409eff; }
+        .upload-box.has-img { border-style: solid; padding: 0; }
+        .upload-box.has-img img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+        }
+        .upload-box .remove-img {
+            position: absolute;
+            top: -2px; right: -2px;
+            width: 18px; height: 18px;
+            background: #f56c6c;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 12px;
+            line-height: 18px;
+            text-align: center;
+            cursor: pointer;
+            display: none;
+        }
+        .upload-box.has-img:hover .remove-img { display: block; }
+
+        .biz-notice {
+            background: #ecf5ff;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-top: 16px;
+            font-size: 13px;
+            color: #606266;
+        }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+
+        <!-- ==================== 列表视图 ==================== -->
+        <template v-if="currentView === 'list'">
+
+            <!-- 筛选栏（上）+ 操作栏（下） -->
+            <div class="query-card">
+                <div class="toolbar-row" style="margin-bottom:10px;">
+                    <div class="toolbar-right">
+                        <span style="font-size:14px;color:#606266;">销售大区：</span>
+                        <el-select v-model="query.region" style="width:140px;" clearable placeholder="全部">
+                            <el-option v-for="r in regionOptions" :key="r" :label="r" :value="r"></el-option>
+                        </el-select>
+                        <span style="font-size:14px;color:#606266;">商品条码：</span>
+                        <el-input v-model="query.barcode" style="width:160px;" placeholder="请输入" clearable @keyup.enter="doSearch"></el-input>
+                        <span style="font-size:14px;color:#606266;">商品名称：</span>
+                        <el-input v-model="query.name" style="width:160px;" placeholder="请输入" clearable @keyup.enter="doSearch"></el-input>
+                        <span style="font-size:14px;color:#606266;">状态：</span>
+                        <el-select v-model="query.status" style="width:120px;" clearable placeholder="全部">
+                            <el-option label="全部" value=""></el-option>
+                            <el-option label="已上架" value="已上架"></el-option>
+                            <el-option label="已下架" value="已下架"></el-option>
+                        </el-select>
+                        <el-button type="primary" @click="doSearch">查询</el-button>
+                        <el-button @click="resetSearch">重置</el-button>
+                    </div>
+                </div>
+                <div class="toolbar-row">
+                    <div class="toolbar-left">
+                        <el-button @click="handleExport">导出</el-button>
+                        <el-button @click="handleImportDialog">导入</el-button>
+                        <el-button type="primary" @click="openAdd">新增</el-button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 列表区 -->
+            <div class="data-card">
+                <div style="margin-bottom:12px;">
+                    <span style="font-size:13px;color:#909399;">共 {{ total }} 条记录</span>
+                </div>
+
+                <el-table
+                    :data="pageData"
+                    stripe
+                    style="width:100%;"
+                    :header-cell-style="{background:'#f5f7fa',color:'#606266',fontWeight:500}"
+                    border
+                >
+                    <el-table-column prop="regionName" label="销售大区" width="110" fixed="left"></el-table-column>
+                    <el-table-column prop="barcode" label="商品条码" width="140" fixed="left"></el-table-column>
+                    <el-table-column prop="productName" label="商品名称" width="140" show-overflow-tooltip>
+                        <template #header><span>商品名称 <span style="color:#b0b7c4;font-weight:400;font-size:10px;">(SKU表)</span></span></template>
+                    </el-table-column>
+                    <el-table-column prop="warehouseCode" label="仓库编码" width="120">
+                        <template #header><span>仓库编码 <span style="color:#b0b7c4;font-weight:400;font-size:10px;">(仓库表)</span></span></template>
+                    </el-table-column>
+                    <el-table-column prop="warehouseName" label="仓库名称" width="130" show-overflow-tooltip>
+                        <template #header><span>仓库名称 <span style="color:#b0b7c4;font-weight:400;font-size:10px;">(仓库表)</span></span></template>
+                    </el-table-column>
+                    <el-table-column label="状态" width="90" align="center">
+                        <template #default="scope">
+                            <el-tag :type="scope.row.status === '已上架' ? 'success' : 'info'" size="small">
+                                {{ scope.row.status }}
+                            </el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="miniName" label="小程序名称" width="130" show-overflow-tooltip></el-table-column>
+                    <el-table-column prop="orderBase" label="订购基数" width="100" align="right"></el-table-column>
+                    <el-table-column prop="orderMin" label="订购下限" width="100" align="right"></el-table-column>
+                    <el-table-column prop="orderMax" label="订购上限" width="100" align="right"></el-table-column>
+                    <el-table-column prop="dailyStock" label="每日可用库存" width="120" align="right"></el-table-column>
+                    <el-table-column prop="todayAvailable" label="今日可用数量" width="130" align="right">
+                        <template #header><span>今日可用数量 <span style="color:#b0b7c4;font-weight:400;font-size:10px;">(计算)</span></span></template>
+                    </el-table-column>
+                    <el-table-column prop="todaySold" label="今日已售数量" width="130" align="right">
+                        <template #header><span>今日已售数量 <span style="color:#b0b7c4;font-weight:400;font-size:10px;">(销售表)</span></span></template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="160" fixed="right" align="center">
+                        <template #default="scope">
+                            <el-button type="primary" link size="small" @click="openEdit(scope.row)">编辑</el-button>
+                            <el-button type="warning" link size="small" @click="openStockAdjust(scope.row)">调整库存</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+
+                <!-- 空状态 -->
+                <div v-if="filteredData.length === 0" style="text-align:center;padding:60px 0;color:#909399;">
+                    <div style="font-size:48px;margin-bottom:12px;">📦</div>
+                    <div style="font-size:14px;">暂无商品资料</div>
+                    <div style="font-size:12px;margin-top:4px;">点击左上角「新增」按钮添加商品资料</div>
+                </div>
+
+                <!-- 分页 -->
+                <div v-if="filteredData.length > 0" style="margin-top:16px;display:flex;justify-content:flex-end;">
+                    <el-pagination
+                        v-model:current-page="pageNum"
+                        v-model:page-size="pageSize"
+                        :page-sizes="[10, 20, 50]"
+                        :total="total"
+                        layout="total, sizes, prev, pager, next"
+                        background
+                    ></el-pagination>
+                </div>
+
+                <!-- 业务规则提示 -->
+                <div class="biz-notice">
+                    <strong>💡 数据模型说明（v1.1）：</strong><br>
+                    主键 = 销售大区 + 商品条码（联合唯一）；本表存储：warehouse_id（仓库ID），仓库编码/名称由仓库基础表关联查询；<br>
+                    商品名称由基础SKU表关联查询；今日已售数量由每日商品销售表关联查询；今日可用数量 = 每日可用库存 − 今日已售数量（实时计算）。<br>
+                    订购基数 ≤ 订购下限 ≤ 订购上限；每日可用库存仅通过「调整库存」修改；导入时仓库编码解析为仓库ID存储。
+                </div>
+            </div>
+        </template>
+
+        <!-- ==================== 新增子页面 ==================== -->
+        <template v-if="currentView === 'add'">
+            <div class="data-card">
+                <div class="subpage-header">
+                    <el-button @click="backToList" icon="ArrowLeft">返回列表</el-button>
+                    <span class="subpage-title">新增商品资料</span>
+                </div>
+
+                <el-form ref="addFormRef" :model="addForm" :rules="addRules" label-width="110px" style="max-width:720px;">
+                    <el-divider content-position="left">基础信息</el-divider>
+                    <el-row :gutter="20">
+                        <el-col :span="12">
+                            <el-form-item label="销售大区" prop="regionName">
+                                <el-select v-model="addForm.regionName" placeholder="请选择销售大区" style="width:100%;" @change="onRegionChange">
+                                    <el-option v-for="r in regionOptions" :key="r" :label="r" :value="r"></el-option>
+                                </el-select>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-form-item label="商品条码" prop="barcode">
+                                <el-input v-model="addForm.barcode" placeholder="请输入商品条码" @blur="lookupProductName"></el-input>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-row :gutter="20">
+                        <el-col :span="12">
+                            <el-form-item label="商品名称">
+                                <el-input v-model="addForm.productName" placeholder="输入条码后从基础SKU表自动查询" disabled></el-input>
+                                <div style="font-size:11px;color:#909399;">由基础SKU表关联查询，本表不存储</div>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-form-item label="仓库" prop="warehouseId">
+                                <el-select v-model="addForm.warehouseId" placeholder="请先选择销售大区" style="width:100%;" :disabled="!addForm.regionName" @change="onWarehouseChange">
+                                    <el-option v-for="w in availableWarehouses" :key="w.id" :label="w.code + ' / ' + w.name" :value="w.id"></el-option>
+                                </el-select>
+                                <div style="font-size:11px;color:#909399;">存储仓库ID；编码/名称由仓库基础表关联查询</div>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-row :gutter="20">
+                        <el-col :span="12">
+                            <el-form-item label="状态">
+                                <el-select v-model="addForm.status" style="width:100%;">
+                                    <el-option label="已上架" value="已上架"></el-option>
+                                    <el-option label="已下架" value="已下架"></el-option>
+                                </el-select>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-form-item label="小程序名称">
+                                <el-input v-model="addForm.miniName" placeholder="可为空" maxlength="100" clearable></el-input>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+
+                    <el-divider content-position="left">订购约束</el-divider>
+                    <el-row :gutter="20">
+                        <el-col :span="8">
+                            <el-form-item label="订购基数" prop="orderBase">
+                                <el-input v-model="addForm.orderBase" placeholder="必填">
+                                    <template #append>个</template>
+                                </el-input>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="8">
+                            <el-form-item label="订购下限" prop="orderMin">
+                                <el-input v-model="addForm.orderMin" placeholder="必填">
+                                    <template #append>个</template>
+                                </el-input>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="8">
+                            <el-form-item label="订购上限" prop="orderMax">
+                                <el-input v-model="addForm.orderMax" placeholder="必填">
+                                    <template #append>个</template>
+                                </el-input>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+
+                    <el-divider content-position="left">库存</el-divider>
+                    <el-row :gutter="20">
+                        <el-col :span="8">
+                            <el-form-item label="每日可用库存" prop="dailyStock">
+                                <el-input v-model="addForm.dailyStock" placeholder="必填">
+                                    <template #append>个</template>
+                                </el-input>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="8">
+                            <el-form-item label="今日可用数量">
+                                <el-input :model-value="addForm.dailyStock" disabled>
+                                    <template #append>个</template>
+                                </el-input>
+                                <div style="font-size:11px;color:#909399;">默认=每日可用库存</div>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="8">
+                            <el-form-item label="今日已售数量">
+                                <el-input model-value="0" disabled>
+                                    <template #append>个</template>
+                                </el-input>
+                                <div style="font-size:11px;color:#909399;">默认=0</div>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+
+                    <el-divider content-position="left">图片与详情</el-divider>
+                    <el-form-item label="商品主图">
+                        <div style="display:flex;align-items:flex-start;gap:8px;">
+                            <div class="upload-box" :class="{ 'has-img': addForm.mainImage }" @click="simulateUpload('addMain')">
+                                <template v-if="addForm.mainImage">
+                                    <img :src="addForm.mainImage">
+                                    <span class="remove-img" @click.stop="addForm.mainImage = ''">✕</span>
+                                </template>
+                                <template v-else>＋</template>
+                            </div>
+                            <span style="font-size:12px;color:#909399;line-height:100px;">可为空，仅一张</span>
+                        </div>
+                    </el-form-item>
+                    <el-form-item label="轮播图">
+                        <div style="display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;">
+                            <div v-for="(img, idx) in addForm.bannerImages" :key="idx" class="upload-box has-img">
+                                <img :src="img">
+                                <span class="remove-img" @click="addForm.bannerImages.splice(idx,1)">✕</span>
+                            </div>
+                            <div v-if="addForm.bannerImages.length < 9" class="upload-box" @click="simulateUpload('addBanner')">＋</div>
+                            <span style="font-size:12px;color:#909399;line-height:100px;">可为空，最多9张</span>
+                        </div>
+                    </el-form-item>
+                    <el-form-item label="商品详情">
+                        <div style="border:1px solid #dcdfe6;border-radius:6px;padding:8px;min-height:120px;">
+                            <div style="border-bottom:1px solid #ebeef5;padding-bottom:8px;margin-bottom:8px;display:flex;gap:4px;">
+                                <el-button size="small" text>B</el-button>
+                                <el-button size="small" text style="font-style:italic;">I</el-button>
+                                <el-button size="small" text style="text-decoration:underline;">U</el-button>
+                                <span style="color:#dcdfe6;">|</span>
+                                <el-button size="small" text>H1</el-button>
+                                <el-button size="small" text>H2</el-button>
+                                <span style="color:#dcdfe6;">|</span>
+                                <el-button size="small" text>📷 图片</el-button>
+                            </div>
+                            <el-input v-model="addForm.detail" type="textarea" :rows="5" placeholder="可为空，富文本内容"></el-input>
+                            <div style="font-size:12px;color:#909399;margin-top:4px;">富文本编辑器（模拟），可为空</div>
+                        </div>
+                    </el-form-item>
+
+                    <div style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid #ebeef5;">
+                        <el-button @click="backToList">取消</el-button>
+                        <el-button type="primary" @click="submitAdd" :loading="addForm.submitting">保存</el-button>
+                    </div>
+                </el-form>
+            </div>
+        </template>
+
+        <!-- ==================== 编辑子页面 ==================== -->
+        <template v-if="currentView === 'edit'">
+            <div class="data-card">
+                <div class="subpage-header">
+                    <el-button @click="backToList" icon="ArrowLeft">返回列表</el-button>
+                    <span class="subpage-title">编辑商品资料</span>
+                </div>
+
+                <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="110px" style="max-width:720px;">
+                    <el-divider content-position="left">基础信息 <span style="font-size:12px;color:#909399;font-weight:400;">（灰显字段不可修改）</span></el-divider>
+                    <el-row :gutter="20">
+                        <el-col :span="12">
+                            <el-form-item label="销售大区">
+                                <el-input :model-value="editForm.regionName" disabled></el-input>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-form-item label="商品条码">
+                                <el-input :model-value="editForm.barcode" disabled></el-input>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-row :gutter="20">
+                        <el-col :span="12">
+                            <el-form-item label="商品名称">
+                                <el-input :model-value="editForm.productName" disabled></el-input>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-form-item label="仓库" prop="warehouseId">
+                                <el-select v-model="editForm.warehouseId" placeholder="请选择仓库" style="width:100%;" @change="onEditWarehouseChange">
+                                    <el-option v-for="w in editAvailableWarehouses" :key="w.id" :label="w.code + ' / ' + w.name" :value="w.id"></el-option>
+                                </el-select>
+                                <div style="font-size:11px;color:#909399;">存储仓库ID；编码/名称由仓库基础表关联查询</div>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-row :gutter="20">
+                        <el-col :span="12">
+                            <el-form-item label="状态">
+                                <el-select v-model="editForm.status" style="width:100%;">
+                                    <el-option label="已上架" value="已上架"></el-option>
+                                    <el-option label="已下架" value="已下架"></el-option>
+                                </el-select>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-form-item label="小程序名称">
+                                <el-input v-model="editForm.miniName" placeholder="可为空" maxlength="100" clearable></el-input>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+
+                    <el-divider content-position="left">订购约束</el-divider>
+                    <el-row :gutter="20">
+                        <el-col :span="8">
+                            <el-form-item label="订购基数" prop="orderBase">
+                                <el-input v-model="editForm.orderBase" placeholder="必填">
+                                    <template #append>个</template>
+                                </el-input>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="8">
+                            <el-form-item label="订购下限" prop="orderMin">
+                                <el-input v-model="editForm.orderMin" placeholder="必填">
+                                    <template #append>个</template>
+                                </el-input>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="8">
+                            <el-form-item label="订购上限" prop="orderMax">
+                                <el-input v-model="editForm.orderMax" placeholder="必填">
+                                    <template #append>个</template>
+                                </el-input>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+
+                    <el-divider content-position="left">库存 <span style="font-size:12px;color:#909399;font-weight:400;">（库存字段不可修改）</span></el-divider>
+                    <el-row :gutter="20">
+                        <el-col :span="8">
+                            <el-form-item label="每日可用库存">
+                                <el-input :model-value="editForm.dailyStock" disabled>
+                                    <template #append>个</template>
+                                </el-input>
+                                <div style="font-size:11px;color:#909399;">仅可通过「调整库存」修改</div>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="8">
+                            <el-form-item label="今日可用数量">
+                                <el-input :model-value="editForm.todayAvailable" disabled>
+                                    <template #append>个</template>
+                                </el-input>
+                                <div style="font-size:11px;color:#909399;">系统自动计算</div>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="8">
+                            <el-form-item label="今日已售数量">
+                                <el-input :model-value="editForm.todaySold" disabled>
+                                    <template #append>个</template>
+                                </el-input>
+                                <div style="font-size:11px;color:#909399;">订单侧同步</div>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+
+                    <el-divider content-position="left">图片与详情</el-divider>
+                    <el-form-item label="商品主图">
+                        <div style="display:flex;align-items:flex-start;gap:8px;">
+                            <div class="upload-box" :class="{ 'has-img': editForm.mainImage }" @click="simulateUpload('editMain')">
+                                <template v-if="editForm.mainImage">
+                                    <img :src="editForm.mainImage">
+                                    <span class="remove-img" @click.stop="editForm.mainImage = ''">✕</span>
+                                </template>
+                                <template v-else>＋</template>
+                            </div>
+                            <span style="font-size:12px;color:#909399;line-height:100px;">可为空，仅一张</span>
+                        </div>
+                    </el-form-item>
+                    <el-form-item label="轮播图">
+                        <div style="display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;">
+                            <div v-for="(img, idx) in editForm.bannerImages" :key="idx" class="upload-box has-img">
+                                <img :src="img">
+                                <span class="remove-img" @click="editForm.bannerImages.splice(idx,1)">✕</span>
+                            </div>
+                            <div v-if="editForm.bannerImages.length < 9" class="upload-box" @click="simulateUpload('editBanner')">＋</div>
+                            <span style="font-size:12px;color:#909399;line-height:100px;">可为空，最多9张</span>
+                        </div>
+                    </el-form-item>
+                    <el-form-item label="商品详情">
+                        <div style="border:1px solid #dcdfe6;border-radius:6px;padding:8px;min-height:120px;">
+                            <div style="border-bottom:1px solid #ebeef5;padding-bottom:8px;margin-bottom:8px;display:flex;gap:4px;">
+                                <el-button size="small" text>B</el-button>
+                                <el-button size="small" text style="font-style:italic;">I</el-button>
+                                <el-button size="small" text style="text-decoration:underline;">U</el-button>
+                                <span style="color:#dcdfe6;">|</span>
+                                <el-button size="small" text>📷 图片</el-button>
+                            </div>
+                            <el-input v-model="editForm.detail" type="textarea" :rows="5" placeholder="可为空，富文本内容"></el-input>
+                        </div>
+                    </el-form-item>
+
+                    <div style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid #ebeef5;">
+                        <el-button @click="backToList">取消</el-button>
+                        <el-button type="primary" @click="submitEdit" :loading="editForm.submitting">保存</el-button>
+                    </div>
+                </el-form>
+            </div>
+        </template>
+
+        <!-- ==================== 库存调整弹窗 ==================== -->
+        <el-dialog
+            v-model="stockDialog.visible"
+            title="调整库存"
+            width="480px"
+            :close-on-click-modal="false"
+            @close="resetStockDialog"
+        >
+            <el-form :model="stockForm" label-width="110px">
+                <el-form-item label="销售大区">
+                    <el-input :model-value="stockForm.regionName" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="商品条码">
+                    <el-input :model-value="stockForm.barcode" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="商品名称">
+                    <el-input :model-value="stockForm.productName" disabled></el-input>
+                </el-form-item>
+                <el-divider></el-divider>
+                <el-form-item label="今日可用库存" prop="todayStock" :rules="[{ required: true, message: '请输入今日可用库存' }, { pattern: /^\d+(\.\d{1,2})?$/, message: '最多两位小数' }]">
+                    <el-input v-model="stockForm.todayStock" placeholder="可编辑修改" @input="recalcAvailable">
+                        <template #append>个</template>
+                    </el-input>
+                </el-form-item>
+                <el-form-item label="今日可用数量">
+                    <el-input :model-value="stockForm.calcAvailable" disabled>
+                        <template #append>个</template>
+                    </el-input>
+                    <div style="font-size:11px;color:#909399;">= 今日可用库存 - 今日已售数量</div>
+                </el-form-item>
+                <el-form-item label="今日已售数量">
+                    <el-input :model-value="stockForm.todaySold" disabled>
+                        <template #append>个</template>
+                    </el-input>
+                    <div style="font-size:11px;color:#909399;">由订单侧实时同步，不可编辑</div>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="stockDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitStockAdjust" :loading="stockDialog.submitting">确认</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 导入弹窗 ==================== -->
+        <el-dialog
+            v-model="importDialog.visible"
+            title="导入商品资料"
+            width="520px"
+            :close-on-click-modal="false"
+        >
+            <div style="margin-bottom:16px;">
+                <div style="font-size:13px;color:#606266;margin-bottom:8px;">
+                    📥 请按导出模板格式上传 Excel 文件，系统将按「销售大区 + 商品条码」逐行匹配：
+                </div>
+                <div style="font-size:12px;color:#909399;margin-bottom:4px;">
+                    ✅ <b>匹配到已有记录</b> → 更新：仓库编码（解析为仓库ID）、状态、小程序名称、订购基数、订购下限、订购上限
+                </div>
+                <div style="font-size:12px;color:#909399;margin-bottom:4px;">
+                    🆕 <b>未匹配到记录</b> → 自动新增（仓库编码解析为仓库ID存储；商品名称从基础SKU表反查；每日可用库存必填）
+                </div>
+                <div style="font-size:12px;color:#909399;margin-bottom:12px;">
+                    ℹ️ <b>导入时忽略的参考字段</b>：商品名称、仓库名称、今日可用数量、今日已售数量（由关联表查询，不做处理）
+                </div>
+                <el-upload
+                    drag
+                    :auto-upload="false"
+                    :on-change="handleFileChange"
+                    :limit="1"
+                    accept=".xlsx,.xls"
+                >
+                    <div style="padding:20px;">
+                        <div style="font-size:36px;margin-bottom:8px;">📁</div>
+                        <div style="font-size:14px;color:#606266;">将 Excel 文件拖到此处，或<em style="color:#409eff;">点击上传</em></div>
+                        <div style="font-size:12px;color:#909399;margin-top:4px;">仅支持 .xlsx / .xls 格式</div>
+                    </div>
+                </el-upload>
+            </div>
+            <template #footer>
+                <el-button @click="importDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitImport" :loading="importDialog.submitting">开始导入</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 导入结果弹窗 ==================== -->
+        <el-dialog v-model="importResultDialog.visible" title="导入结果" width="440px">
+            <div style="text-align:center;padding:20px 0;">
+                <div style="font-size:16px;margin-bottom:8px;">
+                    新增 <span style="color:#409eff;font-weight:bold;">{{ importResultDialog.inserted }}</span> 条，
+                    更新 <span style="color:#67c23a;font-weight:bold;">{{ importResultDialog.updated }}</span> 条，
+                    失败 <span style="color:#f56c6c;font-weight:bold;">{{ importResultDialog.fail }}</span> 条
+                </div>
+                <div v-if="importResultDialog.errors.length > 0" style="text-align:left;margin-top:12px;">
+                    <div style="font-size:13px;color:#909399;margin-bottom:4px;">失败原因：</div>
+                    <div v-for="(e, i) in importResultDialog.errors" :key="i" style="font-size:12px;color:#f56c6c;line-height:1.8;">
+                        {{ e }}
+                    </div>
+                </div>
+            </div>
+            <template #footer>
+                <el-button type="primary" @click="importResultDialog.visible = false">知道了</el-button>
+            </template>
+        </el-dialog>
+
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+    <script>
+        var { createApp, ref, reactive, computed, watch, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                // ================================================================
+                // Mock 数据
+                // ================================================================
+                var allData = ref([
+                    { regionName: '海南区', barcode: '6901234567890', productName: '红富士苹果', warehouseId: 'WH001', warehouseCode: 'D011', warehouseName: '海南海口仓', status: '已上架', miniName: '精选红富士', mainImage: '', bannerImages: [], detail: '<p>新鲜红富士苹果，产地直供</p>', orderBase: '10.00', orderMin: '10.00', orderMax: '100.00', dailyStock: '500.00', todayAvailable: '470.00', todaySold: '30.00' },
+                    { regionName: '海南区', barcode: '6901234567891', productName: '脐橙', warehouseId: 'WH001', warehouseCode: 'D011', warehouseName: '海南海口仓', status: '已上架', miniName: '', mainImage: '', bannerImages: [], detail: '', orderBase: '5.00', orderMin: '5.00', orderMax: '200.00', dailyStock: '300.00', todayAvailable: '280.00', todaySold: '20.00' },
+                    { regionName: '广深区', barcode: '6901234567892', productName: '五花肉', warehouseId: 'WH002', warehouseCode: 'D012', warehouseName: '广深区一号仓', status: '已上架', miniName: '精品五花肉', mainImage: '', bannerImages: [], detail: '<p>优质猪五花</p>', orderBase: '2.00', orderMin: '2.00', orderMax: '50.00', dailyStock: '200.00', todayAvailable: '180.00', todaySold: '20.00' },
+                    { regionName: '广深区', barcode: '6901234567893', productName: '排骨', warehouseId: 'WH003', warehouseCode: 'D013', warehouseName: '广深区二号仓', status: '已下架', miniName: '', mainImage: '', bannerImages: [], detail: '', orderBase: '3.00', orderMin: '3.00', orderMax: '80.00', dailyStock: '150.00', todayAvailable: '150.00', todaySold: '0.00' },
+                    { regionName: '华东区', barcode: '6901234567894', productName: '蓝莓', warehouseId: 'WH004', warehouseCode: 'D014', warehouseName: '华东杭州仓', status: '已上架', miniName: '进口蓝莓', mainImage: '', bannerImages: [], detail: '<p>进口蓝莓，125g/盒</p>', orderBase: '10.00', orderMin: '10.00', orderMax: '300.00', dailyStock: '800.00', todayAvailable: '750.00', todaySold: '50.00' },
+                    { regionName: '华中区', barcode: '6901234567895', productName: '菠菜', warehouseId: 'WH005', warehouseCode: 'D015', warehouseName: '华中武汉仓', status: '已上架', miniName: '', mainImage: '', bannerImages: [], detail: '', orderBase: '20.00', orderMin: '20.00', orderMax: '500.00', dailyStock: '600.00', todayAvailable: '600.00', todaySold: '0.00' },
+                    { regionName: '西南区', barcode: '6901234567896', productName: '鸡腿', warehouseId: 'WH006', warehouseCode: 'D016', warehouseName: '西南成都仓', status: '已上架', miniName: '冷冻鸡腿', mainImage: '', bannerImages: [], detail: '<p>冷冻鸡腿，1kg/袋</p>', orderBase: '5.00', orderMin: '5.00', orderMax: '100.00', dailyStock: '400.00', todayAvailable: '380.00', todaySold: '20.00' },
+                    { regionName: '海南区', barcode: '6901234567897', productName: '砂糖橘', warehouseId: 'WH007', warehouseCode: 'D017', warehouseName: '海南三亚仓', status: '已上架', miniName: '海南砂糖橘', mainImage: '', bannerImages: [], detail: '', orderBase: '10.00', orderMin: '10.00', orderMax: '200.00', dailyStock: '1000.00', todayAvailable: '900.00', todaySold: '100.00' },
+                ]);
+
+                // ================================================================
+                // 下拉选项
+                // ================================================================
+                var regionOptions = ['海南区', '广深区', '华东区', '华中区', '西南区'];
+
+                var allWarehouses = [
+                    { id: 'WH001', code: 'D011', name: '海南海口仓', region: '海南区' },
+                    { id: 'WH002', code: 'D012', name: '广深区一号仓', region: '广深区' },
+                    { id: 'WH003', code: 'D013', name: '广深区二号仓', region: '广深区' },
+                    { id: 'WH004', code: 'D014', name: '华东杭州仓', region: '华东区' },
+                    { id: 'WH005', code: 'D015', name: '华中武汉仓', region: '华中区' },
+                    { id: 'WH006', code: 'D016', name: '西南成都仓', region: '西南区' },
+                    { id: 'WH007', code: 'D017', name: '海南三亚仓', region: '海南区' },
+                    { id: 'WH008', code: 'D018', name: '华东冷链仓', region: '华东区' },
+                ];
+
+                // 模拟底层商品条码表
+                var productBarcodeMap = {
+                    '6901234567890': '红富士苹果',
+                    '6901234567891': '脐橙',
+                    '6901234567892': '五花肉',
+                    '6901234567893': '排骨',
+                    '6901234567894': '蓝莓',
+                    '6901234567895': '菠菜',
+                    '6901234567896': '鸡腿',
+                    '6901234567897': '砂糖橘',
+                };
+
+                // ================================================================
+                // 视图状态
+                // ================================================================
+                var currentView = ref('list'); // 'list' | 'add' | 'edit'
+
+                // ================================================================
+                // 查询条件
+                // ================================================================
+                var query = reactive({ region: '', barcode: '', name: '', status: '' });
+                var pageNum = ref(1);
+                var pageSize = ref(20);
+
+                // ================================================================
+                // 筛选 & 分页
+                // ================================================================
+                var filteredData = computed(function() {
+                    return allData.value.filter(function(row) {
+                        if (query.region && row.regionName !== query.region) return false;
+                        if (query.barcode && row.barcode.indexOf(query.barcode) === -1) return false;
+                        if (query.name && row.productName.toLowerCase().indexOf(query.name.toLowerCase()) === -1) return false;
+                        if (query.status && row.status !== query.status) return false;
+                        return true;
+                    });
+                });
+
+                var total = computed(function() { return filteredData.value.length; });
+
+                var pageData = computed(function() {
+                    var start = (pageNum.value - 1) * pageSize.value;
+                    return filteredData.value.slice(start, start + pageSize.value);
+                });
+
+                function doSearch() {
+                    pageNum.value = 1;
+                }
+
+                function resetSearch() {
+                    query.region = '';
+                    query.barcode = '';
+                    query.name = '';
+                    query.status = '';
+                    pageNum.value = 1;
+                }
+
+                // ================================================================
+                // 视图切换
+                // ================================================================
+                function backToList() {
+                    currentView.value = 'list';
+                }
+
+                // ================================================================
+                // 新增表单
+                // ================================================================
+                var addFormRef = ref(null);
+                var addForm = reactive({
+                    regionName: '', barcode: '', productName: '', warehouseId: '', warehouseCode: '', warehouseName: '',
+                    status: '已上架', miniName: '',
+                    mainImage: '', bannerImages: [],
+                    detail: '',
+                    orderBase: '', orderMin: '', orderMax: '', dailyStock: '',
+                    submitting: false,
+                });
+
+                var addRules = {
+                    regionName: [{ required: true, message: '请选择销售大区', trigger: 'change' }],
+                    barcode: [{ required: true, message: '请输入商品条码', trigger: 'blur' }],
+                    warehouseId: [{ required: true, message: '请选择仓库', trigger: 'change' }],
+                    orderBase: [
+                        { required: true, message: '请输入订购基数', trigger: 'blur' },
+                        { pattern: /^\d+(\.\d{1,2})?$/, message: '最多两位小数', trigger: 'blur' },
+                    ],
+                    orderMin: [
+                        { required: true, message: '请输入订购下限', trigger: 'blur' },
+                        { pattern: /^\d+(\.\d{1,2})?$/, message: '最多两位小数', trigger: 'blur' },
+                    ],
+                    orderMax: [
+                        { required: true, message: '请输入订购上限', trigger: 'blur' },
+                        { pattern: /^\d+(\.\d{1,2})?$/, message: '最多两位小数', trigger: 'blur' },
+                    ],
+                    dailyStock: [
+                        { required: true, message: '请输入每日可用库存', trigger: 'blur' },
+                        { pattern: /^\d+(\.\d{1,2})?$/, message: '最多两位小数', trigger: 'blur' },
+                    ],
+                };
+
+                var availableWarehouses = computed(function() {
+                    if (!addForm.regionName) return [];
+                    return allWarehouses.filter(function(w) { return w.region === addForm.regionName; });
+                });
+
+                function onRegionChange() {
+                    addForm.warehouseId = '';
+                    addForm.warehouseCode = '';
+                    addForm.warehouseName = '';
+                }
+
+                function onWarehouseChange(warehouseId) {
+                    var found = allWarehouses.find(function(w) { return w.id === warehouseId; });
+                    if (found) {
+                        addForm.warehouseCode = found.code;
+                        addForm.warehouseName = found.name;
+                    } else {
+                        addForm.warehouseCode = '';
+                        addForm.warehouseName = '';
+                    }
+                }
+
+                function lookupProductName() {
+                    if (!addForm.barcode) { addForm.productName = ''; return; }
+                    var name = productBarcodeMap[addForm.barcode];
+                    if (name) {
+                        addForm.productName = name;
+                    } else {
+                        addForm.productName = '';
+                        ElementPlus.ElMessage.warning('未找到该商品条码（基础SKU表中无此条码），请检查');
+                    }
+                }
+
+                function openAdd() {
+                    resetAddForm();
+                    currentView.value = 'add';
+                }
+
+                function resetAddForm() {
+                    addForm.regionName = '';
+                    addForm.barcode = '';
+                    addForm.productName = '';
+                    addForm.warehouseId = '';
+                    addForm.warehouseCode = '';
+                    addForm.warehouseName = '';
+                    addForm.status = '已上架';
+                    addForm.miniName = '';
+                    addForm.mainImage = '';
+                    addForm.bannerImages = [];
+                    addForm.detail = '';
+                    addForm.orderBase = '';
+                    addForm.orderMin = '';
+                    addForm.orderMax = '';
+                    addForm.dailyStock = '';
+                    addForm.submitting = false;
+                    nextTick(function() { if (addFormRef.value) addFormRef.value.clearValidate(); });
+                }
+
+                function submitAdd() {
+                    addFormRef.value && addFormRef.value.validate(function(valid) {
+                        if (!valid) return;
+
+                        var exists = allData.value.some(function(row) {
+                            return row.regionName === addForm.regionName && row.barcode === addForm.barcode;
+                        });
+                        if (exists) {
+                            ElementPlus.ElMessage.error('该销售大区下已存在相同商品条码，请检查');
+                            return;
+                        }
+
+                        var base = parseFloat(addForm.orderBase);
+                        var min = parseFloat(addForm.orderMin);
+                        var max = parseFloat(addForm.orderMax);
+                        if (!(base <= min && min <= max)) {
+                            ElementPlus.ElMessage.error('订购基数 ≤ 订购下限 ≤ 订购上限，请检查输入');
+                            return;
+                        }
+
+                        addForm.submitting = true;
+                        setTimeout(function() {
+                            allData.value.unshift({
+                                regionName: addForm.regionName,
+                                barcode: addForm.barcode,
+                                productName: addForm.productName,
+                                warehouseId: addForm.warehouseId,
+                                warehouseCode: addForm.warehouseCode,
+                                warehouseName: addForm.warehouseName,
+                                status: addForm.status,
+                                miniName: addForm.miniName,
+                                mainImage: addForm.mainImage,
+                                bannerImages: addForm.bannerImages.slice(),
+                                detail: addForm.detail,
+                                orderBase: parseFloat(addForm.orderBase).toFixed(2),
+                                orderMin: parseFloat(addForm.orderMin).toFixed(2),
+                                orderMax: parseFloat(addForm.orderMax).toFixed(2),
+                                dailyStock: parseFloat(addForm.dailyStock).toFixed(2),
+                                todayAvailable: parseFloat(addForm.dailyStock).toFixed(2),
+                                todaySold: '0.00',
+                            });
+                            addForm.submitting = false;
+                            ElementPlus.ElMessage.success('商品资料新增成功（联合主键 regionCode=' + addForm.regionName + ' barcode=' + addForm.barcode + '）');
+                            currentView.value = 'list';
+                        }, 400);
+                    });
+                }
+
+                // ================================================================
+                // 编辑表单
+                // ================================================================
+                var editFormRef = ref(null);
+                var editingKey = reactive({ regionName: '', barcode: '' });
+                var editForm = reactive({
+                    regionName: '', barcode: '', productName: '', warehouseId: '', warehouseCode: '', warehouseName: '',
+                    status: '', miniName: '',
+                    mainImage: '', bannerImages: [],
+                    detail: '',
+                    orderBase: '', orderMin: '', orderMax: '',
+                    dailyStock: '', todayAvailable: '', todaySold: '',
+                    submitting: false,
+                });
+
+                var editRules = {
+                    warehouseId: [{ required: true, message: '请选择仓库', trigger: 'change' }],
+                    orderBase: [
+                        { required: true, message: '请输入订购基数', trigger: 'blur' },
+                        { pattern: /^\d+(\.\d{1,2})?$/, message: '最多两位小数', trigger: 'blur' },
+                    ],
+                    orderMin: [
+                        { required: true, message: '请输入订购下限', trigger: 'blur' },
+                        { pattern: /^\d+(\.\d{1,2})?$/, message: '最多两位小数', trigger: 'blur' },
+                    ],
+                    orderMax: [
+                        { required: true, message: '请输入订购上限', trigger: 'blur' },
+                        { pattern: /^\d+(\.\d{1,2})?$/, message: '最多两位小数', trigger: 'blur' },
+                    ],
+                };
+
+                var editAvailableWarehouses = computed(function() {
+                    if (!editForm.regionName) return [];
+                    return allWarehouses.filter(function(w) { return w.region === editForm.regionName; });
+                });
+
+                function onEditWarehouseChange(warehouseId) {
+                    var found = allWarehouses.find(function(w) { return w.id === warehouseId; });
+                    if (found) {
+                        editForm.warehouseCode = found.code;
+                        editForm.warehouseName = found.name;
+                    } else {
+                        editForm.warehouseCode = '';
+                        editForm.warehouseName = '';
+                    }
+                }
+
+                function openEdit(row) {
+                    editingKey.regionName = row.regionName;
+                    editingKey.barcode = row.barcode;
+                    editForm.regionName = row.regionName;
+                    editForm.barcode = row.barcode;
+                    editForm.productName = row.productName;
+                    editForm.warehouseId = row.warehouseId;
+                    editForm.warehouseCode = row.warehouseCode;
+                    editForm.warehouseName = row.warehouseName;
+                    editForm.status = row.status;
+                    editForm.miniName = row.miniName;
+                    editForm.mainImage = row.mainImage;
+                    editForm.bannerImages = row.bannerImages ? row.bannerImages.slice() : [];
+                    editForm.detail = row.detail;
+                    editForm.orderBase = row.orderBase;
+                    editForm.orderMin = row.orderMin;
+                    editForm.orderMax = row.orderMax;
+                    editForm.dailyStock = row.dailyStock;
+                    editForm.todayAvailable = row.todayAvailable;
+                    editForm.todaySold = row.todaySold;
+                    editForm.submitting = false;
+                    currentView.value = 'edit';
+                    nextTick(function() { if (editFormRef.value) editFormRef.value.clearValidate(); });
+                }
+
+                function submitEdit() {
+                    editFormRef.value && editFormRef.value.validate(function(valid) {
+                        if (!valid) return;
+
+                        var base = parseFloat(editForm.orderBase);
+                        var min = parseFloat(editForm.orderMin);
+                        var max = parseFloat(editForm.orderMax);
+                        if (!(base <= min && min <= max)) {
+                            ElementPlus.ElMessage.error('订购基数 ≤ 订购下限 ≤ 订购上限，请检查输入');
+                            return;
+                        }
+
+                        editForm.submitting = true;
+                        setTimeout(function() {
+                            var target = allData.value.find(function(r) {
+                                return r.regionName === editingKey.regionName && r.barcode === editingKey.barcode;
+                            });
+                            if (target) {
+                                target.warehouseId = editForm.warehouseId;
+                                target.warehouseCode = editForm.warehouseCode;
+                                target.warehouseName = editForm.warehouseName;
+                                target.status = editForm.status;
+                                target.miniName = editForm.miniName;
+                                target.mainImage = editForm.mainImage;
+                                target.bannerImages = editForm.bannerImages.slice();
+                                target.detail = editForm.detail;
+                                target.orderBase = parseFloat(editForm.orderBase).toFixed(2);
+                                target.orderMin = parseFloat(editForm.orderMin).toFixed(2);
+                                target.orderMax = parseFloat(editForm.orderMax).toFixed(2);
+                            }
+                            editForm.submitting = false;
+                            ElementPlus.ElMessage.success('商品资料编辑成功（联合主键 regionCode=' + editingKey.regionName + ' barcode=' + editingKey.barcode + '）');
+                            currentView.value = 'list';
+                        }, 400);
+                    });
+                }
+
+                // ================================================================
+                // 库存调整弹窗
+                // ================================================================
+                var stockDialog = reactive({ visible: false, submitting: false });
+                var adjustingKey = reactive({ regionName: '', barcode: '' });
+                var stockForm = reactive({
+                    regionName: '', barcode: '', productName: '',
+                    todayStock: '', todaySold: '', calcAvailable: '',
+                });
+
+                function openStockAdjust(row) {
+                    adjustingKey.regionName = row.regionName;
+                    adjustingKey.barcode = row.barcode;
+                    stockForm.regionName = row.regionName;
+                    stockForm.barcode = row.barcode;
+                    stockForm.productName = row.productName;
+                    stockForm.todayStock = row.dailyStock;
+                    stockForm.todaySold = row.todaySold;
+                    stockForm.calcAvailable = (parseFloat(row.dailyStock) - parseFloat(row.todaySold || 0)).toFixed(2);
+                    stockDialog.visible = true;
+                }
+
+                function recalcAvailable() {
+                    var stock = parseFloat(stockForm.todayStock) || 0;
+                    var sold = parseFloat(stockForm.todaySold) || 0;
+                    var avail = stock - sold;
+                    stockForm.calcAvailable = Math.max(0, avail).toFixed(2);
+                }
+
+                function resetStockDialog() {
+                    adjustingKey.regionName = '';
+                    adjustingKey.barcode = '';
+                }
+
+                function submitStockAdjust() {
+                    if (!stockForm.todayStock || !/^\d+(\.\d{1,2})?$/.test(stockForm.todayStock)) {
+                        ElementPlus.ElMessage.warning('请输入正确的今日可用库存（最多两位小数）');
+                        return;
+                    }
+                    var avail = parseFloat(stockForm.calcAvailable);
+                    if (avail < 0) {
+                        ElementPlus.ElMessage.error('今日可用数量不能为负数，请检查今日可用库存');
+                        return;
+                    }
+
+                    stockDialog.submitting = true;
+                    setTimeout(function() {
+                        var target = allData.value.find(function(r) {
+                            return r.regionName === adjustingKey.regionName && r.barcode === adjustingKey.barcode;
+                        });
+                        if (target) {
+                            target.dailyStock = parseFloat(stockForm.todayStock).toFixed(2);
+                            target.todayAvailable = stockForm.calcAvailable;
+                        }
+                        stockDialog.submitting = false;
+                        stockDialog.visible = false;
+                        ElementPlus.ElMessage.success('库存调整成功');
+                    }, 300);
+                }
+
+                // ================================================================
+                // 导出（模拟）
+                // ================================================================
+                function handleExport() {
+                    if (filteredData.value.length === 0) {
+                        ElementPlus.ElMessage.warning('当前无数据可导出');
+                        return;
+                    }
+                    ElementPlus.ElMessage.success(
+                        '导出成功！共导出 ' + filteredData.value.length + ' 条记录（已排除：商品主图、轮播图、商品详情）'
+                    );
+                }
+
+                // ================================================================
+                // 导入（模拟：支持新增 + 更新）
+                // ================================================================
+                var importDialog = reactive({ visible: false, submitting: false, file: null });
+                var importResultDialog = reactive({ visible: false, inserted: 0, updated: 0, fail: 0, errors: [] });
+
+                function handleImportDialog() {
+                    importDialog.file = null;
+                    importDialog.visible = true;
+                }
+
+                function handleFileChange(file) {
+                    importDialog.file = file;
+                }
+
+                function submitImport() {
+                    if (!importDialog.file) {
+                        ElementPlus.ElMessage.warning('请先选择要上传的 Excel 文件');
+                        return;
+                    }
+                    importDialog.submitting = true;
+                    setTimeout(function() {
+                        importResultDialog.inserted = 2;
+                        importResultDialog.updated = 5;
+                        importResultDialog.fail = 1;
+                        importResultDialog.errors = [
+                            '第7行：订购基数格式错误（"abc"不是有效数字）',
+                        ];
+                        importDialog.submitting = false;
+                        importDialog.visible = false;
+                        importResultDialog.visible = true;
+                    }, 800);
+                }
+
+                // ================================================================
+                // 模拟图片上传
+                // ================================================================
+                function simulateUpload(target) {
+                    var placeholderColors = ['409eff', '67c23a', 'e6a23c', 'f56c6c', '909399'];
+                    var color = placeholderColors[Math.floor(Math.random() * placeholderColors.length)];
+                    var url = 'data:image/svg+xml,' + encodeURIComponent(
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect fill="#' + color + '" width="200" height="200"/><text x="100" y="110" text-anchor="middle" fill="white" font-size="28" font-family="sans-serif">商品图</text></svg>'
+                    );
+
+                    if (target === 'addMain') {
+                        addForm.mainImage = url;
+                    } else if (target === 'addBanner') {
+                        if (addForm.bannerImages.length < 9) {
+                            addForm.bannerImages.push(url);
+                        }
+                    } else if (target === 'editMain') {
+                        editForm.mainImage = url;
+                    } else if (target === 'editBanner') {
+                        if (editForm.bannerImages.length < 9) {
+                            editForm.bannerImages.push(url);
+                        }
+                    }
+                    ElementPlus.ElMessage.success('图片上传成功（模拟）');
+                }
+
+                // ================================================================
+                // 分页监听
+                // ================================================================
+                watch([pageNum, pageSize], function() {});
+
+                return {
+                    currentView, query, pageNum, pageSize, filteredData, total, pageData,
+                    doSearch, resetSearch, backToList,
+                    addFormRef, addForm, addRules, availableWarehouses,
+                    onRegionChange, onWarehouseChange, lookupProductName,
+                    openAdd, resetAddForm, submitAdd,
+                    editFormRef, editingKey, editForm, editRules, editAvailableWarehouses,
+                    onEditWarehouseChange, openEdit, submitEdit,
+                    stockDialog, adjustingKey, stockForm,
+                    openStockAdjust, recalcAvailable, resetStockDialog, submitStockAdjust,
+                    handleExport, handleImportDialog, handleFileChange, submitImport,
+                    importDialog, importResultDialog,
+                    regionOptions, simulateUpload,
+                };
+            }
+        }).use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+    </script>
+</body>
+</html>

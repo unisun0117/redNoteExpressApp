@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>QDM-TOB 移动端工作台</title>
+    <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        :root {
+            --van-primary-color: #3b82f6; /* 自定义 Vant 主题色为科技蓝 */
+        }
+        body {
+            background-color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        /* 模拟手机容器（PC查看时居中，手机查看时自动全屏） */
+        .mobile-shell {
+            width: 100%;
+            max-width: 430px;
+            height: 100vh;
+            background: #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        @media (min-width: 576px) {
+            .mobile-shell {
+                height: 852px;
+                border-radius: 40px;
+                box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+                border: 10px solid #1e293b;
+            }
+        }
+        .safe-scroll-view {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 70px; /* 留出底部 Tabbar 的空间 */
+        }
+        .safe-scroll-view::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="app" class="mobile-shell">
+        <van-nav-bar fixed placeholder z-index="99">
+            <template #left>
+                <van-icon name="apps-o" size="22" class="text-slate-700" @click="showMenuDrawer = true"></van-icon>
+            </template>
+            <template #title>
+                <span class="font-bold text-slate-800 text-base">{{ currentTitle }}</span>
+            </template>
+            <template #right>
+                <van-badge :content="dashboard.pendingApprovals" max="99">
+                    <van-icon name="bell" size="20" class="text-slate-600" @click="activeTab = 'todo'"></van-icon>
+                </van-badge>
+            </template>
+        </van-nav-bar>
+
+        <div class="safe-scroll-view">
+            
+            <div v-if="activeTab === 'home'" class="p-4 space-y-4 animate-fade-in">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-gradient-to-br from-red-500 to-rose-600 p-4 rounded-2xl text-white shadow-sm" @click="activeTab = 'todo'">
+                        <div class="text-2xl font-black">{{ dashboard.pendingApprovals }}</div>
+                        <div class="text-xs opacity-80 mt-1 flex items-center gap-1">待办处理 <van-icon name="arrow"></van-icon></div>
+                    </div>
+                    <div class="bg-gradient-to-br from-blue-500 to-indigo-600 p-4 rounded-2xl text-white shadow-sm">
+                        <div class="text-2xl font-black">{{ dashboard.todayOrders }}</div>
+                        <div class="text-xs opacity-80 mt-1">今日订单</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-green-500 to-emerald-600 p-4 rounded-2xl text-white shadow-sm">
+                        <div class="text-2xl font-black">{{ dashboard.activeCustomers }}</div>
+                        <div class="text-xs opacity-80 mt-1">活跃客户</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-amber-500 to-orange-600 p-4 rounded-2xl text-white shadow-sm">
+                        <div class="text-2xl font-black">¥{{ dashboard.revenue }}</div>
+                        <div class="text-xs opacity-80 mt-1">今日营收</div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-4 shadow-xs">
+                    <div class="text-sm font-bold text-slate-800 mb-3">核心高频应用</div>
+                    <van-grid :column-num="4" :border="false" icon-size="26px">
+                        <van-grid-item icon-prefix="van-icon" icon="goods-collect-o" text="商品管理" @click="mockRouter('商品管理')"></van-grid-item>
+                        <van-grid-item icon-prefix="van-icon" icon="coupon-o" text="优惠券" @click="mockRouter('优惠券活动')"></van-grid-item>
+                        <van-grid-item icon-prefix="van-icon" icon="orders-o" text="销售订单" @click="mockRouter('销售订单')"></van-grid-item>
+                        <van-grid-item icon-prefix="van-icon" icon="chart-trending-o" text="统计报表" @click="mockRouter('统计报表')"></van-grid-item>
+                    </van-grid>
+                </div>
+
+                <div class="bg-white rounded-2xl p-4 shadow-xs">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-sm font-bold text-slate-800">紧急待办</span>
+                        <span class="text-xs text-blue-500 font-semibold" @click="activeTab = 'todo'">查看全部</span>
+                    </div>
+                    <div class="divide-y divide-slate-100">
+                        <div v-for="todo in dashboard.recentTodos.slice(0, 3)" :key="todo.id" class="py-3 flex justify-between items-start gap-2">
+                            <div>
+                                <van-tag :type="getVantTagType(todo.tagType)" size="medium" class="mr-1.5">{{ todo.type }}</van-tag>
+                                <p class="text-sm text-slate-700 font-medium inline">{{ todo.title }}</p>
+                            </div>
+                            <span class="text-2xs text-slate-400 whitespace-nowrap">{{ todo.time }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="activeTab === 'todo'" class="p-4 space-y-3 animate-fade-in">
+                <div v-for="todo in dashboard.recentTodos" :key="todo.id" class="bg-white p-4 rounded-xl shadow-xs border-l-4" :class="getBorderColor(todo.tagType)">
+                    <div class="flex justify-between items-center mb-2">
+                        <van-tag :type="getVantTagType(todo.tagType)">{{ todo.type }}</van-tag>
+                        <span class="text-xs text-slate-400">{{ todo.time }}</span>
+                    </div>
+                    <div class="text-sm text-slate-700 font-bold mb-3">{{ todo.title }}</div>
+                    <div class="flex justify-end gap-2">
+                        <van-button size="small" plain round @click="handleTodoAction(todo.id, 'reject')">拒绝</van-button>
+                        <van-button size="small" type="primary" round @click="handleTodoAction(todo.id, 'approve')">同意通过</van-button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="activeTab === 'subpage'" class="p-4 animate-fade-in">
+                <van-empty image="network" :description="'「' + subpageName + '」模块开发中'">
+                    <van-button round type="primary" size="small" class="w-40" @click="activeTab = 'home'">返回工作台</van-button>
+                </van-empty>
+            </div>
+
+            <div v-if="activeTab === 'profile'" class="space-y-4 animate-fade-in">
+                <div class="bg-white p-6 pt-10 flex items-center gap-4 shadow-xs">
+                    <van-avatar size="64" icon="user-o" class="bg-blue-500 text-white"></van-avatar>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800">高级管理员</h3>
+                        <p class="text-xs text-slate-400 mt-1">所属部门: QDM 运营中心</p>
+                    </div>
+                </div>
+                <van-cell-group inset>
+                    <van-cell title="个人设置" is-link icon="setting-o"></van-cell>
+                    <van-cell title="切换企业/商户" value="天福茗茶总店" is-link icon="shop-o"></van-cell>
+                    <van-cell title="清理缓存" is-link icon="delete-o"></van-cell>
+                </van-cell-group>
+                <div class="p-4">
+                    <van-button block round type="danger" plain @click="vant.showToast('模拟退出登录')">退出系统</van-button>
+                </div>
+            </div>
+
+        </div>
+
+        <van-popup v-model:show="showMenuDrawer" position="left" style="width: 75%; height: 100%;" class="bg-slate-900 text-slate-200 flex flex-col">
+            <div class="p-5 border-b border-slate-800 flex items-center gap-3">
+                <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-black">Q</div>
+                <span class="font-bold text-white text-base">系统全量导航</span>
+            </div>
+            <div class="flex-1 overflow-y-auto p-2">
+                <van-collapse v-model="activeCollapseNames" :border="false">
+                    <van-collapse-item title="商品管理" name="1" icon="goods-collect-o">
+                        <div class="pl-4 py-2 text-sm text-slate-400 active:text-blue-400" @click="mockRouter('商品资料管理')">商品资料管理</div>
+                        <div class="pl-4 py-2 text-sm text-slate-400 active:text-blue-400" @click="mockRouter('品类参数配置')">品类参数配置</div>
+                    </van-collapse-item>
+                    <van-collapse-item title="营销推广" name="2" icon="coupon-o">
+                        <div class="pl-4 py-2 text-sm text-slate-400 active:text-blue-400" @click="mockRouter('优惠券活动')">优惠券活动</div>
+                        <div class="pl-4 py-2 text-sm text-slate-400 active:text-blue-400" @click="mockRouter('满减促销')">满减促销</div>
+                    </van-collapse-item>
+                    <van-collapse-item title="交易订单" name="3" icon="orders-o">
+                        <div class="pl-4 py-2 text-sm text-slate-400 active:text-blue-400" @click="mockRouter('销售订单查询')">销售订单查询</div>
+                        <div class="pl-4 py-2 text-sm text-slate-400 active:text-blue-400" @click="mockRouter('售后退款审核')">售后退款审核</div>
+                    </van-collapse-item>
+                </van-collapse>
+            </div>
+            <div class="p-4 border-t border-slate-800 text-center text-2xs text-slate-500">
+                QDM-TOB Mobile Portal v2026
+            </div>
+        </van-popup>
+
+        <van-tabbar v-model="activeTab" fixed placeholder border active-color="#3b82f6" inactive-color="#64748b">
+            <van-tabbar-item name="home" icon="wap-home-o">工作台</van-tabbar-item>
+            <van-tabbar-item name="todo" icon="todo-list-o" :badge="dashboard.pendingApprovals || ''">待办</van-tabbar-item>
+            <van-tabbar-item name="profile" icon="user-o">我的</van-tabbar-item>
+        </van-tabbar>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+    <script>
+        const { createApp, ref, computed } = Vue;
+
+        createApp({
+            setup() {
+                const activeTab = ref('home');
+                const showMenuDrawer = ref(false);
+                const activeCollapseNames = ref(['1']);
+                const subpageName = ref('');
+
+                // 完好保留并继承你的 PC 端 Dashboard 原始响应式核心数据
+                const dashboard = ref({
+                    pendingApprovals: 12,
+                    todayOrders: 156,
+                    activeCustomers: 2834,
+                    revenue: '128,960',
+                    recentTodos: [
+                        { id: 1, type: '价格审核', tagType: 'warning', title: '商品 [SKU-10234] 价格变更待审核', time: '10分钟前' },
+                        { id: 2, type: '客户审核', tagType: 'primary', title: '客户 [天福茗茶] 资料变更待审核', time: '30分钟前' },
+                        { id: 3, type: '退货审批', tagType: 'danger', title: '订单 [ORD-20260701-0034] 退货申请', time: '1小时前' },
+                        { id: 4, type: '提现审核', tagType: 'info', title: '客户 [永辉超市] 申请提现 ¥5,000', time: '2小时前' },
+                        { id: 5, type: '价格审核', tagType: 'warning', title: '商品 [SKU-10289] 价格变更待审核', time: '3小时前' },
+                    ]
+                });
+
+                // 标题基于当前路由状态动态切换
+                const currentTitle = computed(() => {
+                    if (activeTab.value === 'home') return 'QDM 运营工作台';
+                    if (activeTab.value === 'todo') return '待办审批中心';
+                    if (activeTab.value === 'profile') return '账户中心';
+                    if (activeTab.value === 'subpage') return subpageName.value;
+                    return '管理后台';
+                });
+
+                // 映射 PC 端的 tag 类型至移动端 Vant 规范
+                const getVantTagType = (type) => {
+                    const maps = { warning: 'warning', primary: 'primary', danger: 'danger', info: 'default' };
+                    return maps[type] || 'primary';
+                };
+
+                const getBorderColor = (type) => {
+                    const maps = { warning: 'border-amber-400', primary: 'border-blue-400', danger: 'border-red-400', info: 'border-slate-300' };
+                    return maps[type] || 'border-blue-400';
+                };
+
+                // 模拟跳转路由切换
+                const mockRouter = (name) => {
+                    subpageName.value = name;
+                    activeTab.value = 'subpage';
+                    showMenuDrawer.value = false;
+                };
+
+                // 处理待办动作
+                const handleTodoAction = (id, action) => {
+                    vant.showLoadingToast({ message: '提交中...', forbidClick: true });
+                    setTimeout(() => {
+                        dashboard.value.recentTodos = dashboard.value.recentTodos.filter(t => t.id !== id);
+                        dashboard.value.pendingApprovals = Math.max(0, dashboard.value.pendingApprovals - 1);
+                        vant.showSuccessToast(action === 'approve' ? '审批已通过' : '已驳回申请');
+                    }, 600);
+                };
+
+                return {
+                    activeTab, showMenuDrawer, activeCollapseNames, subpageName, dashboard, currentTitle,
+                    getVantTagType, getBorderColor, mockRouter, handleTodoAction, vant
+                };
+            }
+        }).use(vant).mount('#app');
+    </script>
+</body>
+</html>

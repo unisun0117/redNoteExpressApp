@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>客户拜访打卡</title>
+    <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css">
+    <style>
+        :root { --primary: #dc2626; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            max-width: 375px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+        .page-container {
+            padding: 12px;
+            padding-bottom: 80px;
+        }
+        .section {
+            background: #fff;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #303133;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .section-title .icon {
+            font-size: 18px;
+        }
+        .location-box {
+            background: #fef2f2;
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .location-text {
+            font-size: 13px;
+            color: #7f1d1d;
+            line-height: 1.5;
+            flex: 1;
+        }
+        .relocate-btn {
+            font-size: 12px;
+            color: #dc2626;
+            border: 1px solid #dc2626;
+            border-radius: 14px;
+            padding: 4px 10px;
+            background: #fff;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .customer-list {
+            border: 1px solid #ebeef5;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .customer-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: background 0.15s;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .customer-item:last-child { border-bottom: none; }
+        .customer-item:hover, .customer-item.active { background: #fef2f2; }
+        .customer-radio {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid #c0c4cc;
+            margin-right: 10px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .customer-item.active .customer-radio {
+            border-color: #dc2626;
+            background: #dc2626;
+        }
+        .customer-item.active .customer-radio::after {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #fff;
+        }
+        .customer-info { flex: 1; min-width: 0; }
+        .customer-name { font-size: 14px; color: #303133; font-weight: 500; }
+        .customer-detail { font-size: 12px; color: #909399; margin-top: 2px; }
+        .customer-distance { font-size: 12px; color: #dc2626; flex-shrink: 0; margin-left: 8px; }
+        .manual-search {
+            display: block;
+            width: 100%;
+            text-align: center;
+            font-size: 13px;
+            color: #dc2626;
+            padding: 10px 0;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        .textarea-box {
+            width: 100%;
+            border: 1px solid #ebeef5;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+            box-sizing: border-box;
+            outline: none;
+            color: #303133;
+        }
+        .textarea-box:focus { border-color: #dc2626; }
+        .textarea-box::placeholder { color: #c0c4cc; }
+        .char-count { text-align: right; font-size: 12px; color: #c0c4cc; margin-top: 4px; }
+        .submit-btn {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 375px;
+            padding: 10px 12px;
+            background: #fff;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+        }
+        .submit-btn-inner {
+            width: 100%;
+            height: 44px;
+            border: none;
+            border-radius: 8px;
+            background: #dc2626;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .submit-btn-inner:active { background: #b91c1c; }
+        .submit-btn-inner.loading { background: #f87171; }
+        .empty-tip {
+            text-align: center;
+            padding: 20px 0;
+            color: #909399;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+        <div class="page-container">
+            <!-- ========== 当前位置 ========== -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="icon">📍</span> 当前位置
+                </div>
+                <div class="location-box" v-if="location.address">
+                    <div class="location-text">{{ location.address }}</div>
+                    <button class="relocate-btn" @click="relocate" :disabled="location.loading">
+                        {{ location.loading ? '定位中...' : '重新定位' }}
+                    </button>
+                </div>
+                <div class="location-box" v-else>
+                    <div class="location-text" style="color:#909399;">{{ location.error || '正在获取位置...' }}</div>
+                    <button class="relocate-btn" @click="relocate" :disabled="location.loading">
+                        {{ location.loading ? '定位中...' : '重新定位' }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- ========== 匹配客户 ========== -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="icon">🏢</span> 匹配客户
+                </div>
+                <div v-if="matchedCustomers.length > 0" class="customer-list">
+                    <div
+                        v-for="(c, idx) in matchedCustomers"
+                        :key="c.id"
+                        class="customer-item"
+                        :class="{ active: selectedCustomerId === c.id }"
+                        @click="selectCustomer(c.id)"
+                    >
+                        <div class="customer-radio"></div>
+                        <div class="customer-info">
+                            <div class="customer-name">{{ c.name }}</div>
+                            <div class="customer-detail">联系人：{{ c.contactPerson }}  {{ maskPhone(c.contactPhone) }}</div>
+                        </div>
+                        <div class="customer-distance">距 {{ c.distance }}m</div>
+                    </div>
+                </div>
+                <div v-else class="empty-tip">
+                    {{ location.address ? '未找到附近的客户地址' : '请先获取位置信息' }}
+                </div>
+                <button class="manual-search" @click="manualSearch">手动搜索选择客户</button>
+            </div>
+
+            <!-- ========== 客户反馈 ========== -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="icon">📝</span> 客户反馈
+                    <span style="font-size:12px;color:#c0c4cc;font-weight:400;">（选填）</span>
+                </div>
+                <textarea
+                    class="textarea-box"
+                    v-model="feedback"
+                    placeholder="记录客户经营状况、需求变化、反馈意见等"
+                    maxlength="500"
+                    rows="3"
+                ></textarea>
+                <div class="char-count">{{ feedback.length }}/500</div>
+            </div>
+
+            <!-- ========== 拜访记录 ========== -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="icon">📋</span> 拜访记录
+                    <span style="font-size:12px;color:#f56c6c;font-weight:400;">（必填）</span>
+                </div>
+                <textarea
+                    class="textarea-box"
+                    v-model="visitNote"
+                    placeholder="记录本次拜访主要内容、下一步跟进计划等"
+                    maxlength="1000"
+                    rows="4"
+                ></textarea>
+                <div class="char-count">{{ visitNote.length }}/1000</div>
+            </div>
+        </div>
+
+        <!-- ========== 提交按钮 ========== -->
+        <div class="submit-btn">
+            <button class="submit-btn-inner" :class="{ loading: submitting }" @click="submitVisit" :disabled="submitting">
+                {{ submitting ? '提交中...' : '提交拜访记录' }}
+            </button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+    <script>
+        const { createApp, ref, reactive } = Vue;
+
+        const app = createApp({
+            setup() {
+                // ================================================================
+                // 当前位置
+                // ================================================================
+                const location = reactive({ address: '', loading: false, error: '', lat: null, lng: null });
+
+                function relocate() {
+                    location.loading = true;
+                    location.error = '';
+                    setTimeout(() => {
+                        location.address = '广东省广州市黄埔区联和街道科汇三街12号附近';
+                        location.lat = 23.165;
+                        location.lng = 113.435;
+                        location.loading = false;
+                        matchNearbyCustomers();
+                    }, 800);
+                }
+
+                // 初始自动定位
+                relocate();
+
+                // ================================================================
+                // 匹配客户列表
+                // ================================================================
+                const matchedCustomers = ref([]);
+                const selectedCustomerId = ref(null);
+
+                const allCustomers = [
+                    { id: 1, name: '金鹏员工食堂', contactPerson: '老板', contactPhone: '15268521693', lat: 23.1652, lng: 113.4351 },
+                    { id: 2, name: '恒信客家王', contactPerson: '李经理', contactPhone: '13396310872', lat: 23.1630, lng: 113.4320 },
+                    { id: 3, name: '深耕食堂', contactPerson: '周总', contactPhone: '13712349000', lat: 23.1610, lng: 113.4300 },
+                    { id: 4, name: '农家土猪', contactPerson: '邓', contactPhone: '18675946002', lat: 23.1700, lng: 113.4400 },
+                    { id: 5, name: '宝利发餐厅', contactPerson: '黄', contactPhone: '13900139002', lat: 23.1550, lng: 113.4280 },
+                ];
+
+                function calcDistance(lat1, lng1, lat2, lng2) {
+                    const R = 6371e3;
+                    const dLat = (lat2 - lat1) * Math.PI / 180;
+                    const dLng = (lng2 - lng1) * Math.PI / 180;
+                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                        Math.sin(dLng/2) * Math.sin(dLng/2);
+                    return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+                }
+
+                function matchNearbyCustomers() {
+                    if (!location.lat || !location.lng) return;
+                    const nearby = allCustomers
+                        .map(c => ({ ...c, distance: calcDistance(location.lat, location.lng, c.lat, c.lng) }))
+                        .filter(c => c.distance <= 5000)
+                        .sort((a, b) => a.distance - b.distance)
+                        .slice(0, 5);
+                    matchedCustomers.value = nearby;
+                    if (nearby.length > 0) {
+                        selectedCustomerId.value = nearby[0].id;
+                    }
+                }
+
+                function selectCustomer(id) {
+                    selectedCustomerId.value = id;
+                }
+
+                function manualSearch() {
+                    if (typeof Vant !== 'undefined') {
+                        Vant.showToast('手动搜索客户（模拟）');
+                    }
+                }
+
+                // ================================================================
+                // 表单
+                // ================================================================
+                const feedback = ref('');
+                const visitNote = ref('');
+                const submitting = ref(false);
+
+                function submitVisit() {
+                    if (!selectedCustomerId.value) {
+                        if (typeof Vant !== 'undefined') Vant.showToast('请选择拜访客户');
+                        return;
+                    }
+                    if (!visitNote.value.trim()) {
+                        if (typeof Vant !== 'undefined') Vant.showToast('请填写拜访记录');
+                        return;
+                    }
+                    submitting.value = true;
+                    setTimeout(() => {
+                        submitting.value = false;
+                        if (typeof Vant !== 'undefined') Vant.showToast('拜访记录提交成功');
+                        feedback.value = '';
+                        visitNote.value = '';
+                    }, 800);
+                }
+
+                // ================================================================
+                // 工具方法
+                // ================================================================
+                function maskPhone(phone) {
+                    if (!phone) return '-';
+                    if (phone.length < 7) return phone;
+                    return phone.slice(0, 3) + '****' + phone.slice(7);
+                }
+
+                return {
+                    location, relocate,
+                    matchedCustomers, selectedCustomerId,
+                    selectCustomer, manualSearch,
+                    feedback, visitNote, submitting,
+                    submitVisit, maskPhone,
+                };
+            }
+        });
+
+        app.mount('#prd-root');
+    </script>
+</body>
+</html>

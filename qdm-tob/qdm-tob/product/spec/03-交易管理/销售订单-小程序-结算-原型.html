@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>确认订单</title>
+  <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root { --van-primary-color: #ff0000; }
+    body {
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      margin: 0; padding: 12px; padding-bottom: 100px; box-sizing: border-box;
+    }
+    ::-webkit-scrollbar { display: none; }
+    .address-card { background: #fff; border-radius: 12px; padding: 14px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .address-card:active { background: #fef2f2; }
+    .pay-option { background: #fff; border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .pay-option.disabled { opacity: 0.4; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div id="prd-root" class="space-y-4">
+
+    <!-- 收货地址 -->
+    <div class="text-sm font-semibold text-slate-600">收货地址</div>
+    <div class="address-card" @click="showAddrPicker = true">
+      <div class="flex items-center justify-between">
+        <div class="flex-1 min-w-0">
+          <div class="text-base font-semibold text-slate-800">{{ selectedAddr.name }} {{ selectedAddr.phone }}</div>
+          <div class="text-sm text-slate-500 mt-1 truncate">{{ selectedAddr.fullAddress }}</div>
+        </div>
+        <van-icon name="arrow" size="16" color="#c0c4cc"></van-icon>
+      </div>
+    </div>
+
+    <!-- 商品明细 -->
+    <div class="text-sm font-semibold text-slate-600">商品明细</div>
+    <div class="bg-white rounded-xl overflow-hidden shadow-sm">
+      <div v-for="(item, idx) in cartItems" :key="idx" class="flex items-center gap-3 p-3" :class="idx < cartItems.length-1 ? 'border-b border-slate-50' : ''">
+        <div class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center text-xl text-slate-300 shrink-0">📦</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm text-slate-800 truncate">{{ item.name }}</div>
+          <div class="text-xs text-slate-400 mt-0.5">{{ item.spec }}  ¥{{ item.price }} ×{{ item.qty }}</div>
+        </div>
+        <div class="text-sm font-semibold text-slate-800 shrink-0">¥{{ (item.price * item.qty).toFixed(2) }}</div>
+      </div>
+    </div>
+
+    <!-- 支付方式 -->
+    <div class="text-sm font-semibold text-slate-600">支付方式</div>
+    <div class="space-y-2">
+      <div class="pay-option" @click="payMethod = 'wechat'">
+        <van-radio v-model="payMethod" name="wechat" checked-color="#dc2626"></van-radio>
+        <div>
+          <div class="text-sm font-semibold text-slate-800">微信支付</div>
+          <div class="text-xs text-slate-400">使用微信余额/银行卡支付</div>
+        </div>
+      </div>
+      <div class="pay-option" :class="{ disabled: !hasCredit }" @click="payMethod = 'credit'">
+        <van-radio v-model="payMethod" name="credit" checked-color="#dc2626">
+          <span v-if="!hasCredit" class="text-xs text-slate-300 ml-1">暂无账期额度</span>
+        </van-radio>
+        <div>
+          <div class="text-sm font-semibold text-slate-800">账期支付</div>
+          <div class="text-xs text-slate-400" v-if="hasCredit">可用额度 ¥{{ creditLimit }}</div>
+          <div class="text-xs text-slate-300" v-else>暂无额度</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 备注 -->
+    <div class="text-sm font-semibold text-slate-600">备注</div>
+    <div class="bg-white rounded-xl p-3 shadow-sm">
+      <input
+        v-model="remark"
+        class="w-full border-none outline-none text-sm text-slate-800 placeholder-slate-300"
+        placeholder="如有特殊要求请备注" maxlength="200" />
+    </div>
+
+    <!-- 底部固定栏 -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-4 py-3 z-50 flex items-center justify-between" style="padding-bottom: calc(12px + env(safe-area-inset-bottom, 16px));">
+      <div>
+        <div class="text-xs text-slate-400">合计</div>
+        <div class="text-xl font-bold text-slate-800">¥{{ totalAmount }}</div>
+      </div>
+      <van-button type="primary" round size="large" :loading="submitting" loading-text="提交中..." @click="submitOrder" class="font-semibold px-8">提交订单</van-button>
+    </div>
+
+    <!-- 地址选择弹窗 -->
+    <van-popup v-model:show="showAddrPicker" position="bottom" round :style="{ height: '50%' }">
+      <div class="p-4">
+        <div class="text-base font-bold text-slate-800 mb-3">选择收货地址</div>
+        <van-radio-group v-model="selectedAddrIdx">
+          <div
+            v-for="(addr, idx) in addressList" :key="idx"
+            class="flex items-start gap-3 py-3 border-b border-slate-50 cursor-pointer"
+            @click="selectedAddrIdx = idx; selectedAddr = addr; showAddrPicker = false">
+            <van-radio :name="idx" checked-color="#dc2626" class="mt-1"></van-radio>
+            <div>
+              <div class="text-sm font-semibold text-slate-800">{{ addr.name }} {{ addr.phone }}</div>
+              <div class="text-xs text-slate-500 mt-0.5">{{ addr.fullAddress }}</div>
+            </div>
+          </div>
+        </van-radio-group>
+      </div>
+    </van-popup>
+
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+  <script>
+    const { createApp, ref, computed } = Vue;
+    createApp({
+      setup() {
+        const payMethod = ref('wechat');
+        const remark = ref('');
+        const submitting = ref(false);
+        const showAddrPicker = ref(false);
+        const hasCredit = ref(true);
+        const creditLimit = ref('50,000.00');
+
+        const addressList = ref([
+          { name: '张三', phone: '15626270708', fullAddress: '广东省广州市西乡街道' },
+          { name: '李四', phone: '13800138000', fullAddress: '海南省海口市龙华区椰海大道88号' },
+        ]);
+        const selectedAddrIdx = ref(0);
+        const selectedAddr = ref(addressList.value[0]);
+
+        const cartItems = ref([
+          { name: '冷鲜瘦肉', spec: '五花肉5斤装', price: 50.00, qty: 1 },
+          { name: '优鲜带颈通排', spec: '通排3斤装', price: 25.00, qty: 2 },
+        ]);
+
+        const totalAmount = computed(() => {
+          return cartItems.value.reduce((sum, item) => sum + item.price * item.qty, 0).toFixed(2);
+        });
+
+        function submitOrder() {
+          submitting.value = true;
+          setTimeout(() => {
+            submitting.value = false;
+            vant.showSuccessToast('订单提交成功');
+          }, 1500);
+        }
+
+        return {
+          payMethod, remark, submitting, showAddrPicker, hasCredit, creditLimit,
+          addressList, selectedAddrIdx, selectedAddr, cartItems, totalAmount,
+          submitOrder,
+        };
+      }
+    }).use(vant).mount('#prd-root');
+  </script>
+</body>
+</html>

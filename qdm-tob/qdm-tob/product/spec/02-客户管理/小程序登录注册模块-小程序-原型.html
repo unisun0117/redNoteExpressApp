@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>登录注册</title>
+    <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        :root {
+            --van-primary-color: #ff0000;
+        }
+        body {
+            background-color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        ::-webkit-scrollbar { display: none; }
+        /* min-h-screen  */
+        .van-cell-group--inset{
+            margin: 0px;
+        }
+    </style>
+</head>
+<body>
+    <div id="prd-root" class="flex flex-col items-center justify-center px-3">
+
+        <!-- ========== 登录页 ========== -->
+        <div v-if="currentView === 'login'" class="w-full flex flex-col items-center pt-30 px-3">
+            <div class="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center text-white text-3xl font-bold mb-4 mt-4">Q</div>
+            <div class="text-xl font-bold text-slate-800 mb-1">钱鲜达</div>
+            <div class="text-sm text-slate-500 mb-15">生鲜供应链 · 一站式采购平台</div>
+
+            <div class="mb-3 w-full">
+                <van-button
+                    type="primary"
+                    block
+                    round
+                    icon="wechat"
+                    @click="handleWechatLogin"
+                    color="#07C160"
+                >微信一键登录</van-button>
+            </div>
+
+            <div class="mb-30 w-full">
+                <van-button
+                    block
+                    round
+                    icon="phone-o"
+                    style="background-color: #f0f0f0; border-color: #f0f0f0;"
+                    @click="showPhoneSheet = true"
+                >手机号登录</van-button>
+            </div>
+
+            <div class="flex items-start gap-2 w-full">
+                <van-checkbox v-model="agreed" icon-size="16px" checked-color="#ff0000">
+                <span class="text-xs text-slate-500 leading-relaxed">
+                    我已认真阅读、理解和同意<span class="text-red-600">《钱鲜达服务协议》</span>、<span class="text-red-600">《隐私政策》</span>，授权使用本手机号码登录
+                </span>
+                </van-checkbox>
+            </div>
+
+            <div class="text-sm text-slate-500 mt-4">
+                没有账号？<span class="text-red-600" @click="switchTo('register')">去注册</span>
+            </div>
+        </div>
+
+        <!-- ========== 注册页 ========== -->
+        <div v-if="currentView === 'register'" class="w-full flex flex-col">
+            <div class="text-xl font-bold text-left my-4 px-2">注册账号</div>
+
+            <van-form ref="regFormRef" class="mt-1" @submit="handleRegister">
+                <van-cell-group inset>
+                    <van-field
+                        v-model="regForm.name"
+                        label="姓名"
+                        placeholder="请输入姓名"
+                        maxlength="50"
+                        :rules="[{ required: true, message: '请输入姓名' }]"
+                    ></van-field>
+                    <van-field
+                        v-model="regForm.phone"
+                        label="手机号"
+                        type="tel"
+                        placeholder="请输入手机号"
+                        maxlength="11"
+                        :rules="[{ required: true, pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号' }]"
+                    ></van-field>
+                    <van-field
+                        v-model="regForm.smsCode"
+                        label="验证码"
+                        type="tel"
+                        placeholder="请输入验证码"
+                        maxlength="6"
+                        :rules="[{ required: true, message: '请输入验证码' }]"
+                    >
+                        <template #button>
+                            <van-button
+                                size="small"
+                                type="primary"
+                                plain
+                                :disabled="regSmsCountdown > 0"
+                                @click="sendSms('reg')"
+                            >{{ regSmsCountdown > 0 ? regSmsCountdown + 's后重发' : '获取验证码' }}</van-button>
+                        </template>
+                    </van-field>
+                </van-cell-group>
+
+                <div class="px-3 mt-4">
+                    <van-button type="primary" block round native-type="submit">注册</van-button>
+                </div>
+            </van-form>
+
+            <div class="flex items-start gap-2 w-full px-3 mt-4">
+                <van-checkbox v-model="agreed" icon-size="16px" checked-color="#ff0000">
+                    <span class="text-xs text-slate-500 leading-relaxed">
+                        我已认真阅读、理解和同意<span class="text-red-600">《钱鲜达服务协议》</span>、<span class="text-red-600">《隐私政策》</span>，授权使用本手机号码注册
+                    </span>
+                </van-checkbox>
+            </div>
+
+            <div class="text-sm text-slate-500 text-center mt-4">
+                已有账号？<span class="text-red-600" @click="switchTo('login')">去登录</span>
+            </div>
+        </div>
+
+        <!-- ========== 已登录首页 ========== -->
+        <div v-if="currentView === 'home'" class="w-full flex flex-col items-center">
+            <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white text-4xl mt-20 mb-6">&#10003;</div>
+            <div class="text-lg font-semibold">欢迎，{{ loggedInUser }}</div>
+            <div class="text-sm text-slate-500 mt-1">您已成功登录钱鲜达</div>
+            <van-button block round class="mt-12" @click="handleLogout">退出登录</van-button>
+        </div>
+
+        <!-- ========== 手机号登录底部弹出 ========== -->
+        <van-action-sheet
+            v-model:show="showPhoneSheet"
+            title="手机号登录"
+            :close-on-click-overlay="true"
+        >
+            <div class="px-4 pb-6">
+                <van-form ref="loginFormRef" @submit="handlePhoneLogin">
+                    <van-field
+                        v-model="loginForm.phone"
+                        label="手机号"
+                        type="tel"
+                        placeholder="请输入手机号"
+                        maxlength="11"
+                        :rules="[{ required: true, pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号' }]"
+                    ></van-field>
+                    <van-field
+                        v-model="loginForm.smsCode"
+                        label="验证码"
+                        type="tel"
+                        placeholder="请输入验证码"
+                        maxlength="6"
+                        :rules="[{ required: true, message: '请输入验证码' }]"
+                    >
+                        <template #button>
+                            <van-button
+                                size="small"
+                                type="primary"
+                                plain
+                                :disabled="loginSmsCountdown > 0"
+                                @click="sendSms('login')"
+                            >{{ loginSmsCountdown > 0 ? loginSmsCountdown + 's后重发' : '获取验证码' }}</van-button>
+                        </template>
+                    </van-field>
+                    <div class="mt-4">
+                        <van-button type="primary" block round native-type="submit">登录</van-button>
+                    </div>
+                </van-form>
+            </div>
+        </van-action-sheet>
+
+        <!-- ========== 协议确认弹框 ========== -->
+        <van-dialog
+            v-model:show="showAgreementDialog"
+            title="已阅读并且同意协议"
+            message="先阅读并同意《钱鲜达服务协议》和《隐私政策》后再继续操作"
+            show-cancel-button
+            confirm-button-text="确定"
+            cancel-button-text="取消"
+            confirm-button-color="#ff0000"
+            @confirm="confirmAgreement"
+        ></van-dialog>
+
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+    <script>
+        const { createApp, ref, reactive } = Vue;
+        const app = createApp({
+            setup: function () {
+                var currentView = ref('login');
+                var agreed = ref(false);
+                var loggedInUser = ref('');
+                var showPhoneSheet = ref(false);
+                var showAgreementDialog = ref(false);
+                var pendingAction = ref(null);
+
+                var regSmsCountdown = ref(0);
+                var loginSmsCountdown = ref(0);
+
+                var regForm = reactive({ name: '', phone: '', smsCode: '' });
+                var loginForm = reactive({ phone: '', smsCode: '' });
+
+                var regFormRef = ref(null);
+                var loginFormRef = ref(null);
+
+                function switchTo(view) { currentView.value = view; }
+
+                function startCountdown(target) {
+                    if (target === 'reg') regSmsCountdown.value = 60;
+                    else loginSmsCountdown.value = 60;
+                    var timer = setInterval(function () {
+                        if (target === 'reg') {
+                            regSmsCountdown.value--;
+                            if (regSmsCountdown.value <= 0) clearInterval(timer);
+                        } else {
+                            loginSmsCountdown.value--;
+                            if (loginSmsCountdown.value <= 0) clearInterval(timer);
+                        }
+                    }, 1000);
+                }
+
+                function sendSms(type) {
+                    var phone = type === 'reg' ? regForm.phone : loginForm.phone;
+                    if (!/^1[3-9]\d{9}$/.test(phone)) {
+                        vant.showToast('请输入正确的手机号');
+                        return;
+                    }
+                    startCountdown(type);
+                    vant.showToast('验证码已发送');
+                }
+
+                function requireAgreement(action) {
+                    if (!agreed.value) {
+                        pendingAction.value = action;
+                        showAgreementDialog.value = true;
+                        return false;
+                    }
+                    return true;
+                }
+
+                function confirmAgreement() {
+                    agreed.value = true;
+                    var cb = pendingAction.value;
+                    pendingAction.value = null;
+                    if (cb) cb();
+                }
+
+                function handleWechatLogin() {
+                    if (!requireAgreement(handleWechatLogin)) return;
+                    vant.showLoadingToast({ message: '微信授权中...', forbidClick: true });
+                    setTimeout(function () {
+                        vant.closeToast();
+                        loggedInUser.value = '客户（微信自动绑定）';
+                        switchTo('home');
+                    }, 1200);
+                }
+
+                function handlePhoneLogin() {
+                    if (!loginFormRef.value) return;
+                    loginFormRef.value.validate().then(function () {
+                        showPhoneSheet.value = false;
+                        loggedInUser.value = '客户(' + loginForm.phone.slice(0, 3) + '****' + loginForm.phone.slice(7) + ')';
+                        switchTo('home');
+                    }).catch(function () {});
+                }
+
+                function handleRegister() {
+                    if (!requireAgreement(handleRegister)) return;
+                    if (!regFormRef.value) return;
+                    regFormRef.value.validate().then(function () {
+                        loggedInUser.value = regForm.name;
+                        switchTo('home');
+                    }).catch(function () {});
+                }
+
+                function handleLogout() {
+                    loggedInUser.value = '';
+                    switchTo('login');
+                }
+
+                return {
+                    currentView: currentView,
+                    agreed: agreed,
+                    loggedInUser: loggedInUser,
+                    showPhoneSheet: showPhoneSheet,
+                    showAgreementDialog: showAgreementDialog,
+                    regSmsCountdown: regSmsCountdown,
+                    loginSmsCountdown: loginSmsCountdown,
+                    regForm: regForm,
+                    loginForm: loginForm,
+                    regFormRef: regFormRef,
+                    loginFormRef: loginFormRef,
+                    switchTo: switchTo,
+                    sendSms: sendSms,
+                    confirmAgreement: confirmAgreement,
+                    handleWechatLogin: handleWechatLogin,
+                    handlePhoneLogin: handlePhoneLogin,
+                    handleRegister: handleRegister,
+                    handleLogout: handleLogout,
+                };
+            },
+        });
+        app.use(vant).mount('#prd-root');
+    </script>
+</body>
+</html>

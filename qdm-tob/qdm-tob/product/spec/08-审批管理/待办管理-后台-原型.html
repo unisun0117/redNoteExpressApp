@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>待办处理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 10px;
+        }
+        .status-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #e4e7ed;
+        }
+        .status-tab {
+            padding: 8px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #606266;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .status-tab:hover { color: #409eff; }
+        .status-tab.active {
+            color: #409eff;
+            border-bottom-color: #409eff;
+            font-weight: 600;
+        }
+        .status-tab .badge {
+            display: inline-block;
+            min-width: 18px;
+            height: 18px;
+            line-height: 18px;
+            border-radius: 9px;
+            background: #f56c6c;
+            color: #fff;
+            font-size: 12px;
+            text-align: center;
+            padding: 0 5px;
+            margin-left: 4px;
+            vertical-align: 1px;
+        }
+        .overdue-row { background-color: #fef0f0 !important; }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+
+        <!-- ========== 卡片1: 查询区 ========== -->
+        <div style="background:#fff; border-radius:8px; padding:10px; padding-bottom:0px; margin-bottom:10px;">
+            <!-- 状态 Tab -->
+            <div class="status-tabs">
+                <div class="status-tab" :class="{ active: activeTab === 'PENDING' }" @click="switchTab('PENDING')">
+                    未处理<span class="badge" v-if="pendingCount > 0">{{ pendingCount }}</span>
+                </div>
+                <div class="status-tab" :class="{ active: activeTab === 'DONE' }" @click="switchTab('DONE')">已处理</div>
+                <div class="status-tab" :class="{ active: activeTab === 'CANCELLED' }" @click="switchTab('CANCELLED')">已取消</div>
+            </div>
+
+            <!-- 筛选表单 -->
+            <el-form :inline="true" style="margin-bottom:10px;">
+                <el-form-item label="待办类型">
+                    <el-select v-model="search.todoType" placeholder="全部" clearable style="width:140px;">
+                        <el-option label="价格审核" value="PRICE_REVIEW"></el-option>
+                        <el-option label="客户审核" value="CUSTOMER_REVIEW"></el-option>
+                        <el-option label="退货审批" value="RETURN_APPROVAL"></el-option>
+                        <el-option label="提现审核" value="WITHDRAW_REVIEW"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="紧急程度">
+                    <el-select v-model="search.urgency" placeholder="全部" clearable style="width:120px;">
+                        <el-option label="急" value="URGENT"></el-option>
+                        <el-option label="高" value="HIGH"></el-option>
+                        <el-option label="中" value="MEDIUM"></el-option>
+                        <el-option label="低" value="LOW"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="销售大区">
+                    <el-select v-model="search.region" placeholder="全部" clearable style="width:140px;">
+                        <el-option label="海南区" value="HAINAN"></el-option>
+                        <el-option label="广深区" value="GUANGSHEN"></el-option>
+                        <el-option label="华东区" value="HUADONG"></el-option>
+                        <el-option label="西南区" value="XINAN"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="创建时间">
+                    <el-date-picker
+                        v-model="search.dateRange"
+                        type="daterange"
+                        range-separator="至"
+                        start-placeholder="开始日期"
+                        end-placeholder="结束日期"
+                        value-format="YYYY-MM-DD"
+                        style="width:240px;"
+                    ></el-date-picker>
+                </el-form-item>
+                <el-form-item label="关键字">
+                    <el-input v-model="search.keyword" placeholder="标题/业务单据ID" clearable style="width:200px;" @keyup.enter="doSearch"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" @click="doSearch">查询</el-button>
+                    <el-button @click="resetSearch">重置</el-button>
+                </el-form-item>
+            </el-form>
+        </div>
+
+        <!-- ========== 卡片2: 操作&数据区 ========== -->
+        <div style="background:#fff; border-radius:8px; padding:10px;">
+            <!-- 操作按钮区（左对齐） -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div style="display:flex; gap:8px;">
+                    <el-button type="primary" size="small" @click="handleBatchDone" :disabled="selectedRows.length === 0">批量标记已处理</el-button>
+                    <el-button size="small" @click="handleExport">导出</el-button>
+                </div>
+                <span style="font-size:13px; color:#909399;">共 <b style="color:#303133;">{{ total }}</b> 条记录</span>
+            </div>
+
+            <!-- 表格 -->
+            <el-table
+                :data="tableData"
+                stripe
+                v-loading="loading"
+                style="width:100%;"
+                :row-class-name="tableRowClassName"
+                :header-cell-style="{background:'#f5f7fa', color:'#606266', fontWeight:500}"
+                @selection-change="handleSelectionChange"
+            >
+                <el-table-column type="selection" width="45"></el-table-column>
+                <el-table-column type="index" label="序号" width="60"></el-table-column>
+                <el-table-column prop="todoType" label="待办类型" width="110">
+                    <template #default="scope">
+                        <el-tag :type="scope.row.typeTag" size="small">{{ scope.row.todoType }}</el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="businessId" label="业务单据ID" width="200" show-overflow-tooltip>
+                    <template #default="scope">
+                        <span style="font-family:monospace; font-size:13px;">{{ scope.row.businessId }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="title" label="待办标题" min-width="200" show-overflow-tooltip></el-table-column>
+                <el-table-column prop="urgency" label="紧急程度" width="90">
+                    <template #default="scope">
+                        <el-tag :type="scope.row.urgencyTag" size="small" :effect="scope.row.urgency === '急' ? 'dark' : 'plain'">{{ scope.row.urgency }}</el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="status" label="处理状态" width="90">
+                    <template #default="scope">
+                        <span :style="{ color: scope.row.statusColor }" style="margin-right:4px;">●</span>{{ scope.row.status }}
+                    </template>
+                </el-table-column>
+                <el-table-column prop="regionName" label="销售大区" width="100"></el-table-column>
+                <el-table-column prop="createTime" label="创建时间" width="160"></el-table-column>
+                <el-table-column prop="creator" label="创建人员" width="90"></el-table-column>
+                <el-table-column prop="handlers" label="处理人员" width="120" show-overflow-tooltip></el-table-column>
+                <el-table-column label="操作" width="100" fixed="right">
+                    <template #default="scope">
+                        <el-button v-if="scope.row.statusCode === 'PENDING'" type="primary" link size="small" @click="handleTodo(scope.row)">处理</el-button>
+                        <el-button v-else type="primary" link size="small" @click="handleView(scope.row)">查看</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+
+            <!-- 空状态 -->
+            <div v-if="tableData.length === 0 && !loading" style="text-align:center; padding:60px 0; color:#909399;">
+                <div style="font-size:48px; margin-bottom:12px;">📋</div>
+                <div>{{ hasFilter ? '未找到匹配的待办事项' : '暂无待办事项' }}</div>
+            </div>
+
+            <!-- 分页（左对齐） -->
+            <div style="margin-top:10px; display:flex; justify-content:flex-start;" v-if="total > 0">
+                <el-pagination
+                    v-model:current-page="pageNum"
+                    v-model:page-size="pageSize"
+                    :page-sizes="[10, 20, 50, 100]"
+                    :total="total"
+                    layout="total, sizes, prev, pager, next"
+                    background
+                ></el-pagination>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+    <script>
+        const { createApp, ref, reactive, computed, watch } = Vue;
+        const app = createApp({
+            setup: function () {
+                // ================================================================
+                // Mock 数据
+                // ================================================================
+                var allTodos = ref([
+                    { id: 1, todoType: '价格审核', typeTag: 'warning', businessId: 'PRC-20260701-0034', title: '商品 [SKU-10234] 价格变更待审核', urgency: '急', urgencyTag: 'danger', status: '未处理', statusCode: 'PENDING', statusColor: '#f56c6c', regionId: 'HAINAN', regionName: '海南区', createTime: '2026-07-01 10:30:00', creator: '王五', handlers: '张三,李四', deadline: '2026-07-03 10:30:00', detailUrl: '../spec/01-商品管理/商品价格-原型.html', overdue: false },
+                    { id: 2, todoType: '客户审核', typeTag: 'primary', businessId: 'CUS-20260701-0015', title: '客户 [天福茗茶] 资料变更待审核', urgency: '高', urgencyTag: 'warning', status: '未处理', statusCode: 'PENDING', statusColor: '#f56c6c', regionId: 'GUANGSHEN', regionName: '广深区', createTime: '2026-07-01 09:15:00', creator: '赵六', handlers: '张三', deadline: '2026-07-03 09:15:00', detailUrl: '../spec/02-客户管理/客户档案-审核端-原型.html', overdue: false },
+                    { id: 3, todoType: '退货审批', typeTag: 'danger', businessId: 'ORD-20260630-0089', title: '订单 [ORD-20260630-0034] 退货申请', urgency: '中', urgencyTag: 'primary', status: '已处理', statusCode: 'DONE', statusColor: '#67c23a', regionId: 'HAINAN', regionName: '海南区', createTime: '2026-06-30 16:45:00', creator: '张三', handlers: '李四', deadline: '2026-07-02 16:45:00', detailUrl: './trade-return.html', overdue: false },
+                    { id: 4, todoType: '提现审核', typeTag: 'info', businessId: 'WTH-20260630-0022', title: '客户 [永辉超市] 申请提现 ¥5,000', urgency: '低', urgencyTag: 'info', status: '未处理', statusCode: 'PENDING', statusColor: '#f56c6c', regionId: 'HUADONG', regionName: '华东区', createTime: '2026-06-30 14:20:00', creator: '系统', handlers: '王五,赵六', deadline: '2026-07-02 14:20:00', detailUrl: '../spec/05-财务管理/充值提现-后台-原型.html', overdue: false },
+                    { id: 5, todoType: '价格审核', typeTag: 'warning', businessId: 'PRC-20260629-0028', title: '商品 [SKU-20456] 价格变更待审核', urgency: '急', urgencyTag: 'danger', status: '未处理', statusCode: 'PENDING', statusColor: '#f56c6c', regionId: 'XINAN', regionName: '西南区', createTime: '2026-06-29 08:40:00', creator: '李四', handlers: '张三', deadline: '2026-07-01 08:40:00', detailUrl: '../spec/01-商品管理/商品价格-原型.html', overdue: true },
+                    { id: 6, todoType: '客户审核', typeTag: 'primary', businessId: 'CUS-20260628-0012', title: '客户 [湘味轩] 档案变更待审核', urgency: '中', urgencyTag: 'primary', status: '已取消', statusCode: 'CANCELLED', statusColor: '#c0c4cc', regionId: 'HAINAN', regionName: '海南区', createTime: '2026-06-28 11:15:00', creator: '王五', handlers: '张三', deadline: '2026-06-30 11:15:00', detailUrl: '../spec/02-客户管理/客户档案-审核端-原型.html', overdue: false },
+                    { id: 7, todoType: '退货审批', typeTag: 'danger', businessId: 'ORD-20260627-0065', title: '订单 [ORD-20260627-0018] 退货申请', urgency: '高', urgencyTag: 'warning', status: '已处理', statusCode: 'DONE', statusColor: '#67c23a', regionId: 'GUANGSHEN', regionName: '广深区', createTime: '2026-06-27 15:30:00', creator: '赵六', handlers: '王五', deadline: '2026-06-29 15:30:00', detailUrl: './trade-return.html', overdue: false },
+                    { id: 8, todoType: '提现审核', typeTag: 'info', businessId: 'WTH-20260626-0019', title: '客户 [大碗厨] 申请提现 ¥12,000', urgency: '中', urgencyTag: 'primary', status: '已取消', statusCode: 'CANCELLED', statusColor: '#c0c4cc', regionId: 'HUADONG', regionName: '华东区', createTime: '2026-06-26 10:00:00', creator: '系统', handlers: '李四', deadline: '2026-06-28 10:00:00', detailUrl: '../spec/05-财务管理/充值提现-后台-原型.html', overdue: false },
+                ]);
+
+                // ================================================================
+                // Tab 切换
+                // ================================================================
+                var activeTab = ref('PENDING');
+                var selectedRows = ref([]);
+
+                var pendingCount = computed(function () {
+                    return allTodos.value.filter(function (t) { return t.statusCode === 'PENDING'; }).length;
+                });
+
+                function switchTab(tab) { activeTab.value = tab; pageNum.value = 1; }
+                function handleSelectionChange(rows) { selectedRows.value = rows; }
+
+                // ================================================================
+                // 搜索
+                // ================================================================
+                var search = reactive({ todoType: '', urgency: '', region: '', dateRange: null, keyword: '' });
+                var pageNum = ref(1);
+                var pageSize = ref(20);
+                var loading = ref(false);
+
+                var hasFilter = computed(function () {
+                    return !!(search.todoType || search.urgency || search.region || (search.dateRange && search.dateRange.length === 2) || search.keyword);
+                });
+
+                var filteredTodos = computed(function () {
+                    var list = allTodos.value.filter(function (t) { return t.statusCode === activeTab.value; });
+                    if (search.todoType) {
+                        var typeMap = { 'PRICE_REVIEW': '价格审核', 'CUSTOMER_REVIEW': '客户审核', 'RETURN_APPROVAL': '退货审批', 'WITHDRAW_REVIEW': '提现审核' };
+                        var typeName = typeMap[search.todoType];
+                        list = list.filter(function (t) { return t.todoType === typeName; });
+                    }
+                    if (search.urgency) {
+                        var urgencyMap = { 'URGENT': '急', 'HIGH': '高', 'MEDIUM': '中', 'LOW': '低' };
+                        var urgencyName = urgencyMap[search.urgency];
+                        list = list.filter(function (t) { return t.urgency === urgencyName; });
+                    }
+                    if (search.region) { list = list.filter(function (t) { return t.regionId === search.region; }); }
+                    if (search.dateRange && search.dateRange.length === 2) {
+                        var startDate = search.dateRange[0];
+                        var endDate = search.dateRange[1];
+                        list = list.filter(function (t) { var d = t.createTime.substring(0, 10); return d >= startDate && d <= endDate; });
+                    }
+                    if (search.keyword) {
+                        var kw = search.keyword.toLowerCase();
+                        list = list.filter(function (t) { return t.title.toLowerCase().indexOf(kw) !== -1 || t.businessId.toLowerCase().indexOf(kw) !== -1; });
+                    }
+                    return list;
+                });
+
+                var total = computed(function () { return filteredTodos.value.length; });
+                var tableData = computed(function () {
+                    var start = (pageNum.value - 1) * pageSize.value;
+                    return filteredTodos.value.slice(start, start + pageSize.value);
+                });
+
+                watch([function () { return search.todoType; }, function () { return search.urgency; }, function () { return search.region; }, function () { return search.keyword; }], function () { pageNum.value = 1; });
+                watch(function () { return search.dateRange; }, function () { pageNum.value = 1; });
+
+                function doSearch() { pageNum.value = 1; }
+                function resetSearch() {
+                    search.todoType = ''; search.urgency = ''; search.region = ''; search.dateRange = null; search.keyword = '';
+                    pageNum.value = 1;
+                }
+
+                // ================================================================
+                // 表格行样式
+                // ================================================================
+                function tableRowClassName(data) { return data.row.overdue ? 'overdue-row' : ''; }
+
+                // ================================================================
+                // 操作
+                // ================================================================
+                function handleTodo(row) { ElementPlus.ElMessage.info('跳转至业务处理页：' + row.detailUrl); }
+                function handleView(row) { ElementPlus.ElMessage.info('跳转至业务详情页：' + row.detailUrl); }
+                function handleBatchDone() {
+                    ElementPlus.ElMessage.success('已标记 ' + selectedRows.value.length + ' 条待办为已处理');
+                    selectedRows.value = [];
+                }
+                function handleExport() {
+                    if (filteredTodos.value.length === 0) { ElementPlus.ElMessage.warning('当前无数据可导出'); return; }
+                    ElementPlus.ElMessage.success('正在导出 ' + filteredTodos.value.length + ' 条待办数据...');
+                }
+
+                return {
+                    activeTab: activeTab, pendingCount: pendingCount, selectedRows: selectedRows,
+                    search: search, pageNum: pageNum, pageSize: pageSize, loading: loading,
+                    hasFilter: hasFilter, tableData: tableData, total: total,
+                    switchTab: switchTab, handleSelectionChange: handleSelectionChange,
+                    doSearch: doSearch, resetSearch: resetSearch,
+                    tableRowClassName: tableRowClassName,
+                    handleTodo: handleTodo, handleView: handleView,
+                    handleBatchDone: handleBatchDone, handleExport: handleExport,
+                };
+            },
+        });
+        app.use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+    </script>
+</body>
+</html>

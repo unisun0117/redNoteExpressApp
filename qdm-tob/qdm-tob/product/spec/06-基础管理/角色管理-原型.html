@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角色管理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 10px;
+        }
+
+        /* 查询区卡片 */
+        .search-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+            padding-bottom: 0px;
+            margin-bottom: 10px;
+        }
+
+        /* 操作&数据区卡片 */
+        .data-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        /* 表单页卡片 */
+        .form-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .form-section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #303133;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ebeef5;
+        }
+
+        /* 状态标签 */
+        .status-tag-active {
+            background: #f0f9eb;
+            color: #67c23a;
+            border: 1px solid #e1f3d8;
+        }
+        .status-tag-disabled {
+            background: #f5f7fa;
+            color: #909399;
+            border: 1px solid #e4e7ed;
+        }
+
+        /* 菜单树 */
+        .menu-tree-box {
+            border: 1px solid #e4e7ed;
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 360px;
+            max-height: 520px;
+            overflow-y: auto;
+            background: #fafafa;
+        }
+
+        /* 树节点 */
+        .tree-node-icon { margin-right: 4px; font-size: 13px; }
+        .tree-node-dir { color: #e6a23c; }
+        .tree-node-menu { color: #409eff; }
+        .tree-node-btn { color: #67c23a; }
+
+        /* 返回链接 */
+        .back-link {
+            display: inline-block;
+            font-size: 14px;
+            color: #409eff;
+            cursor: pointer;
+            text-decoration: none;
+            margin-bottom: 10px;
+        }
+        .back-link:hover { color: #66b1ff; }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+        <!-- ==================== 列表页 ==================== -->
+        <template v-if="currentPage === 'list'">
+            <!-- 查询区 -->
+            <div class="search-card">
+                <el-form :model="search" inline>
+                    <el-form-item label="角色编码">
+                        <el-input v-model="search.code" placeholder="请输入角色编码" clearable style="width:200px;" @keyup.enter="doSearch"></el-input>
+                    </el-form-item>
+                    <el-form-item label="角色名称">
+                        <el-input v-model="search.name" placeholder="请输入角色名称" clearable style="width:200px;" @keyup.enter="doSearch"></el-input>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" @click="doSearch">查询</el-button>
+                        <el-button @click="resetSearch">重置</el-button>
+                    </el-form-item>
+                </el-form>
+            </div>
+
+            <!-- 操作&数据区 -->
+            <div class="data-card">
+                <div style="margin-bottom:10px;">
+                    <el-button type="primary" @click="goCreate">新增</el-button>
+                </div>
+
+                <el-table
+                    :data="tableData"
+                    stripe
+                    v-loading="loading"
+                    style="width:100%;"
+                    :header-cell-style="{background:'#f5f7fa', color:'#606266', fontWeight:500}"
+                >
+                    <el-table-column type="selection" width="50"></el-table-column>
+                    <el-table-column label="序号" width="70" align="center">
+                        <template #default="scope">
+                            <span>{{ (pageNum - 1) * pageSize + scope.$index + 1 }}</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="code" label="角色编码" width="150">
+                        <template #default="scope">
+                            <b>{{ scope.row.code }}</b>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="name" label="角色名称" width="160"></el-table-column>
+                    <el-table-column label="状态" width="100" align="center">
+                        <template #default="scope">
+                            <el-tag
+                                :class="scope.row.status === 'ACTIVE' ? 'status-tag-active' : 'status-tag-disabled'"
+                                size="small"
+                                disable-transitions
+                            >{{ scope.row.status === 'ACTIVE' ? '启用' : '禁用' }}</el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="createdAt" label="创建时间" width="170"></el-table-column>
+                    <el-table-column prop="createdBy" label="创建人" width="100"></el-table-column>
+                    <el-table-column prop="updatedAt" label="更新时间" width="170"></el-table-column>
+                    <el-table-column prop="updatedBy" label="更新人" width="100"></el-table-column>
+                    <el-table-column label="操作" width="100" fixed="right">
+                        <template #default="scope">
+                            <el-button type="primary" link size="small" @click="goEdit(scope.row)">编辑</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+
+                <!-- 空状态 -->
+                <div v-if="tableData.length === 0 && !loading" style="text-align:center; padding:60px 0; color:#909399;">
+                    <div style="font-size:48px; margin-bottom:12px;">🔒</div>
+                    <div>{{ hasSearch ? '未找到匹配的角色' : '暂无角色数据，点击"新增"创建第一条' }}</div>
+                </div>
+
+                <!-- 分页 -->
+                <div style="margin-top:10px; display:flex; justify-content:flex-start;" v-if="total > 0">
+                    <el-pagination
+                        v-model:current-page="pageNum"
+                        v-model:page-size="pageSize"
+                        :page-sizes="[10, 20, 50]"
+                        :total="total"
+                        layout="total, sizes, prev, pager, next"
+                        background
+                    ></el-pagination>
+                </div>
+            </div>
+        </template>
+
+        <!-- ==================== 新增页 ==================== -->
+        <template v-if="currentPage === 'create'">
+            <a class="back-link" @click="goList">← 返回列表</a>
+
+            <!-- 基本信息 -->
+            <div class="form-card">
+                <div class="form-section-title">基本信息</div>
+                <el-form ref="formRef" :model="form" :rules="formRules" label-width="100px" style="max-width:500px;">
+                    <el-form-item label="角色编码" prop="code">
+                        <el-input v-model="form.code" placeholder="请输入角色编码" maxlength="60"></el-input>
+                        <div style="font-size:12px; color:#909399; margin-top:4px;">仅允许字母、数字、下划线，创建后不可修改</div>
+                    </el-form-item>
+                    <el-form-item label="角色名称" prop="name">
+                        <el-input v-model="form.name" placeholder="请输入角色名称" maxlength="60"></el-input>
+                    </el-form-item>
+                    <el-form-item label="状态" prop="status">
+                        <el-radio-group v-model="form.status">
+                            <el-radio value="ACTIVE">启用</el-radio>
+                            <el-radio value="INACTIVE">禁用</el-radio>
+                        </el-radio-group>
+                    </el-form-item>
+                </el-form>
+            </div>
+
+            <!-- 菜单权限配置：左右两栏独立展示 -->
+            <div class="form-card">
+                <div class="form-section-title">菜单权限配置</div>
+                <div style="display:flex; gap:10px;">
+                    <!-- 后台菜单（左栏） -->
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-size:14px; font-weight:600; color:#303133; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #ebeef5;">后台菜单</div>
+                        <div class="menu-tree-box">
+                            <div v-if="webMenuTree.length === 0" style="text-align:center; padding:60px 0; color:#909399;">
+                                <div style="font-size:48px; margin-bottom:12px;">📁</div>
+                                <div>暂无菜单数据，请先在菜单管理中维护菜单</div>
+                            </div>
+                            <el-tree
+                                v-else
+                                ref="webTreeRef"
+                                :data="webMenuTree"
+                                show-checkbox
+                                node-key="id"
+                                default-expand-all
+                                :props="{ children: 'children', label: 'name' }"
+                                @check="onWebTreeCheck"
+                            >
+                                <template #default="{ data }">
+                                    <span style="display:flex; align-items:center;">
+                                        <span class="tree-node-icon" :class="getTypeClass(data.type)">{{ getTypeIcon(data.type) }}</span>
+                                        <span :style="{ fontSize: data.type === 'BUTTON' ? '12px' : '14px', color: data.type === 'BUTTON' ? '#909399' : '#303133' }">{{ data.name }}</span>
+                                        <el-tag v-if="data.type === 'BUTTON'" size="small" style="margin-left:6px; font-size:11px; transform:scale(0.9);" type="info">按钮</el-tag>
+                                    </span>
+                                </template>
+                            </el-tree>
+                        </div>
+                    </div>
+                    <!-- 企微菜单（右栏） -->
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-size:14px; font-weight:600; color:#303133; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #ebeef5;">企微菜单</div>
+                        <div class="menu-tree-box">
+                            <div v-if="wecomMenuTree.length === 0" style="text-align:center; padding:60px 0; color:#909399;">
+                                <div style="font-size:48px; margin-bottom:12px;">📱</div>
+                                <div>暂无菜单数据，请先在菜单管理中维护菜单</div>
+                            </div>
+                            <el-tree
+                                v-else
+                                ref="wecomTreeRef"
+                                :data="wecomMenuTree"
+                                show-checkbox
+                                node-key="id"
+                                default-expand-all
+                                :props="{ children: 'children', label: 'name' }"
+                                @check="onWecomTreeCheck"
+                            >
+                                <template #default="{ data }">
+                                    <span style="display:flex; align-items:center;">
+                                        <span class="tree-node-icon" :class="getTypeClass(data.type)">{{ getTypeIcon(data.type) }}</span>
+                                        <span :style="{ fontSize: data.type === 'BUTTON' ? '12px' : '14px', color: data.type === 'BUTTON' ? '#909399' : '#303133' }">{{ data.name }}</span>
+                                        <el-tag v-if="data.type === 'BUTTON'" size="small" style="margin-left:6px; font-size:11px; transform:scale(0.9);" type="info">按钮</el-tag>
+                                    </span>
+                                </template>
+                            </el-tree>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:10px;">
+                <el-button @click="goList">取消</el-button>
+                <el-button type="primary" @click="submitCreate" :loading="submitting">保存</el-button>
+            </div>
+        </template>
+
+        <!-- ==================== 编辑页 ==================== -->
+        <template v-if="currentPage === 'edit'">
+            <a class="back-link" @click="goList">← 返回列表</a>
+
+            <!-- 基本信息 -->
+            <div class="form-card">
+                <div class="form-section-title">基本信息</div>
+                <el-form ref="formRef" :model="form" :rules="editFormRules" label-width="100px" style="max-width:500px;">
+                    <el-form-item label="角色编码">
+                        <el-input v-model="form.code" disabled></el-input>
+                        <div style="font-size:12px; color:#909399; margin-top:4px;">角色编码不可修改</div>
+                    </el-form-item>
+                    <el-form-item label="角色名称" prop="name">
+                        <el-input v-model="form.name" placeholder="请输入角色名称" maxlength="60"></el-input>
+                    </el-form-item>
+                    <el-form-item label="状态" prop="status">
+                        <el-radio-group v-model="form.status">
+                            <el-radio value="ACTIVE">启用</el-radio>
+                            <el-radio value="INACTIVE">禁用</el-radio>
+                        </el-radio-group>
+                    </el-form-item>
+                </el-form>
+            </div>
+
+            <!-- 菜单权限配置：左右两栏独立展示 -->
+            <div class="form-card">
+                <div class="form-section-title">菜单权限配置</div>
+                <div style="display:flex; gap:10px;">
+                    <!-- 后台菜单（左栏） -->
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-size:14px; font-weight:600; color:#303133; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #ebeef5;">后台菜单</div>
+                        <div class="menu-tree-box">
+                            <div v-if="webMenuTree.length === 0" style="text-align:center; padding:60px 0; color:#909399;">
+                                <div style="font-size:48px; margin-bottom:12px;">📁</div>
+                                <div>暂无菜单数据，请先在菜单管理中维护菜单</div>
+                            </div>
+                            <el-tree
+                                v-else
+                                ref="webTreeRef"
+                                :data="webMenuTree"
+                                show-checkbox
+                                node-key="id"
+                                default-expand-all
+                                :props="{ children: 'children', label: 'name' }"
+                                @check="onWebTreeCheck"
+                            >
+                                <template #default="{ data }">
+                                    <span style="display:flex; align-items:center;">
+                                        <span class="tree-node-icon" :class="getTypeClass(data.type)">{{ getTypeIcon(data.type) }}</span>
+                                        <span :style="{ fontSize: data.type === 'BUTTON' ? '12px' : '14px', color: data.type === 'BUTTON' ? '#909399' : '#303133' }">{{ data.name }}</span>
+                                        <el-tag v-if="data.type === 'BUTTON'" size="small" style="margin-left:6px; font-size:11px; transform:scale(0.9);" type="info">按钮</el-tag>
+                                    </span>
+                                </template>
+                            </el-tree>
+                        </div>
+                    </div>
+                    <!-- 企微菜单（右栏） -->
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-size:14px; font-weight:600; color:#303133; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #ebeef5;">企微菜单</div>
+                        <div class="menu-tree-box">
+                            <div v-if="wecomMenuTree.length === 0" style="text-align:center; padding:60px 0; color:#909399;">
+                                <div style="font-size:48px; margin-bottom:12px;">📱</div>
+                                <div>暂无菜单数据，请先在菜单管理中维护菜单</div>
+                            </div>
+                            <el-tree
+                                v-else
+                                ref="wecomTreeRef"
+                                :data="wecomMenuTree"
+                                show-checkbox
+                                node-key="id"
+                                default-expand-all
+                                :props="{ children: 'children', label: 'name' }"
+                                @check="onWecomTreeCheck"
+                            >
+                                <template #default="{ data }">
+                                    <span style="display:flex; align-items:center;">
+                                        <span class="tree-node-icon" :class="getTypeClass(data.type)">{{ getTypeIcon(data.type) }}</span>
+                                        <span :style="{ fontSize: data.type === 'BUTTON' ? '12px' : '14px', color: data.type === 'BUTTON' ? '#909399' : '#303133' }">{{ data.name }}</span>
+                                        <el-tag v-if="data.type === 'BUTTON'" size="small" style="margin-left:6px; font-size:11px; transform:scale(0.9);" type="info">按钮</el-tag>
+                                    </span>
+                                </template>
+                            </el-tree>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:10px;">
+                <el-button @click="goList">取消</el-button>
+                <el-button type="primary" @click="submitEdit" :loading="submitting">保存</el-button>
+            </div>
+        </template>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+    <script>
+        const { createApp, ref, reactive, computed, watch, nextTick } = Vue;
+
+        const app = createApp({
+            setup() {
+                // ================================================================
+                // 页面状态：list / create / edit
+                // ================================================================
+                const currentPage = ref('list');
+
+                // ================================================================
+                // Mock 菜单树数据
+                // ================================================================
+                function buildMenuTree(group) {
+                    const g = function(id, name, type, children) {
+                        return { id: id, name: name, type: type, group: group, children: children || [] };
+                    };
+                    const d = function(id, name, children) { return g(id, name, 'DIRECTORY', children); };
+                    const m = function(id, name, children) { return g(id, name, 'MENU', children); };
+                    const b = function(id, name) { return g(id, name, 'BUTTON', null); };
+
+                    if (group === 'WEB') {
+                        return [
+                            d(1, '工作台', [
+                                m(11, '首页', []),
+                                m(12, '待办处理', [b(121, '查看'), b(122, '审批')]),
+                            ]),
+                            d(2, '商品管理', [
+                                m(21, '商品资料', [b(211, '查看'), b(212, '新增'), b(213, '编辑'), b(214, '删除')]),
+                                m(22, '商品分类', [b(221, '查看'), b(222, '新增'), b(223, '编辑'), b(224, '删除')]),
+                                m(23, '商品价格', [b(231, '查看'), b(232, '编辑')]),
+                            ]),
+                            d(3, '客户管理', [
+                                m(31, '客户档案', [b(311, '查看'), b(312, '编辑')]),
+                                m(32, '登录账号', [b(321, '查看')]),
+                            ]),
+                            d(4, '营销管理', [
+                                m(41, '优惠券活动', [b(411, '查看'), b(412, '新增'), b(413, '编辑'), b(414, '删除')]),
+                            ]),
+                            d(5, '订单管理', [
+                                m(51, '销售订单', [b(511, '查看'), b(512, '编辑')]),
+                                m(52, '退货管理', [b(521, '查看'), b(522, '审批')]),
+                            ]),
+                            d(6, '财务管理', [
+                                m(61, '账期余额', [b(611, '查看')]),
+                                m(62, '资金流水', [b(621, '查看')]),
+                                m(63, '充值提现', [b(631, '查看'), b(632, '审核')]),
+                            ]),
+                            d(7, '运营管理', [
+                                m(71, '销售大区', [b(711, '查看'), b(712, '新增'), b(713, '编辑'), b(714, '删除')]),
+                                m(72, '销售员管理', [b(721, '查看'), b(722, '新增'), b(723, '编辑')]),
+                                m(73, '客户拜访', [b(731, '查看')]),
+                                m(74, '仓库管理', [b(741, '查看'), b(742, '新增'), b(743, '编辑'), b(744, '删除')]),
+                                m(75, '消息公告', [b(751, '查看'), b(752, '新增'), b(753, '编辑')]),
+                            ]),
+                            d(8, '数据管理', [
+                                m(81, '商品报表', [b(811, '查看')]),
+                                m(82, '客户报表', [b(821, '查看')]),
+                                m(83, '销售员报表', [b(831, '查看')]),
+                            ]),
+                            d(9, '系统管理', [
+                                m(91, '账户管理', [b(911, '查看'), b(912, '新增'), b(913, '编辑')]),
+                                m(92, '角色管理', [b(921, '查看'), b(922, '新增'), b(923, '编辑')]),
+                                m(93, '数据权限', [b(931, '查看'), b(932, '配置')]),
+                                m(94, '字典管理', [b(941, '查看'), b(942, '新增'), b(943, '编辑'), b(944, '导出')]),
+                                m(95, '隐私政策', [b(951, '查看'), b(952, '编辑')]),
+                            ]),
+                        ];
+                    } else {
+                        return [
+                            d(1001, '办公', [
+                                m(1011, '首页', []),
+                                m(1012, '待办列表', [b(10121, '查看'), b(10122, '审批')]),
+                            ]),
+                            d(1002, '客户管理', [
+                                m(1021, '客户资料审核', [b(10211, '查看'), b(10212, '审核')]),
+                                m(1022, '客户拜访打卡', [b(10221, '打卡'), b(10222, '查看记录')]),
+                            ]),
+                            d(1003, '商品管理', [
+                                m(1031, '商品价格审核', [b(10311, '查看'), b(10312, '审核')]),
+                            ]),
+                        ];
+                    }
+                }
+
+                const webMenuTree = ref(buildMenuTree('WEB'));
+                const wecomMenuTree = ref(buildMenuTree('WECOM'));
+
+                function collectAllIds(tree) {
+                    var ids = [];
+                    for (var i = 0; i < tree.length; i++) {
+                        ids.push(tree[i].id);
+                        if (tree[i].children && tree[i].children.length > 0) {
+                            ids = ids.concat(collectAllIds(tree[i].children));
+                        }
+                    }
+                    return ids;
+                }
+
+                // ================================================================
+                // Mock 角色数据
+                // ================================================================
+                var allWebIds = collectAllIds(webMenuTree.value);
+                var allWecomIds = collectAllIds(wecomMenuTree.value);
+
+                var wIds = [1,11,2,21,211,212,213,22,221,7,74,741,742,743,744];
+                var oIds = [1,11,2,21,211,3,31,311,4,41,411,7,71,711,72,721,73,731,74,741,75,751];
+                var bIds = [1001,1011,1002,1021,10211,10212,1022,10221,10222];
+
+                const allRoles = ref([
+                    { id:1, code:'ADMIN', name:'系统管理员', status:'ACTIVE', createdAt:'2026-05-10 09:00:00', createdBy:'张三', updatedAt:'2026-07-01 14:30:00', updatedBy:'张三', webCheckedKeys:allWebIds, wecomCheckedKeys:allWecomIds },
+                    { id:2, code:'SALESMAN', name:'业务员', status:'ACTIVE', createdAt:'2026-05-15 14:30:00', createdBy:'张三', updatedAt:'2026-06-30 10:00:00', updatedBy:'李四', webCheckedKeys:[], wecomCheckedKeys:bIds },
+                    { id:3, code:'WAREHOUSE', name:'仓库管理员', status:'ACTIVE', createdAt:'2026-06-01 10:00:00', createdBy:'李四', updatedAt:'2026-07-02 09:00:00', updatedBy:'李四', webCheckedKeys:wIds, wecomCheckedKeys:[] },
+                    { id:4, code:'FINANCE', name:'财务人员', status:'INACTIVE', createdAt:'2026-06-10 16:20:00', createdBy:'李四', updatedAt:'2026-06-25 11:00:00', updatedBy:'王五', webCheckedKeys:[6,61,611,62,621,63,631], wecomCheckedKeys:[] },
+                    { id:5, code:'OPERATOR', name:'运营管理员', status:'ACTIVE', createdAt:'2026-06-20 11:00:00', createdBy:'张三', updatedAt:'2026-07-01 08:15:00', updatedBy:'张三', webCheckedKeys:oIds, wecomCheckedKeys:bIds },
+                ]);
+
+                var nextRoleId = 6;
+
+                // ================================================================
+                // 搜索 & 分页
+                // ================================================================
+                const search = reactive({ code: '', name: '' });
+                const pageNum = ref(1);
+                const pageSize = ref(20);
+                const loading = ref(false);
+
+                const hasSearch = computed(function() {
+                    return !!(search.code || search.name);
+                });
+
+                const filteredRoles = computed(function() {
+                    var list = allRoles.value;
+                    if (search.code) {
+                        list = list.filter(function(r) { return r.code.toLowerCase().indexOf(search.code.toLowerCase()) !== -1; });
+                    }
+                    if (search.name) {
+                        list = list.filter(function(r) { return r.name.toLowerCase().indexOf(search.name.toLowerCase()) !== -1; });
+                    }
+                    return list;
+                });
+
+                const total = computed(function() { return filteredRoles.value.length; });
+
+                const tableData = computed(function() {
+                    var start = (pageNum.value - 1) * pageSize.value;
+                    return filteredRoles.value.slice(start, start + pageSize.value);
+                });
+
+                watch([function() { return search.code; }, function() { return search.name; }], function() {
+                    pageNum.value = 1;
+                });
+
+                function doSearch() { pageNum.value = 1; }
+                function resetSearch() {
+                    search.code = '';
+                    search.name = '';
+                    pageNum.value = 1;
+                }
+
+                // ================================================================
+                // 页面跳转
+                // ================================================================
+                const formRef = ref(null);
+                const webTreeRef = ref(null);
+                const wecomTreeRef = ref(null);
+                const submitting = ref(false);
+                const editingRoleId = ref(null);
+
+                const form = reactive({
+                    code: '',
+                    name: '',
+                    status: 'ACTIVE',
+                    webCheckedKeys: [],
+                    wecomCheckedKeys: [],
+                });
+
+                const formRules = {
+                    code: [
+                        { required: true, message: '请输入角色编码', trigger: 'blur' },
+                        { pattern: /^[A-Za-z0-9_]+$/, message: '仅允许字母、数字、下划线', trigger: 'blur' },
+                    ],
+                    name: [{ required: true, message: '请输入角色名称', trigger: 'blur' }],
+                };
+
+                const editFormRules = {
+                    name: [{ required: true, message: '请输入角色名称', trigger: 'blur' }],
+                };
+
+                function goList() {
+                    currentPage.value = 'list';
+                    editingRoleId.value = null;
+                    submitting.value = false;
+                }
+
+                function goCreate() {
+                    currentPage.value = 'create';
+                    editingRoleId.value = null;
+                    submitting.value = false;
+                    form.code = '';
+                    form.name = '';
+                    form.status = 'ACTIVE';
+                    form.webCheckedKeys = [];
+                    form.wecomCheckedKeys = [];
+                    nextTick(function() {
+                        if (formRef.value) formRef.value.clearValidate();
+                        if (webTreeRef.value) webTreeRef.value.setCheckedKeys([]);
+                        if (wecomTreeRef.value) wecomTreeRef.value.setCheckedKeys([]);
+                    });
+                }
+
+                function goEdit(row) {
+                    currentPage.value = 'edit';
+                    editingRoleId.value = row.id;
+                    submitting.value = false;
+                    form.code = row.code;
+                    form.name = row.name;
+                    form.status = row.status;
+                    form.webCheckedKeys = row.webCheckedKeys.slice();
+                    form.wecomCheckedKeys = row.wecomCheckedKeys.slice();
+                    nextTick(function() {
+                        if (formRef.value) formRef.value.clearValidate();
+                        if (webTreeRef.value) webTreeRef.value.setCheckedKeys(row.webCheckedKeys.slice());
+                        if (wecomTreeRef.value) wecomTreeRef.value.setCheckedKeys(row.wecomCheckedKeys.slice());
+                    });
+                }
+
+                // ================================================================
+                // 菜单树交互
+                // ================================================================
+                function onWebTreeCheck(node, checkedInfo) {
+                    form.webCheckedKeys = checkedInfo.checkedKeys;
+                }
+
+                function onWecomTreeCheck(node, checkedInfo) {
+                    form.wecomCheckedKeys = checkedInfo.checkedKeys;
+                }
+
+                function getTypeIcon(type) {
+                    if (type === 'DIRECTORY') return '📁';
+                    if (type === 'MENU') return '📄';
+                    return '🔘';
+                }
+
+                function getTypeClass(type) {
+                    if (type === 'DIRECTORY') return 'tree-node-dir';
+                    if (type === 'MENU') return 'tree-node-menu';
+                    return 'tree-node-btn';
+                }
+
+                // ================================================================
+                // 提交
+                // ================================================================
+                function submitCreate() {
+                    if (!formRef.value) return;
+                    formRef.value.validate(function(valid) {
+                        if (!valid) return;
+
+                        var exists = allRoles.value.some(function(r) { return r.code === form.code; });
+                        if (exists) {
+                            ElementPlus.ElMessage.error('该角色编码已存在');
+                            return;
+                        }
+
+                        submitting.value = true;
+                        var now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+                        setTimeout(function() {
+                            allRoles.value.push({
+                                id: nextRoleId++,
+                                code: form.code,
+                                name: form.name,
+                                status: form.status,
+                                createdAt: now,
+                                createdBy: '当前用户',
+                                updatedAt: now,
+                                updatedBy: '当前用户',
+                                webCheckedKeys: form.webCheckedKeys.slice(),
+                                wecomCheckedKeys: form.wecomCheckedKeys.slice(),
+                            });
+                            submitting.value = false;
+                            goList();
+                            ElementPlus.ElMessage.success('角色创建成功');
+                        }, 400);
+                    });
+                }
+
+                function submitEdit() {
+                    if (!formRef.value) return;
+                    formRef.value.validate(function(valid) {
+                        if (!valid) return;
+
+                        submitting.value = true;
+                        var now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+                        setTimeout(function() {
+                            var role = allRoles.value.find(function(r) { return r.id === editingRoleId.value; });
+                            if (role) {
+                                role.name = form.name;
+                                role.status = form.status;
+                                role.updatedAt = now;
+                                role.updatedBy = '当前用户';
+                                role.webCheckedKeys = form.webCheckedKeys.slice();
+                                role.wecomCheckedKeys = form.wecomCheckedKeys.slice();
+                            }
+                            submitting.value = false;
+                            goList();
+                            ElementPlus.ElMessage.success('角色更新成功');
+                        }, 400);
+                    });
+                }
+
+                // ================================================================
+                return {
+                    currentPage,
+                    search, pageNum, pageSize, loading, hasSearch,
+                    tableData, total,
+                    webMenuTree, wecomMenuTree,
+                    formRef, webTreeRef, wecomTreeRef,
+                    form, formRules, editFormRules,
+                    submitting,
+                    doSearch, resetSearch,
+                    goList, goCreate, goEdit,
+                    onWebTreeCheck, onWecomTreeCheck,
+                    getTypeIcon, getTypeClass,
+                    submitCreate, submitEdit,
+                };
+            }
+        });
+
+        app.use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+    </script>
+</body>
+</html>

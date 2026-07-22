@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>商品分类</title>
+  <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root { --van-primary-color: #ff0000; }
+    body {
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      margin: 0; padding: 0; box-sizing: border-box;
+    }
+    ::-webkit-scrollbar { display: none; }
+    .category-page { display: flex; height: 100vh; }
+    .sidebar {
+      width: 90px; background: #fff; overflow-y: auto;
+      border-right: 1px solid #f1f5f9;
+    }
+    .sidebar-item {
+      padding: 14px 8px; text-align: center; font-size: 13px; color: #64748b;
+      border-left: 3px solid transparent; cursor: pointer; transition: all 0.15s;
+    }
+    .sidebar-item.active {
+      color: #dc2626; font-weight: 600; background: #fef2f2;
+      border-left-color: #dc2626;
+    }
+    .main-content { flex: 1; overflow-y: auto; padding: 12px; }
+    .goods-card {
+      background: #fff; border-radius: 10px; overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .goods-img {
+      width: 100%; height: 100px; background: linear-gradient(135deg, #f1f5f9, #e5e7eb);
+      display: flex; align-items: center; justify-content: center; font-size: 32px; color: #9ca3af;
+    }
+    .goods-info { padding: 8px 10px; }
+    .goods-name { font-size: 13px; font-weight: 500; color: #1f2937; margin-bottom: 4px; }
+    .goods-price { font-size: 15px; font-weight: 700; color: #dc2626; }
+    .goods-unit { font-size: 11px; color: #9ca3af; margin-left: 2px; }
+  </style>
+</head>
+<body>
+  <div id="prd-root">
+    <div class="category-page">
+      <!-- 左侧分类栏 -->
+      <div class="sidebar">
+        <div
+          v-for="cat in categories" :key="cat.id"
+          class="sidebar-item" :class="{ active: activeCategory === cat.id }"
+          @click="activeCategory = cat.id"
+        >{{ cat.name }}</div>
+      </div>
+
+      <!-- 右侧商品列表 -->
+      <div class="main-content">
+        <div class="grid grid-cols-2 gap-3">
+          <div v-for="item in currentGoods" :key="item.id" class="goods-card">
+            <div class="goods-img">📦</div>
+            <div class="goods-info">
+              <div class="goods-name">{{ item.name }}</div>
+              <div>
+                <span class="goods-price">¥{{ item.price }}</span>
+                <span class="goods-unit">/{{ item.unit }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-if="currentGoods.length === 0" class="text-center py-20 text-slate-400 text-sm">
+          暂无商品
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+  <script>
+    const { createApp, ref, computed } = Vue;
+    const app = createApp({
+      setup() {
+        const categories = ref([
+          { id: 1, name: '蔬菜类' }, { id: 2, name: '水果类' },
+          { id: 3, name: '海鲜类' }, { id: 4, name: '冻品类' },
+          { id: 5, name: '肉禽类' }, { id: 6, name: '调味类' },
+          { id: 7, name: '干货类' },
+        ]);
+
+        const goods = ref([
+          { id: 1, name: '新鲜西红柿', price: '3.50', unit: '斤', catId: 1 },
+          { id: 2, name: '有机黄瓜', price: '4.20', unit: '斤', catId: 1 },
+          { id: 3, name: '生菜', price: '2.80', unit: '斤', catId: 1 },
+          { id: 4, name: '土豆', price: '1.90', unit: '斤', catId: 1 },
+          { id: 5, name: '红富士苹果', price: '8.90', unit: '斤', catId: 2 },
+          { id: 6, name: '香蕉', price: '5.50', unit: '斤', catId: 2 },
+          { id: 7, name: '葡萄', price: '15.80', unit: '斤', catId: 2 },
+          { id: 8, name: '基围虾', price: '45.00', unit: '斤', catId: 3 },
+          { id: 9, name: '三文鱼', price: '68.00', unit: '斤', catId: 3 },
+          { id: 10, name: '速冻水饺', price: '12.00', unit: '袋', catId: 4 },
+          { id: 11, name: '鸡胸肉', price: '11.50', unit: '斤', catId: 5 },
+          { id: 12, name: '猪排骨', price: '32.00', unit: '斤', catId: 5 },
+        ]);
+
+        const activeCategory = ref(1);
+
+        const currentGoods = computed(() => {
+          return goods.value.filter(g => g.catId === activeCategory.value);
+        });
+
+        return { categories, activeCategory, currentGoods };
+      }
+    });
+    app.use(vant).mount('#prd-root');
+  </script>
+</body>
+</html>

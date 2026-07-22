@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户统计报表</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <style>
+        :root { --primary: #409eff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; background: #f0f2f5; margin: 0; padding: 10px; }
+        .breadcrumb-bar { background: #fff; border-radius: 8px; padding: 10px 16px; margin-bottom: 10px; font-size: 15px; color: #303133; font-weight: 600; }
+        .query-card { background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; }
+        .data-card { background: #fff; border-radius: 8px; padding: 12px 16px; position: relative; }
+        .toolbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+
+        .sortable-header { cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+        .sortable-header:hover { color: #409eff; }
+
+        .sort-popover-wrap { position: absolute; z-index: 9999; background: #fff; border-radius: 6px; box-shadow: 0 6px 16px rgba(0,0,0,.12); padding: 4px 0; min-width: 96px; }
+        .sort-popover-wrap .sort-opt { display: block; width: 100%; padding: 6px 16px; border: none; background: none; cursor: pointer; font-size: 13px; color: #606266; text-align: left; }
+        .sort-popover-wrap .sort-opt:hover { background: #ecf5ff; color: #409eff; }
+        .sort-popover-wrap .sort-opt.active { color: #409eff; font-weight: 600; background: #ecf5ff; }
+
+        .customer-name-link { cursor: pointer; color: #409eff; }
+        .customer-name-link:hover { text-decoration: underline; color: #337ecc; }
+        .stat-cards-row { display: flex; gap: 12px; margin-bottom: 20px; }
+        .stat-card { flex: 1; min-width: 180px; background: linear-gradient(135deg, #f5f7fa 0%, #fff 100%); border: 1px solid #ebeef5; border-radius: 10px; padding: 20px 24px; text-align: center; transition: transform .2s, box-shadow .2s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+        .stat-card .label { font-size: 12px; color: #909399; margin-bottom: 8px; }
+        .stat-card .value { font-size: 28px; font-weight: 700; color: #303133; }
+        .chart-container { width: 100%; height: 400px; margin-top: 8px; }
+        .empty-state { text-align: center; padding: 60px 0; color: #909399; }
+        .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+        .interval-hint { font-size: 12px; color: #909399; margin-left: 12px; }
+
+        .query-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+        .query-label { font-size: 14px; color: #606266; white-space: nowrap; }
+    </style>
+</head>
+<body>
+<div id="prd-root">
+
+    <!-- 面包屑 -->
+    <div class="breadcrumb-bar">客户统计报表</div>
+
+    <!-- 查询区 -->
+    <div class="query-card">
+        <div class="toolbar-row">
+            <el-button type="primary" @click="doSearch">查询</el-button>
+            <el-button @click="resetSearch">重置</el-button>
+            <el-button @click="doExport">导出</el-button>
+        </div>
+        <div class="query-row">
+            <span class="query-label">到货时间</span>
+            <el-date-picker v-model="search.arrivalDateRange" type="daterange" range-separator="至"
+                start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" style="width:240px;"></el-date-picker>
+
+            <span class="query-label">客户注册时间</span>
+            <el-date-picker v-model="search.registerDateRange" type="daterange" range-separator="至"
+                start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" style="width:240px;"></el-date-picker>
+
+            <span class="query-label">销售员</span>
+            <el-select v-model="search.salesman" placeholder="全部" clearable filterable style="width:160px;">
+                <el-option v-for="s in salesmanOptions" :key="s.value" :label="s.label" :value="s.value"></el-option>
+            </el-select>
+
+            <span class="query-label">客户信息</span>
+            <el-input v-model="search.customerInfo" placeholder="客户名称/客户编码" clearable style="width:190px;"></el-input>
+
+            <span class="query-label">客户等级</span>
+            <el-select v-model="search.customerLevel" placeholder="全部" clearable style="width:140px;">
+                <el-option v-for="l in levelOptions" :key="l.value" :label="l.label" :value="l.value"></el-option>
+            </el-select>
+
+            <span class="query-label">仓库</span>
+            <el-select v-model="search.warehouse" placeholder="全部" clearable style="width:180px;">
+                <el-option v-for="w in warehouseOptions" :key="w.value" :label="w.label" :value="w.value"></el-option>
+            </el-select>
+        </div>
+    </div>
+
+    <!-- 数据区 -->
+    <div class="data-card" id="data-card">
+        <div style="display:flex; justify-content:flex-end; margin-bottom:10px; font-size:13px; color:#909399;">
+            共 <b style="color:#303133; margin:0 4px;">{{ total }}</b> 条记录
+        </div>
+
+        <el-table :data="tableData" v-loading="loading" border stripe style="width:100%;"
+            :header-cell-style="{background:'#f5f7fa',color:'#606266',fontWeight:500}">
+
+            <el-table-column label="序号" width="60" align="center" fixed>
+                <template #default="scope">{{ (pageNum-1)*pageSize + scope.$index + 1 }}</template>
+            </el-table-column>
+
+            <el-table-column prop="customerName" label="客户名称" width="150" fixed>
+                <template #default="scope">
+                    <el-tooltip placement="right" effect="light" :show-after="300">
+                        <template #content>
+                            <div style="line-height:1.8;font-size:13px;">
+                                <div><b>客户名称：</b>{{ scope.row.customerName }}</div>
+                                <div><b>客户编码：</b>{{ scope.row.customerCode }}</div>
+                                <div><b>客户等级：</b>{{ levelName(scope.row.customerLevel) }}</div>
+                                <div><b>负责销售员：</b>{{ scope.row.salesman }}</div>
+                                <div><b>联系人电话：</b>{{ scope.row.contactPhone }}</div>
+                            </div>
+                        </template>
+                        <span class="customer-name-link" @click.stop="openCustomerDetail(scope.row)">{{ scope.row.customerName }}</span>
+                    </el-tooltip>
+                </template>
+            </el-table-column>
+
+            <el-table-column prop="customerCode" label="客户编码" width="120"></el-table-column>
+            <el-table-column prop="contactPhone" label="联系人电话" width="135"></el-table-column>
+            <el-table-column prop="salesman" label="负责销售员" width="115"></el-table-column>
+
+            <!-- 订单数维度 -->
+            <el-table-column width="110" align="center">
+                <template #header>
+                    <div class="sortable-header" @click.stop="onSortClick('orderCount',$event)">订货单数<span v-if="sortState.field==='orderCount'&&sortState.order==='ASC'" style="font-size:12px;color:#409eff;">↑</span><span v-else-if="sortState.field==='orderCount'&&sortState.order==='DESC'" style="font-size:12px;color:#409eff;">↓</span><span v-else style="font-size:12px;color:#c0c4cc;">⇅</span></div>
+                </template>
+                <template #default="scope">{{ scope.row.orderCount }}</template>
+            </el-table-column>
+            <el-table-column width="110" align="center">
+                <template #header>
+                    <div class="sortable-header" @click.stop="onSortClick('returnCount',$event)">退货单数<span v-if="sortState.field==='returnCount'&&sortState.order==='ASC'" style="font-size:12px;color:#409eff;">↑</span><span v-else-if="sortState.field==='returnCount'&&sortState.order==='DESC'" style="font-size:12px;color:#409eff;">↓</span><span v-else style="font-size:12px;color:#c0c4cc;">⇅</span></div>
+                </template>
+                <template #default="scope">{{ scope.row.returnCount }}</template>
+            </el-table-column>
+            <el-table-column width="110" align="center">
+                <template #header>
+                    <div class="sortable-header" @click.stop="onSortClick('diffCount',$event)">差补单数<span v-if="sortState.field==='diffCount'&&sortState.order==='ASC'" style="font-size:12px;color:#409eff;">↑</span><span v-else-if="sortState.field==='diffCount'&&sortState.order==='DESC'" style="font-size:12px;color:#409eff;">↓</span><span v-else style="font-size:12px;color:#c0c4cc;">⇅</span></div>
+                </template>
+                <template #default="scope">{{ scope.row.diffCount }}</template>
+            </el-table-column>
+
+            <!-- 销售金额维度 -->
+            <el-table-column width="130" align="right">
+                <template #header>
+                    <div class="sortable-header" @click.stop="onSortClick('saleAmount',$event)">销售金额<span v-if="sortState.field==='saleAmount'&&sortState.order==='ASC'" style="font-size:12px;color:#409eff;">↑</span><span v-else-if="sortState.field==='saleAmount'&&sortState.order==='DESC'" style="font-size:12px;color:#409eff;">↓</span><span v-else style="font-size:12px;color:#c0c4cc;">⇅</span></div>
+                </template>
+                <template #default="scope">{{ scope.row.saleAmount.toFixed(2) }}</template>
+            </el-table-column>
+            <el-table-column width="130" align="right">
+                <template #header>
+                    <div class="sortable-header" @click.stop="onSortClick('returnAmount',$event)">退货金额<span v-if="sortState.field==='returnAmount'&&sortState.order==='ASC'" style="font-size:12px;color:#409eff;">↑</span><span v-else-if="sortState.field==='returnAmount'&&sortState.order==='DESC'" style="font-size:12px;color:#409eff;">↓</span><span v-else style="font-size:12px;color:#c0c4cc;">⇅</span></div>
+                </template>
+                <template #default="scope">{{ scope.row.returnAmount.toFixed(2) }}</template>
+            </el-table-column>
+            <el-table-column width="130" align="right">
+                <template #header>
+                    <div class="sortable-header" @click.stop="onSortClick('diffAmount',$event)">补差金额<span v-if="sortState.field==='diffAmount'&&sortState.order==='ASC'" style="font-size:12px;color:#409eff;">↑</span><span v-else-if="sortState.field==='diffAmount'&&sortState.order==='DESC'" style="font-size:12px;color:#409eff;">↓</span><span v-else style="font-size:12px;color:#c0c4cc;">⇅</span></div>
+                </template>
+                <template #default="scope">{{ scope.row.diffAmount.toFixed(2) }}</template>
+            </el-table-column>
+            <el-table-column width="145" align="right">
+                <template #header>
+                    <div class="sortable-header" @click.stop="onSortClick('actualReceived',$event)">实际收款额<span v-if="sortState.field==='actualReceived'&&sortState.order==='ASC'" style="font-size:12px;color:#409eff;">↑</span><span v-else-if="sortState.field==='actualReceived'&&sortState.order==='DESC'" style="font-size:12px;color:#409eff;">↓</span><span v-else style="font-size:12px;color:#c0c4cc;">⇅</span></div>
+                </template>
+                <template #default="scope">{{ scope.row.actualReceived.toFixed(2) }}</template>
+            </el-table-column>
+        </el-table>
+
+        <!-- 排序浮层 -->
+        <div v-if="sortPop.visible" class="sort-popover-wrap" :style="{top:sortPop.top+'px',left:sortPop.left+'px'}">
+            <button class="sort-opt" @click="applySort('')">重置</button>
+            <button class="sort-opt" :class="{active:sortState.field===sortPop.field&&sortState.order==='ASC'}" @click="applySort('ASC')">升序 ↑</button>
+            <button class="sort-opt" :class="{active:sortState.field===sortPop.field&&sortState.order==='DESC'}" @click="applySort('DESC')">倒序 ↓</button>
+        </div>
+        <div v-if="sortPop.visible" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9998;" @click="sortPop.visible=false"></div>
+
+        <div v-if="tableData.length===0 && !loading" class="empty-state">
+            <div class="empty-state-icon">📊</div><div>暂无统计数据</div>
+        </div>
+
+        <div style="margin-top:16px; display:flex; justify-content:flex-start;" v-if="total > 0">
+            <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize"
+                :page-sizes="[5,10,20,30,50,100]" :total="total"
+                layout="total, sizes, prev, pager, next" background
+                @size-change="doSearch" @current-change="doSearch"></el-pagination>
+        </div>
+    </div>
+
+    <!-- 客户详情抽屉 -->
+    <el-drawer v-model="drawerVisible"
+        :title="(detailCustomer.customerName||'客户详情') + '（' + (detailCustomer.customerCode||'') + '）'"
+        direction="rtl" size="67%" :close-on-click-modal="true" @opened="initChart" @closed="disposeChart">
+        <div class="stat-cards-row">
+            <div class="stat-card"><div class="label">订货单数</div><div class="value">{{ detailCustomer.orderCount || 0 }}</div></div>
+            <div class="stat-card"><div class="label">销售金额</div><div class="value">¥{{ (detailCustomer.saleAmount||0).toFixed(2) }}</div></div>
+            <div class="stat-card"><div class="label">实际收款额</div><div class="value">¥{{ (detailCustomer.actualReceived||0).toFixed(2) }}</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+            <span style="font-size:14px;color:#606266;">到店日期：</span>
+            <el-date-picker v-model="detailSearch.dateRange" type="daterange" range-separator="至"
+                start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD"
+                style="width:260px;"></el-date-picker>
+            <span style="font-size:14px;color:#606266;">仓库：</span>
+            <el-select v-model="detailSearch.warehouse" placeholder="全部" clearable style="width:190px;">
+                <el-option v-for="w in warehouseOptions" :key="w.value" :label="w.label" :value="w.value"></el-option>
+            </el-select>
+            <el-button type="primary" @click="updateChart">查询</el-button>
+            <el-button @click="detailSearch.dateRange=null;detailSearch.warehouse='';updateChart();">重置</el-button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-size:14px;color:#606266;">展示维度：</span>
+            <el-select v-model="chartDimension" style="width:140px;" @change="updateChart">
+                <el-option label="订单数" value="orderCount"></el-option>
+                <el-option label="销售金额" value="saleAmount"></el-option>
+            </el-select>
+            <span class="interval-hint">采样间隔：{{ intervalLabel }}</span>
+        </div>
+        <div class="chart-container" id="detail-chart"></div>
+        <div v-if="chartEmpty" style="text-align:center;padding:40px;color:#909399;">所选时间范围内无数据</div>
+    </el-drawer>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="https://unpkg.com/element-plus"></script>
+<script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+<script>
+const { createApp, ref, reactive, nextTick } = Vue;
+
+/* ---- 图表工具函数 ---- */
+function calcInterval(startDate, endDate) {
+    if (!startDate || !endDate) return { interval: 1, label: '每天（≤1月）' };
+    var d = Math.ceil((new Date(endDate) - new Date(startDate)) / 864e5) + 1;
+    if (d <= 30) return { interval: 1, label: '每天（≤1月）' };
+    if (d <= 180) return { interval: 5, label: '每5天（1~6月）' };
+    return { interval: 30, label: '每30天（>6月）' };
+}
+function generateDailyData(startDate, endDate, dim) {
+    var dates = [], values = [];
+    var s = new Date(startDate), e = new Date(endDate);
+    var cur = new Date(s);
+    while (cur <= e) {
+        dates.push((cur.getMonth()+1)+'/'+cur.getDate());
+        if (Math.random() < 0.2) { values.push(null); }
+        else { values.push(dim === 'orderCount' ? Math.floor(Math.random()*28)+2 : Math.floor(Math.random()*8000)+2000); }
+        cur.setDate(cur.getDate() + 1);
+    }
+    return { dates: dates, values: values };
+}
+function sampleData(dailyDates, dailyValues, interval) {
+    if (interval <= 1) return { dates: dailyDates, values: dailyValues };
+    var sd = [], sv = [];
+    for (var i = 0; i < dailyDates.length; i += interval) {
+        var sum = 0, has = false;
+        for (var j = i; j < Math.min(i + interval, dailyDates.length); j++) {
+            if (dailyValues[j] != null) { sum += dailyValues[j]; has = true; }
+        }
+        sd.push(dailyDates[i]); sv.push(has ? sum : null);
+    }
+    return { dates: sd, values: sv };
+}
+
+var app = createApp({
+    setup: function() {
+        var search = reactive({
+            arrivalDateRange: null, registerDateRange: null,
+            salesman: '', customerInfo: '', customerLevel: '', warehouse: ''
+        });
+        var sortState = reactive({ field: '', order: '' });
+        var sortPop = reactive({ visible: false, field: '', top: 0, left: 0 });
+        var loading = ref(false);
+        var pageNum = ref(1), pageSize = ref(20), total = ref(12);
+
+        var salesmanOptions = [
+            {label:'张三',value:'S001'},{label:'李四',value:'S002'},{label:'王五',value:'S003'},
+            {label:'赵六',value:'S004'},{label:'陈七',value:'S005'},{label:'刘八',value:'S006'},
+            {label:'周九',value:'S007'},{label:'吴十',value:'S008'}
+        ];
+        var levelOptions = [
+            {label:'一般客户',value:'NORMAL'},{label:'中级客户',value:'MIDDLE'},{label:'顶级客户',value:'TOP'}
+        ];
+        var warehouseOptions = [
+            {label:'全国集采虚拟仓',value:'WH_ALL'},{label:'广州江高猪肉仓',value:'WH_GZJG'},
+            {label:'广州江高电商仓',value:'WH_GZJGDS'},{label:'长沙丰泉综合仓',value:'WH_CSFQ'},
+            {label:'成都双流综合仓',value:'WH_CDSL'},{label:'深圳恒寿蔬果仓',value:'WH_SZHS'},
+            {label:'广州南海猪肉仓',value:'WH_GZNH'},{label:'广州花地湾水产仓',value:'WH_GZHDW'},
+            {label:'广州番禺猪肉仓',value:'WH_GZPY'},{label:'广州菜吧仓',value:'WH_GZCB'},
+            {label:'深圳菜吧仓',value:'WH_SZCB'},{label:'清远万安猪肉仓',value:'WH_QYWA'},
+            {label:'海南项目仓',value:'WH_HNXM'},{label:'B端业务仓',value:'WH_B'},
+            {label:'中山创新仓',value:'WH_ZSCX'},{label:'基地直采仓',value:'WH_JDZC'},
+            {label:'中山颐丰猪肉仓',value:'WH_ZSYF'},{label:'长沙B端业务仓',value:'WH_CSB'},
+            {label:'深圳创新仓',value:'WH_SZCX'},{label:'B端业务仓-停用',value:'WH_B_OLD'},
+            {label:'华南区线下共享仓',value:'WH_HNGX'}
+        ];
+
+        /* 全量原始数据（带过滤字段） */
+        var allData = [
+            {customerName:'永辉超市',customerCode:'C001',contactPhone:'13800138001',salesman:'张三',salesmanId:'S001',customerLevel:'TOP',warehouseVal:'WH_GZJGDS',registerDate:'2025-03-15',arrivalDate:'2026-07-10',orderCount:328,returnCount:15,diffCount:5,saleAmount:98600.00,returnAmount:450.00,diffAmount:120.00,actualReceived:93870.00},
+            {customerName:'大碗厨餐饮',customerCode:'C002',contactPhone:'13800138002',salesman:'李四',salesmanId:'S002',customerLevel:'MIDDLE',warehouseVal:'WH_CSFQ',registerDate:'2025-06-20',arrivalDate:'2026-07-08',orderCount:195,returnCount:8,diffCount:3,saleAmount:58500.00,returnAmount:320.00,diffAmount:80.00,actualReceived:55650.00},
+            {customerName:'湘味轩',customerCode:'C003',contactPhone:'13800138003',salesman:'王五',salesmanId:'S003',customerLevel:'TOP',warehouseVal:'WH_GZJG',registerDate:'2024-11-01',arrivalDate:'2026-07-12',orderCount:267,returnCount:12,diffCount:6,saleAmount:80100.00,returnAmount:680.00,diffAmount:210.00,actualReceived:76120.00},
+            {customerName:'鲜之源',customerCode:'C004',contactPhone:'13800138004',salesman:'张三',salesmanId:'S001',customerLevel:'NORMAL',warehouseVal:'WH_SZHS',registerDate:'2026-01-10',arrivalDate:'2026-07-09',orderCount:78,returnCount:3,diffCount:1,saleAmount:23400.00,returnAmount:150.00,diffAmount:35.00,actualReceived:22230.00},
+            {customerName:'海味鲜餐厅',customerCode:'C005',contactPhone:'13800138005',salesman:'赵六',salesmanId:'S004',customerLevel:'MIDDLE',warehouseVal:'WH_GZHDW',registerDate:'2025-09-05',arrivalDate:'2026-07-11',orderCount:156,returnCount:7,diffCount:2,saleAmount:46800.00,returnAmount:520.00,diffAmount:140.00,actualReceived:44460.00},
+            {customerName:'天福茗茶',customerCode:'C006',contactPhone:'13800138006',salesman:'陈七',salesmanId:'S005',customerLevel:'NORMAL',warehouseVal:'WH_CDSL',registerDate:'2026-03-22',arrivalDate:'2026-07-07',orderCount:52,returnCount:2,diffCount:0,saleAmount:15600.00,returnAmount:90.00,diffAmount:20.00,actualReceived:14820.00},
+            {customerName:'绿野仙踪',customerCode:'C007',contactPhone:'13800138007',salesman:'李四',salesmanId:'S002',customerLevel:'TOP',warehouseVal:'WH_ZSCX',registerDate:'2024-08-18',arrivalDate:'2026-07-10',orderCount:412,returnCount:18,diffCount:8,saleAmount:123600.00,returnAmount:890.00,diffAmount:340.00,actualReceived:117450.00},
+            {customerName:'每日鲜果',customerCode:'C008',contactPhone:'13800138008',salesman:'刘八',salesmanId:'S006',customerLevel:'MIDDLE',warehouseVal:'WH_CSB',registerDate:'2025-12-01',arrivalDate:'2026-07-06',orderCount:103,returnCount:4,diffCount:1,saleAmount:30900.00,returnAmount:230.00,diffAmount:65.00,actualReceived:29350.00},
+            {customerName:'烹饪达人',customerCode:'C009',contactPhone:'13800138009',salesman:'周九',salesmanId:'S007',customerLevel:'NORMAL',warehouseVal:'WH_SZCX',registerDate:'2026-05-14',arrivalDate:'2026-07-05',orderCount:31,returnCount:1,diffCount:0,saleAmount:9300.00,returnAmount:45.00,diffAmount:10.00,actualReceived:8835.00},
+            {customerName:'食为先',customerCode:'C010',contactPhone:'13800138010',salesman:'吴十',salesmanId:'S008',customerLevel:'MIDDLE',warehouseVal:'WH_HNGX',registerDate:'2025-07-30',arrivalDate:'2026-07-08',orderCount:134,returnCount:6,diffCount:2,saleAmount:40200.00,returnAmount:380.00,diffAmount:95.00,actualReceived:38190.00},
+            {customerName:'味之源',customerCode:'C011',contactPhone:'13800138011',salesman:'王五',salesmanId:'S003',customerLevel:'TOP',warehouseVal:'WH_ALL',registerDate:'2024-06-12',arrivalDate:'2026-07-12',orderCount:589,returnCount:24,diffCount:10,saleAmount:176700.00,returnAmount:1560.00,diffAmount:480.00,actualReceived:167850.00},
+            {customerName:'百味轩',customerCode:'C012',contactPhone:'13800138012',salesman:'赵六',salesmanId:'S004',customerLevel:'NORMAL',warehouseVal:'WH_JDZC',registerDate:'2026-06-08',arrivalDate:'2026-07-04',orderCount:45,returnCount:2,diffCount:0,saleAmount:13500.00,returnAmount:78.00,diffAmount:18.00,actualReceived:12825.00}
+        ];
+
+        /* 当前展示数据 */
+        var tableData = ref(allData.slice());
+
+        /* 等级显示名称 */
+        function levelName(code) {
+            if (code === 'TOP') return '顶级客户';
+            if (code === 'MIDDLE') return '中级客户';
+            return '一般客户';
+        }
+
+        /* ---- 真实筛选 + 排序逻辑 ---- */
+        function doSearch() {
+            loading.value = true;
+            // 从全量数据筛选
+            var filtered = allData.filter(function(row) {
+                // 销售员筛选
+                if (search.salesman && row.salesmanId !== search.salesman) return false;
+                // 客户等级筛选
+                if (search.customerLevel && row.customerLevel !== search.customerLevel) return false;
+                // 仓库筛选
+                if (search.warehouse && row.warehouseVal !== search.warehouse) return false;
+                // 客户信息筛选（名称或编码模糊）
+                if (search.customerInfo) {
+                    var kw = search.customerInfo.toLowerCase();
+                    if (row.customerName.toLowerCase().indexOf(kw) === -1 && row.customerCode.toLowerCase().indexOf(kw) === -1) return false;
+                }
+                // 到货时间范围
+                if (search.arrivalDateRange && search.arrivalDateRange.length === 2) {
+                    if (row.arrivalDate < search.arrivalDateRange[0] || row.arrivalDate > search.arrivalDateRange[1]) return false;
+                }
+                // 客户注册时间范围
+                if (search.registerDateRange && search.registerDateRange.length === 2) {
+                    if (row.registerDate < search.registerDateRange[0] || row.registerDate > search.registerDateRange[1]) return false;
+                }
+                return true;
+            });
+            // 排序
+            if (sortState.field && sortState.order) {
+                filtered.sort(function(a, b) {
+                    var va = a[sortState.field], vb = b[sortState.field];
+                    if (typeof va === 'string') return sortState.order === 'ASC' ? vb.localeCompare(va) : va.localeCompare(vb);
+                    return sortState.order === 'ASC' ? vb - va : va - vb;
+                });
+            }
+            total.value = filtered.length;
+            pageNum.value = 1;
+            tableData.value = filtered;
+            loading.value = false;
+        }
+
+        function resetSearch() {
+            search.arrivalDateRange = null; search.registerDateRange = null;
+            search.salesman = ''; search.customerInfo = ''; search.customerLevel = ''; search.warehouse = '';
+            sortState.field = ''; sortState.order = '';
+            pageNum.value = 1;
+            doSearch();
+        }
+
+        function doExport() {
+            ElementPlus.ElMessage.success('正在导出，请稍候...（按当前筛选条件，无条数上限，导出 ' + total.value + ' 条）');
+        }
+
+        /* ---- 排序控件 ---- */
+        function onSortClick(field, event) {
+            if (sortPop.visible && sortPop.field === field) { sortPop.visible = false; return; }
+            sortPop.field = field;
+            sortPop.visible = true;
+            var cell = event.currentTarget.closest('th');
+            var thWrap = cell.closest('.el-table__header-wrapper');
+            if (!thWrap) { thWrap = cell.closest('.el-table__header'); }
+            var wrapRect = thWrap ? thWrap.getBoundingClientRect() : { top: 0, left: 0 };
+            var cellRect = cell.getBoundingClientRect();
+            sortPop.top = cellRect.bottom - wrapRect.top + 2;
+            sortPop.left = cellRect.left - wrapRect.left;
+        }
+        function applySort(order) {
+            sortState.field = order ? sortPop.field : '';
+            sortState.order = order;
+            sortPop.visible = false;
+            doSearch();  // 重新筛选+排序
+        }
+
+        /* ---- 客户详情抽屉 ---- */
+        var drawerVisible = ref(false);
+        var detailCustomer = ref({});
+        var detailSearch = reactive({ dateRange: null, warehouse: '' });
+        var chartDimension = ref('orderCount');
+        var chartEmpty = ref(false);
+        var intervalLabel = ref('每天（≤1月）');
+        var chartInstance = null;
+
+        function openCustomerDetail(row) {
+            detailCustomer.value = Object.assign({}, row);
+            detailSearch.dateRange = null; detailSearch.warehouse = '';
+            chartDimension.value = 'orderCount'; chartEmpty.value = false;
+            intervalLabel.value = '每天（≤1月）';
+            drawerVisible.value = true;
+        }
+
+        function initChart() {
+            nextTick(function() {
+                var dom = document.getElementById('detail-chart');
+                if (!dom) return;
+                if (chartInstance) chartInstance.dispose();
+                chartInstance = echarts.init(dom);
+                updateChart();
+                window.addEventListener('resize', function() { if (chartInstance) chartInstance.resize(); });
+            });
+        }
+        function disposeChart() { if (chartInstance) { chartInstance.dispose(); chartInstance = null; } }
+
+        function updateChart() {
+            if (!chartInstance) return;
+            var dim = chartDimension.value;
+            var isAmount = dim === 'saleAmount';
+            var label = isAmount ? '销售金额' : '订单数';
+            var yName = isAmount ? '金额（元）' : '数量';
+
+            var start, end;
+            if (detailSearch.dateRange && detailSearch.dateRange.length === 2) {
+                start = detailSearch.dateRange[0]; end = detailSearch.dateRange[1];
+            } else {
+                var now = new Date();
+                end = now.toISOString().slice(0,10);
+                var past = new Date(now); past.setDate(past.getDate()-29);
+                start = past.toISOString().slice(0,10);
+            }
+
+            var intv = calcInterval(start, end);
+            intervalLabel.value = intv.label;
+            var daily = generateDailyData(start, end, dim);
+            var sampled = sampleData(daily.dates, daily.values, intv.interval);
+
+            chartInstance.setOption({
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        var p = params[0];
+                        if (p.value == null) return p.axisValue + '<br/>无数据';
+                        return p.axisValue + '<br/>' + p.seriesName + '：' + (isAmount ? '¥'+p.value.toLocaleString() : p.value);
+                    }
+                },
+                grid: { left:65, right:25, top:30, bottom:35 },
+                xAxis: { type: 'category', data: sampled.dates, axisLabel: { rotate: intv.interval>1?30:45, fontSize:11 } },
+                yAxis: { type: 'value', name: yName, minInterval: 1, axisLabel: isAmount ? { formatter: function(v){ return v>=1000 ? (v/1000).toFixed(0)+'k' : v; } } : {} },
+                series: [{
+                    name: label, type: 'line', data: sampled.values,
+                    smooth: true, connectNulls: true,
+                    symbol: intv.interval>1 ? 'circle' : 'emptyCircle', symbolSize: intv.interval>1 ? 8 : 5,
+                    lineStyle: { color: '#409eff', width: 2 },
+                    itemStyle: { color: '#409eff', borderColor: '#409eff', borderWidth: 1.5 },
+                    areaStyle: { color: 'rgba(64,158,255,0.08)' }
+                }]
+            });
+        }
+
+        return {
+            search: search, sortState: sortState, sortPop: sortPop,
+            loading: loading, pageNum: pageNum, pageSize: pageSize, total: total,
+            salesmanOptions: salesmanOptions, levelOptions: levelOptions, warehouseOptions: warehouseOptions,
+            tableData: tableData, levelName: levelName,
+            onSortClick: onSortClick, applySort: applySort,
+            doSearch: doSearch, resetSearch: resetSearch, doExport: doExport,
+            drawerVisible: drawerVisible, detailCustomer: detailCustomer,
+            detailSearch: detailSearch, chartDimension: chartDimension,
+            chartEmpty: chartEmpty, intervalLabel: intervalLabel,
+            openCustomerDetail: openCustomerDetail, initChart: initChart,
+            disposeChart: disposeChart, updateChart: updateChart
+        };
+    }
+});
+app.use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+</script>
+</body>
+</html>

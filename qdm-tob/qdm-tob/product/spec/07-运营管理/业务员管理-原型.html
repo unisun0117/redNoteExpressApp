@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>业务员管理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 10px;
+        }
+        .search-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+            padding-bottom: 0px;
+            margin-bottom: 10px;
+        }
+        .data-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .toolbar-left {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 0;
+            color: #909399;
+        }
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        .code-tag-valid {
+            background: #f0f9eb;
+            color: #67c23a;
+            border: 1px solid #e1f3d8;
+        }
+        .code-tag-empty {
+            background: #f5f7fa;
+            color: #909399;
+            border: 1px solid #e4e7ed;
+        }
+        .code-tag-invalid {
+            background: #fef0f0;
+            color: #f56c6c;
+            border: 1px solid #fde2e2;
+        }
+        .import-result {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 6px;
+            background: #f5f7fa;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        .import-success { color: #67c23a; }
+        .import-fail { color: #f56c6c; }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+        <!-- ========== Tab 切换 ========== -->
+        <el-tabs v-model="activeTab" type="border-card" style="background:#fff; border-radius:8px;">
+            <!-- ==================== Tab 1: 业务员推荐码 ==================== -->
+            <el-tab-pane label="业务员推荐码" name="referral">
+                <!-- 查询区 -->
+                <div class="search-card">
+                    <el-form :inline="true" :model="referralSearch">
+                        <el-form-item label="业务员姓名">
+                            <el-input v-model="referralSearch.name" placeholder="请输入姓名" clearable style="width:180px;"></el-input>
+                        </el-form-item>
+                        <el-form-item label="手机号">
+                            <el-input v-model="referralSearch.phone" placeholder="请输入手机号" clearable style="width:180px;"></el-input>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="doReferralSearch">查询</el-button>
+                            <el-button @click="resetReferralSearch">重置</el-button>
+                        </el-form-item>
+                    </el-form>
+                </div>
+
+                <!-- 操作&数据区 -->
+                <div class="data-card">
+                    <div class="toolbar">
+                        <div class="toolbar-left">
+                            <el-button type="primary" @click="openAddSalesmanDialog">添加业务员</el-button>
+                        </div>
+                        <span style="font-size:14px; color:#909399;">共 <b style="color:#303133;">{{ referralTotal }}</b> 条记录</span>
+                    </div>
+
+                    <el-table
+                        :data="referralTableData"
+                        v-loading="referralLoading"
+                        stripe
+                        style="width:100%;"
+                        :header-cell-style="{background:'#f5f7fa', color:'#606266', fontWeight:500}"
+                    >
+                        <el-table-column type="selection" width="50"></el-table-column>
+                        <el-table-column prop="name" label="业务员姓名" width="120"></el-table-column>
+                        <el-table-column label="业务员手机号" width="150">
+                            <template #default="scope">
+                                <span style="color:#909399;">{{ maskPhone(scope.row.phone) }}</span>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="销售客户数" width="120" align="center">
+                            <template #default="scope">
+                                <el-tag type="info" size="small">{{ scope.row.customerCount }}</el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="推荐码" width="120" align="center">
+                            <template #default="scope">
+                                <el-tag
+                                    v-if="scope.row.codeStatus === 'valid'"
+                                    class="code-tag-valid"
+                                    size="small"
+                                    disable-transitions
+                                >{{ scope.row.code }}</el-tag>
+                                <span v-else-if="scope.row.codeStatus === 'empty'" style="color:#909399;">—</span>
+                                <el-tag
+                                    v-else-if="scope.row.codeStatus === 'invalid'"
+                                    class="code-tag-invalid"
+                                    size="small"
+                                    disable-transitions
+                                >{{ scope.row.code }}</el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="updatedBy" label="修改人" width="100"></el-table-column>
+                        <el-table-column prop="updatedAt" label="最后修改时间" width="160"></el-table-column>
+                        <el-table-column label="操作" width="280" fixed="right">
+                            <template #default="scope">
+                                <el-button type="primary" link size="small" @click="regenerateCode(scope.row)">重新生成</el-button>
+                                <el-button
+                                    type="warning" link size="small"
+                                    @click="clearCode(scope.row)"
+                                    :disabled="scope.row.codeStatus !== 'valid'"
+                                >置空</el-button>
+                                <el-button
+                                    type="danger" link size="small"
+                                    @click="deleteCode(scope.row)"
+                                    :disabled="scope.row.codeStatus !== 'valid'"
+                                >删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+
+                    <div v-if="referralTableData.length === 0 && !referralLoading" class="empty-state">
+                        <div class="empty-state-icon">👤</div>
+                        <div>暂无业务员</div>
+                    </div>
+
+                    <div style="margin-top:16px; display:flex; justify-content:flex-start;" v-if="referralTotal > 0">
+                        <el-pagination
+                            v-model:current-page="referralPageNum"
+                            v-model:page-size="referralPageSize"
+                            :page-sizes="[10, 20, 50]"
+                            :total="referralTotal"
+                            layout="total, sizes, prev, pager, next"
+                            background
+                        ></el-pagination>
+                    </div>
+                </div>
+            </el-tab-pane>
+
+            <!-- ==================== Tab 2: 业务员绩效配置 ==================== -->
+            <el-tab-pane label="业务员绩效配置" name="performance">
+                <!-- 查询区 -->
+                <div class="search-card">
+                    <el-form :inline="true" :model="perfSearch">
+                        <el-form-item label="业务员">
+                            <el-select v-model="perfSearch.salesmanId" placeholder="全部" clearable style="width:180px;">
+                                <el-option
+                                    v-for="s in allSalesmen"
+                                    :key="s.id"
+                                    :label="s.name"
+                                    :value="s.id"
+                                ></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="月度">
+                            <el-input v-model="perfSearch.month" placeholder="如 2026-05" clearable style="width:180px;"></el-input>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="doPerfSearch">查询</el-button>
+                            <el-button @click="resetPerfSearch">重置</el-button>
+                        </el-form-item>
+                    </el-form>
+                </div>
+
+                <!-- 操作&数据区 -->
+                <div class="data-card">
+                    <div class="toolbar">
+                        <div class="toolbar-left">
+                            <el-button type="primary" @click="openPerfForm(null)">添加绩效</el-button>
+                            <el-button @click="openImportDialog">批量导入</el-button>
+                        </div>
+                        <span style="font-size:14px; color:#909399;">共 <b style="color:#303133;">{{ perfTotal }}</b> 条记录</span>
+                    </div>
+
+                    <el-table
+                        :data="perfTableData"
+                        v-loading="perfLoading"
+                        stripe
+                        style="width:100%;"
+                        :header-cell-style="{background:'#f5f7fa', color:'#606266', fontWeight:500}"
+                    >
+                        <el-table-column type="selection" width="50"></el-table-column>
+                        <el-table-column prop="salesmanName" label="业务员" width="120"></el-table-column>
+                        <el-table-column prop="month" label="月度" width="120" align="center"></el-table-column>
+                        <el-table-column prop="orderCount" label="订单数" width="120" align="center"></el-table-column>
+                        <el-table-column prop="customerCount" label="下单客户数" width="130" align="center"></el-table-column>
+                        <el-table-column label="销售额（元）" width="150" align="right">
+                            <template #default="scope">
+                                {{ formatMoney(scope.row.salesAmount) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="updatedBy" label="修改人" width="100"></el-table-column>
+                        <el-table-column prop="updatedAt" label="最后修改时间" width="160"></el-table-column>
+                        <el-table-column label="操作" width="100" fixed="right">
+                            <template #default="scope">
+                                <el-button type="primary" link size="small" @click="openPerfForm(scope.row)">编辑</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+
+                    <div v-if="perfTableData.length === 0 && !perfLoading" class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <div>暂无绩效数据</div>
+                    </div>
+
+                    <div style="margin-top:16px; display:flex; justify-content:flex-start;" v-if="perfTotal > 0">
+                        <el-pagination
+                            v-model:current-page="perfPageNum"
+                            v-model:page-size="perfPageSize"
+                            :page-sizes="[10, 20, 50]"
+                            :total="perfTotal"
+                            layout="total, sizes, prev, pager, next"
+                            background
+                        ></el-pagination>
+                    </div>
+                </div>
+            </el-tab-pane>
+        </el-tabs>
+
+        <!-- ==================== 弹窗：添加业务员 ==================== -->
+        <el-dialog
+            v-model="addDialog.visible"
+            title="添加业务员"
+            width="500px"
+            :close-on-click-modal="false"
+        >
+            <el-form :model="addForm" ref="addFormRef" label-width="100px">
+                <el-form-item label="选择用户" prop="userId" :rules="[{required:true, message:'请选择用户'}]">
+                    <el-select
+                        v-model="addForm.userId"
+                        placeholder="请选择后台用户"
+                        filterable
+                        remote
+                        :remote-method="searchUsers"
+                        :loading="addDialog.searching"
+                        style="width:100%;"
+                    >
+                        <el-option
+                            v-for="u in addDialog.userOptions"
+                            :key="u.id"
+                            :label="u.name + '（' + u.phone + '）'"
+                            :value="u.id"
+                            :disabled="u.isSalesman"
+                        ></el-option>
+                    </el-select>
+                    <div style="font-size:12px; color:#909399; margin-top:4px;">
+                        仅展示未添加为业务员的用户，支持按姓名/手机号搜索
+                    </div>
+                </el-form-item>
+            </el-form>
+            <div v-if="addDialog.userOptions.length === 0 && !addDialog.searching" class="empty-state" style="padding:30px 0;">
+                <div>暂无可添加的用户</div>
+            </div>
+            <template #footer>
+                <el-button @click="addDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitAddSalesman" :loading="addDialog.submitting">确认添加</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 弹窗：绩效配置（添加/编辑） ==================== -->
+        <el-dialog
+            v-model="perfDialog.visible"
+            :title="perfDialog.isEdit ? '编辑绩效' : '添加绩效'"
+            width="520px"
+            :close-on-click-modal="false"
+        >
+            <el-form :model="perfForm" ref="perfFormRef" label-width="110px" :rules="perfRules">
+                <el-form-item label="业务员" prop="salesmanId">
+                    <el-select
+                        v-model="perfForm.salesmanId"
+                        placeholder="请选择业务员"
+                        :disabled="perfDialog.isEdit"
+                        style="width:100%;"
+                    >
+                        <el-option
+                            v-for="s in allSalesmen"
+                            :key="s.id"
+                            :label="s.name"
+                            :value="s.id"
+                        ></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="月度" prop="month">
+                    <el-input
+                        v-model="perfForm.month"
+                        placeholder="YYYY-MM，如 2026-05"
+                        maxlength="7"
+                        :disabled="perfDialog.isEdit"
+                    ></el-input>
+                </el-form-item>
+                <el-form-item label="订单数" prop="orderCount">
+                    <el-input-number
+                        v-model="perfForm.orderCount"
+                        :min="0"
+                        :precision="0"
+                        :controls="true"
+                        style="width:100%;"
+                    ></el-input-number>
+                </el-form-item>
+                <el-form-item label="下单客户数" prop="customerCount">
+                    <el-input-number
+                        v-model="perfForm.customerCount"
+                        :min="0"
+                        :precision="0"
+                        :controls="true"
+                        style="width:100%;"
+                    ></el-input-number>
+                </el-form-item>
+                <el-form-item label="销售额（元）" prop="salesAmount">
+                    <el-input-number
+                        v-model="perfForm.salesAmount"
+                        :min="0"
+                        :precision="2"
+                        :controls="true"
+                        style="width:100%;"
+                    ></el-input-number>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="perfDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitPerfForm" :loading="perfDialog.submitting">
+                    确认{{ perfDialog.isEdit ? '保存' : '添加' }}
+                </el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 弹窗：批量导入绩效 ==================== -->
+        <el-dialog
+            v-model="importDialog.visible"
+            title="批量导入绩效"
+            width="600px"
+            :close-on-click-modal="false"
+        >
+            <div style="margin-bottom:16px;">
+                <span style="font-size:14px; font-weight:500;">1. 下载模板：</span>
+                <el-button type="primary" link size="small" @click="downloadTemplate">点击下载Excel模板</el-button>
+            </div>
+            <div style="margin-bottom:16px;">
+                <span style="font-size:14px; font-weight:500;">2. 按模板格式填写数据后上传：</span>
+                <el-upload
+                    drag
+                    :auto-upload="false"
+                    :on-change="handleFileChange"
+                    :limit="1"
+                    accept=".xlsx,.xls"
+                    style="margin-top:8px;"
+                >
+                    <div style="padding:20px 0;">
+                        <div style="font-size:36px; color:#c0c4cc;">📁</div>
+                        <div style="color:#606266; margin-top:8px;">拖拽文件到此处或点击上传</div>
+                        <div style="font-size:12px; color:#909399; margin-top:4px;">支持 .xlsx / .xls 格式</div>
+                    </div>
+                </el-upload>
+            </div>
+            <div v-if="importDialog.result">
+                <span style="font-size:14px; font-weight:500;">3. 导入结果：</span>
+                <div class="import-result">
+                    <div>
+                        成功导入 <span class="import-success">{{ importDialog.result.successCount }}</span> 条，
+                        失败 <span class="import-fail">{{ importDialog.result.failCount }}</span> 条
+                    </div>
+                    <div v-for="(err, idx) in importDialog.result.errors" :key="idx" style="color:#909399;">
+                        - {{ err }}
+                    </div>
+                </div>
+            </div>
+            <template #footer>
+                <el-button @click="importDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="executeImport" :loading="importDialog.importing" :disabled="!importDialog.file">确认导入</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 确认弹窗（重新生成/置空/删除） ==================== -->
+        <el-dialog
+            v-model="confirmDialog.visible"
+            :title="confirmDialog.title"
+            width="420px"
+            :close-on-click-modal="false"
+        >
+            <div style="font-size:14px; color:#606266; line-height:1.6;">{{ confirmDialog.message }}</div>
+            <template #footer>
+                <el-button @click="confirmDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="confirmDialog.onConfirm" :loading="confirmDialog.loading">确认</el-button>
+            </template>
+        </el-dialog>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+    <script>
+        const { createApp, ref, reactive, computed, watch } = Vue;
+
+        const app = createApp({
+            setup() {
+                // ================================================================
+                // Mock 数据
+                // ================================================================
+                const allUsers = ref([
+                    { id: 1, name: '张三', phone: '13812345678', isSalesman: true },
+                    { id: 2, name: '王五', phone: '13987654321', isSalesman: false },
+                    { id: 3, name: '赵六', phone: '13611112222', isSalesman: false },
+                    { id: 4, name: '钱七', phone: '13733334444', isSalesman: true },
+                    { id: 5, name: '孙八', phone: '13555556666', isSalesman: false },
+                    { id: 6, name: '周九', phone: '13477778888', isSalesman: false },
+                    { id: 7, name: '吴十', phone: '13399990000', isSalesman: true },
+                ]);
+
+                const allSalesmen = computed(() => allUsers.value.filter(u => u.isSalesman));
+
+                let referralNextId = 4;
+                const referralList = ref([
+                    { id: 1, name: '张三', phone: '13812345678', code: 'A3K9', codeStatus: 'valid', customerCount: 12, userId: 1, updatedBy: '管理员', updatedAt: '2026-06-30 09:15:00' },
+                    { id: 2, name: '钱七', phone: '13733334444', code: 'B7M2', codeStatus: 'valid', customerCount: 5, userId: 4, updatedBy: '管理员', updatedAt: '2026-06-29 16:20:00' },
+                    { id: 3, name: '吴十', phone: '13399990000', code: '', codeStatus: 'empty', customerCount: 0, userId: 7, updatedBy: '管理员', updatedAt: '2026-06-28 14:20:00' },
+                ]);
+
+                let perfNextId = 7;
+                const perfList = ref([
+                    { id: 1, salesmanId: 1, salesmanName: '张三', month: '2026-05', orderCount: 50, customerCount: 10, salesAmount: 500000.00, updatedBy: '管理员', updatedAt: '2026-06-30 10:00:00' },
+                    { id: 2, salesmanId: 1, salesmanName: '张三', month: '2026-06', orderCount: 60, customerCount: 12, salesAmount: 600000.00, updatedBy: '管理员', updatedAt: '2026-06-30 10:05:00' },
+                    { id: 3, salesmanId: 4, salesmanName: '钱七', month: '2026-05', orderCount: 30, customerCount: 8, salesAmount: 300000.00, updatedBy: '管理员', updatedAt: '2026-06-29 16:20:00' },
+                    { id: 4, salesmanId: 4, salesmanName: '钱七', month: '2026-06', orderCount: 35, customerCount: 9, salesAmount: 350000.00, updatedBy: '管理员', updatedAt: '2026-06-29 16:25:00' },
+                    { id: 5, salesmanId: 7, salesmanName: '吴十', month: '2026-05', orderCount: 10, customerCount: 3, salesAmount: 80000.00, updatedBy: '管理员', updatedAt: '2026-06-28 14:20:00' },
+                    { id: 6, salesmanId: 7, salesmanName: '吴十', month: '2026-06', orderCount: 15, customerCount: 5, salesAmount: 120000.00, updatedBy: '管理员', updatedAt: '2026-06-28 14:25:00' },
+                ]);
+
+                // ================================================================
+                // Tab 切换
+                // ================================================================
+                const activeTab = ref('referral');
+
+                // ================================================================
+                // 工具方法
+                // ================================================================
+                function maskPhone(phone) {
+                    if (!phone) return '-';
+                    return phone.slice(0, 3) + '****' + phone.slice(7);
+                }
+
+                function formatMoney(val) {
+                    if (val == null) return '-';
+                    return Number(val).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+
+                function generateCode() {
+                    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                    let code = '';
+                    for (let i = 0; i < 4; i++) {
+                        code += chars[Math.floor(Math.random() * chars.length)];
+                    }
+                    return code;
+                }
+
+                // ================================================================
+                // Tab 1: 业务员推荐码
+                // ================================================================
+                const referralSearch = reactive({ name: '', phone: '' });
+                const referralPageNum = ref(1);
+                const referralPageSize = ref(20);
+                const referralLoading = ref(false);
+
+                const filteredReferral = computed(() => {
+                    let list = referralList.value;
+                    if (referralSearch.name) list = list.filter(r => r.name.toLowerCase().includes(referralSearch.name.toLowerCase()));
+                    if (referralSearch.phone) list = list.filter(r => r.phone.includes(referralSearch.phone));
+                    return list;
+                });
+
+                const referralTotal = computed(() => filteredReferral.value.length);
+
+                const referralTableData = computed(() => {
+                    const start = (referralPageNum.value - 1) * referralPageSize.value;
+                    return filteredReferral.value.slice(start, start + referralPageSize.value);
+                });
+
+                watch([() => referralSearch.name, () => referralSearch.phone], () => { referralPageNum.value = 1; });
+
+                function doReferralSearch() { referralPageNum.value = 1; }
+                function resetReferralSearch() {
+                    referralSearch.name = '';
+                    referralSearch.phone = '';
+                    referralPageNum.value = 1;
+                }
+
+                // ================================================================
+                // Tab 2: 业务员绩效配置
+                // ================================================================
+                const perfSearch = reactive({ salesmanId: null, month: '' });
+                const perfPageNum = ref(1);
+                const perfPageSize = ref(20);
+                const perfLoading = ref(false);
+
+                const filteredPerf = computed(() => {
+                    let list = perfList.value;
+                    if (perfSearch.salesmanId) list = list.filter(p => p.salesmanId === perfSearch.salesmanId);
+                    if (perfSearch.month) list = list.filter(p => p.month.includes(perfSearch.month));
+                    return list;
+                });
+
+                const perfTotal = computed(() => filteredPerf.value.length);
+
+                const perfTableData = computed(() => {
+                    const start = (perfPageNum.value - 1) * perfPageSize.value;
+                    return filteredPerf.value.slice(start, start + perfPageSize.value);
+                });
+
+                watch([() => perfSearch.salesmanId, () => perfSearch.month], () => { perfPageNum.value = 1; });
+
+                function doPerfSearch() { perfPageNum.value = 1; }
+                function resetPerfSearch() {
+                    perfSearch.salesmanId = null;
+                    perfSearch.month = '';
+                    perfPageNum.value = 1;
+                }
+
+                // ================================================================
+                // 弹窗：添加业务员
+                // ================================================================
+                const addDialog = reactive({ visible: false, submitting: false, searching: false, userOptions: [] });
+                const addFormRef = ref(null);
+                const addForm = reactive({ userId: null });
+
+                function searchUsers(query) {
+                    addDialog.searching = true;
+                    setTimeout(() => {
+                        if (!query) {
+                            addDialog.userOptions = allUsers.value;
+                        } else {
+                            const q = query.toLowerCase();
+                            addDialog.userOptions = allUsers.value.filter(
+                                u => u.name.toLowerCase().includes(q) || u.phone.includes(q)
+                            );
+                        }
+                        addDialog.searching = false;
+                    }, 200);
+                }
+
+                function openAddSalesmanDialog() {
+                    addForm.userId = null;
+                    addDialog.userOptions = [...allUsers.value];
+                    addDialog.submitting = false;
+                    addDialog.visible = true;
+                    setTimeout(() => { if (addFormRef.value) addFormRef.value.clearValidate(); }, 0);
+                }
+
+                function submitAddSalesman() {
+                    if (!addFormRef.value) return;
+                    addFormRef.value.validate((valid) => {
+                        if (!valid) return;
+                        const user = allUsers.value.find(u => u.id === addForm.userId);
+                        if (!user) {
+                            ElementPlus.ElMessage.error('请选择有效用户');
+                            return;
+                        }
+                        if (user.isSalesman) {
+                            ElementPlus.ElMessage.error('该用户已是业务员');
+                            return;
+                        }
+                        if (referralList.value.some(r => r.userId === user.id)) {
+                            ElementPlus.ElMessage.error('该用户已是业务员，请勿重复添加');
+                            return;
+                        }
+                        addDialog.submitting = true;
+                        setTimeout(() => {
+                            user.isSalesman = true;
+                            const code = generateCode();
+                            referralList.value.push({
+                                id: referralNextId++,
+                                name: user.name,
+                                phone: user.phone,
+                                code: code,
+                                codeStatus: 'valid',
+                                customerCount: 0,
+                                userId: user.id,
+                                updatedBy: '当前用户',
+                                updatedAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
+                            });
+                            addDialog.submitting = false;
+                            addDialog.visible = false;
+                            ElementPlus.ElMessage.success('业务员添加成功，推荐码：' + code);
+                        }, 400);
+                    });
+                }
+
+                // ================================================================
+                // 推荐码操作：重新生成 / 置空 / 删除
+                // ================================================================
+                const confirmDialog = reactive({
+                    visible: false, title: '', message: '', loading: false,
+                    onConfirm: () => {},
+                });
+
+                function regenerateCode(row) {
+                    confirmDialog.title = '重新生成推荐码';
+                    confirmDialog.message = '重新生成后，原推荐码 <b style="color:#f56c6c;">' + row.code + '</b> 将立即失效，确认重新生成？';
+                    confirmDialog.loading = false;
+                    confirmDialog.onConfirm = () => {
+                        confirmDialog.loading = true;
+                        setTimeout(() => {
+                            const oldCode = row.code;
+                            row.code = generateCode();
+                            row.codeStatus = 'valid';
+                            confirmDialog.loading = false;
+                            confirmDialog.visible = false;
+                            ElementPlus.ElMessage.success('推荐码已重新生成：' + row.code + '（原推荐码 ' + oldCode + ' 已失效）');
+                        }, 300);
+                    };
+                    confirmDialog.visible = true;
+                }
+
+                function clearCode(row) {
+                    confirmDialog.title = '置空推荐码';
+                    confirmDialog.message = '置空后该业务员将暂无推荐码，无法通过推荐码发展新客户。确认置空？';
+                    confirmDialog.loading = false;
+                    confirmDialog.onConfirm = () => {
+                        confirmDialog.loading = true;
+                        setTimeout(() => {
+                            row.code = '';
+                            row.codeStatus = 'empty';
+                            confirmDialog.loading = false;
+                            confirmDialog.visible = false;
+                            ElementPlus.ElMessage.success('推荐码已置空');
+                        }, 300);
+                    };
+                    confirmDialog.visible = true;
+                }
+
+                function deleteCode(row) {
+                    confirmDialog.title = '删除推荐码';
+                    confirmDialog.message = '删除后推荐码 <b style="color:#f56c6c;">' + row.code + '</b> 将永久失效，该推荐码不可再使用。确认删除？';
+                    confirmDialog.loading = false;
+                    confirmDialog.onConfirm = () => {
+                        confirmDialog.loading = true;
+                        setTimeout(() => {
+                            row.codeStatus = 'invalid';
+                            confirmDialog.loading = false;
+                            confirmDialog.visible = false;
+                            ElementPlus.ElMessage.success('推荐码已删除');
+                        }, 300);
+                    };
+                    confirmDialog.visible = true;
+                }
+
+                // ================================================================
+                // 弹窗：绩效配置（添加/编辑）
+                // ================================================================
+                const perfDialog = reactive({ visible: false, isEdit: false, submitting: false, editId: null });
+                const perfFormRef = ref(null);
+                const perfForm = reactive({ salesmanId: null, month: '', orderCount: 0, customerCount: 0, salesAmount: 0 });
+
+                const perfRules = {
+                    salesmanId: [{ required: true, message: '请选择业务员', trigger: 'change' }],
+                    month: [
+                        { required: true, message: '请输入月度', trigger: 'blur' },
+                        { pattern: /^\d{4}-(0[1-9]|1[0-2])$/, message: '格式：YYYY-MM，如 2026-05', trigger: 'blur' },
+                    ],
+                    orderCount: [{ required: true, message: '请输入订单数', trigger: 'blur' }],
+                    customerCount: [{ required: true, message: '请输入下单客户数', trigger: 'blur' }],
+                    salesAmount: [{ required: true, message: '请输入销售额', trigger: 'blur' }],
+                };
+
+                function openPerfForm(row) {
+                    perfDialog.submitting = false;
+                    if (row) {
+                        perfDialog.isEdit = true;
+                        perfDialog.editId = row.id;
+                        perfForm.salesmanId = row.salesmanId;
+                        perfForm.month = row.month;
+                        perfForm.orderCount = row.orderCount;
+                        perfForm.customerCount = row.customerCount;
+                        perfForm.salesAmount = row.salesAmount;
+                    } else {
+                        perfDialog.isEdit = false;
+                        perfDialog.editId = null;
+                        perfForm.salesmanId = null;
+                        perfForm.month = '';
+                        perfForm.orderCount = 0;
+                        perfForm.customerCount = 0;
+                        perfForm.salesAmount = 0;
+                    }
+                    perfDialog.visible = true;
+                    setTimeout(() => { if (perfFormRef.value) perfFormRef.value.clearValidate(); }, 0);
+                }
+
+                function submitPerfForm() {
+                    if (!perfFormRef.value) return;
+                    perfFormRef.value.validate((valid) => {
+                        if (!valid) return;
+                        if (!perfDialog.isEdit) {
+                            const dup = perfList.value.find(
+                                p => p.salesmanId === perfForm.salesmanId && p.month === perfForm.month
+                            );
+                            if (dup) {
+                                ElementPlus.ElMessage.error('该业务员该月度的绩效已存在');
+                                return;
+                            }
+                        }
+                        perfDialog.submitting = true;
+                        setTimeout(() => {
+                            if (perfDialog.isEdit) {
+                                const p = perfList.value.find(x => x.id === perfDialog.editId);
+                                if (p) {
+                                    p.orderCount = perfForm.orderCount;
+                                    p.customerCount = perfForm.customerCount;
+                                    p.salesAmount = perfForm.salesAmount;
+                                    p.updatedBy = '当前用户';
+                                    p.updatedAt = new Date().toISOString().replace('T', ' ').slice(0, 19);
+                                }
+                                ElementPlus.ElMessage.success('绩效更新成功');
+                            } else {
+                                const salesman = allSalesmen.value.find(s => s.id === perfForm.salesmanId);
+                                perfList.value.push({
+                                    id: perfNextId++,
+                                    salesmanId: perfForm.salesmanId,
+                                    salesmanName: salesman ? salesman.name : '',
+                                    month: perfForm.month,
+                                    orderCount: perfForm.orderCount,
+                                    customerCount: perfForm.customerCount,
+                                    salesAmount: perfForm.salesAmount,
+                                    updatedBy: '当前用户',
+                                    updatedAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
+                                });
+                                ElementPlus.ElMessage.success('绩效添加成功');
+                            }
+                            perfDialog.submitting = false;
+                            perfDialog.visible = false;
+                        }, 400);
+                    });
+                }
+
+                // ================================================================
+                // 弹窗：批量导入
+                // ================================================================
+                const importDialog = reactive({ visible: false, importing: false, file: null, result: null });
+
+                function openImportDialog() {
+                    importDialog.file = null;
+                    importDialog.result = null;
+                    importDialog.importing = false;
+                    importDialog.visible = true;
+                }
+
+                function handleFileChange(file) {
+                    importDialog.file = file.raw;
+                    importDialog.result = null;
+                }
+
+                function downloadTemplate() {
+                    ElementPlus.ElMessage.success('模板下载中...（模拟）');
+                }
+
+                function executeImport() {
+                    if (!importDialog.file) {
+                        ElementPlus.ElMessage.warning('请先选择文件');
+                        return;
+                    }
+                    importDialog.importing = true;
+                    setTimeout(() => {
+                        const succ = 15;
+                        const fail = 2;
+                        importDialog.result = {
+                            successCount: succ,
+                            failCount: fail,
+                            errors: [
+                                '第3行：业务员"王五"不存在',
+                                '第8行：月度格式错误',
+                            ],
+                        };
+                        importDialog.importing = false;
+                        ElementPlus.ElMessage.success('导入完成：成功 ' + succ + ' 条，失败 ' + fail + ' 条');
+                    }, 1000);
+                }
+
+                // ================================================================
+                // 返回
+                // ================================================================
+                return {
+                    activeTab,
+                    allUsers, allSalesmen,
+                    referralSearch, referralPageNum, referralPageSize, referralLoading,
+                    referralTotal, referralTableData, filteredReferral,
+                    perfSearch, perfPageNum, perfPageSize, perfLoading,
+                    perfTotal, perfTableData,
+                    addDialog, addFormRef, addForm,
+                    perfDialog, perfFormRef, perfForm, perfRules,
+                    importDialog,
+                    confirmDialog,
+                    maskPhone, formatMoney, generateCode,
+                    doReferralSearch, resetReferralSearch,
+                    doPerfSearch, resetPerfSearch,
+                    searchUsers, openAddSalesmanDialog, submitAddSalesman,
+                    regenerateCode, clearCode, deleteCode,
+                    openPerfForm, submitPerfForm,
+                    openImportDialog, handleFileChange, downloadTemplate, executeImport,
+                };
+            }
+        });
+
+        app.use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+    </script>
+</body>
+</html>

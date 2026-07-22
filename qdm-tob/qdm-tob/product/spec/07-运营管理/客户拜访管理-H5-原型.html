@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>客户拜访打卡</title>
+    <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        :root {
+            --van-primary-color: #3B82F6;
+        }
+        body {
+            background-color: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        ::-webkit-scrollbar { display: none; }
+        .customer-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .customer-item:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+    <div id="prd-root" class="pb-24">
+
+        <!-- 当前位置 -->
+        <div class="bg-white rounded-xl mx-3 mt-3 p-3.5">
+            <div class="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-2.5">
+                <span>📍</span> 当前位置
+            </div>
+            <div class="bg-blue-50 rounded-lg p-3 flex items-start justify-between gap-2.5">
+                <div class="text-sm text-blue-900 leading-relaxed flex-1">
+                    {{ location.address || location.error || '正在获取位置...' }}
+                </div>
+                <van-button
+                    size="small"
+                    round
+                    plain
+                    type="primary"
+                    :loading="location.loading"
+                    loading-text="定位中"
+                    @click="relocate"
+                >重新定位</van-button>
+            </div>
+        </div>
+
+        <!-- 匹配客户 -->
+        <div class="bg-white rounded-xl mx-3 mt-2.5 p-3.5">
+            <div class="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-2.5">
+                <span>🏢</span> 匹配客户
+            </div>
+            <div v-if="matchedCustomers.length > 0" class="border border-slate-100 rounded-lg overflow-hidden">
+                <div
+                    v-for="c in matchedCustomers"
+                    :key="c.id"
+                    class="customer-item cursor-pointer"
+                    :class="{ 'bg-blue-50': selectedCustomerId === c.id }"
+                    @click="selectCustomer(c.id)"
+                >
+                    <van-radio
+                        :name="c.id"
+                        :model-value="selectedCustomerId"
+                        checked-color="#3B82F6"
+                        @click.stop="selectCustomer(c.id)"
+                    ></van-radio>
+                    <div class="flex-1 min-w-0 ml-2">
+                        <div class="text-sm text-slate-800 font-medium">{{ c.name }}</div>
+                        <div class="text-xs text-slate-400 mt-0.5">联系人：{{ c.contactPerson }} {{ maskPhone(c.contactPhone) }}</div>
+                    </div>
+                    <span class="text-xs text-blue-600 shrink-0 ml-2">距 {{ c.distance }}m</span>
+                </div>
+            </div>
+            <div v-else class="text-center py-5 text-sm text-slate-400">
+                {{ location.address ? '未找到附近的客户地址' : '请先获取位置信息' }}
+            </div>
+            <div class="mt-2.5">
+                <van-button block plain type="primary" size="small" @click="manualSearch">手动搜索选择客户</van-button>
+            </div>
+        </div>
+
+        <!-- 拜访记录 -->
+        <div class="bg-white rounded-xl mx-3 mt-2.5 p-3.5">
+            <div class="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-2.5">
+                <span>📋</span> 拜访记录
+                <span class="text-xs text-red-500 font-normal">（必填）</span>
+            </div>
+            <van-field
+                v-model="visitNote"
+                type="textarea"
+                placeholder="记录本次拜访主要内容、下一步跟进计划等"
+                maxlength="1000"
+                rows="4"
+                autosize
+                :border="false"
+            ></van-field>
+            <div class="text-right text-xs text-slate-300">{{ visitNote.length }}/1000</div>
+        </div>
+
+        <!-- 客户反馈 -->
+        <div class="bg-white rounded-xl mx-3 mt-2.5 p-3.5">
+            <div class="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-2.5">
+                <span>📝</span> 客户反馈
+                <span class="text-xs text-slate-300 font-normal">（选填）</span>
+            </div>
+            <van-field
+                v-model="feedback"
+                type="textarea"
+                placeholder="记录客户经营状况、需求变化、反馈意见等"
+                maxlength="500"
+                rows="3"
+                autosize
+                :border="false"
+            ></van-field>
+            <div class="text-right text-xs text-slate-300">{{ feedback.length }}/500</div>
+        </div>
+
+        <!-- 提交按钮 -->
+        <div class="fixed bottom-0 left-0 right-0 p-1 px-3 bg-white border-t border-slate-100 z-50">
+            <van-button
+                type="primary"
+                block
+                round
+                :loading="submitting"
+                loading-text="提交中..."
+                @click="submitVisit"
+            >提交拜访记录</van-button>
+        </div>
+
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+    <script>
+        const { createApp, ref, reactive } = Vue;
+
+        const app = createApp({
+            setup() {
+                // ================================================================
+                // 当前位置
+                // ================================================================
+                const location = reactive({ address: '', loading: false, error: '', lat: null, lng: null });
+
+                function relocate() {
+                    location.loading = true;
+                    location.error = '';
+                    setTimeout(function () {
+                        location.address = '广东省广州市黄埔区联和街道科汇三街12号附近';
+                        location.lat = 23.165;
+                        location.lng = 113.435;
+                        location.loading = false;
+                        matchNearbyCustomers();
+                    }, 800);
+                }
+
+                relocate();
+
+                // ================================================================
+                // 匹配客户列表
+                // ================================================================
+                const matchedCustomers = ref([]);
+                const selectedCustomerId = ref(null);
+
+                const allCustomers = [
+                    { id: 1, name: '金鹏员工食堂', contactPerson: '老板', contactPhone: '15268521693', lat: 23.1652, lng: 113.4351 },
+                    { id: 2, name: '恒信客家王', contactPerson: '李经理', contactPhone: '13396310872', lat: 23.1630, lng: 113.4320 },
+                    { id: 3, name: '深耕食堂', contactPerson: '周总', contactPhone: '13712349000', lat: 23.1610, lng: 113.4300 },
+                    { id: 4, name: '农家土猪', contactPerson: '邓', contactPhone: '18675946002', lat: 23.1700, lng: 113.4400 },
+                    { id: 5, name: '宝利发餐厅', contactPerson: '黄', contactPhone: '13900139002', lat: 23.1550, lng: 113.4280 },
+                ];
+
+                function calcDistance(lat1, lng1, lat2, lng2) {
+                    const R = 6371e3;
+                    const dLat = (lat2 - lat1) * Math.PI / 180;
+                    const dLng = (lng2 - lng1) * Math.PI / 180;
+                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                        Math.sin(dLng/2) * Math.sin(dLng/2);
+                    return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+                }
+
+                function matchNearbyCustomers() {
+                    if (!location.lat || !location.lng) return;
+                    const nearby = allCustomers
+                        .map(function (c) { return Object.assign({}, c, { distance: calcDistance(location.lat, location.lng, c.lat, c.lng) }); })
+                        .filter(function (c) { return c.distance <= 5000; })
+                        .sort(function (a, b) { return a.distance - b.distance; })
+                        .slice(0, 5);
+                    matchedCustomers.value = nearby;
+                    if (nearby.length > 0) {
+                        selectedCustomerId.value = nearby[0].id;
+                    }
+                }
+
+                function selectCustomer(id) { selectedCustomerId.value = id; }
+
+                function manualSearch() { vant.showToast('手动搜索客户（模拟）'); }
+
+                // ================================================================
+                // 表单
+                // ================================================================
+                const feedback = ref('');
+                const visitNote = ref('');
+                const submitting = ref(false);
+
+                function submitVisit() {
+                    if (!selectedCustomerId.value) { vant.showToast('请选择拜访客户'); return; }
+                    if (!visitNote.value.trim()) { vant.showToast('请填写拜访记录'); return; }
+                    submitting.value = true;
+                    setTimeout(function () {
+                        submitting.value = false;
+                        vant.showToast('拜访记录提交成功');
+                        feedback.value = '';
+                        visitNote.value = '';
+                    }, 800);
+                }
+
+                // ================================================================
+                // 工具
+                // ================================================================
+                function maskPhone(phone) {
+                    if (!phone) return '-';
+                    if (phone.length < 7) return phone;
+                    return phone.slice(0, 3) + '****' + phone.slice(7);
+                }
+
+                return {
+                    location, relocate,
+                    matchedCustomers, selectedCustomerId,
+                    selectCustomer, manualSearch,
+                    feedback, visitNote, submitting,
+                    submitVisit, maskPhone,
+                };
+            }
+        });
+
+        app.use(vant).mount('#prd-root');
+    </script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订单详情</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+        }
+        .detail-card { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 10px; }
+        .section-title { font-size: 14px; font-weight: 600; color: #303133; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #ebeef5; }
+        .info-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px 0; }
+        .info-item { display: flex; font-size: 13px; padding: 4px 0; }
+        .info-label { color: #909399; flex-shrink: 0; margin-right: 6px; }
+        .info-value { color: #303133; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .info-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px 10px; padding: 6px 0; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .formula-bar { background: #fef2f2; color: #dc2626; font-size: 12px; padding: 8px 12px; border-radius: 6px; margin-top: 10px; line-height: 1.8; }
+        .detail-field { background: #f5f7fa; border-radius: 4px; padding: 6px 10px; }
+        .detail-field .lbl { font-size: 11px; color: #909399; }
+        .detail-field .val { font-size: 13px; color: #303133; font-weight: 500; }
+        .back-bar { display: flex; align-items: center; gap: 8px; padding: 8px 0; margin-bottom: 10px; }
+        .back-btn { cursor: pointer; color: #409eff; font-size: 14px; display: flex; align-items: center; gap: 4px; border: none; background: none; font-family: inherit; }
+        .back-btn:hover { color: #337ecc; }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+        <!-- Tab: 订单详情 -->
+        <div v-if="activeTab === 'order'">
+            <!-- 区块一：基本信息 -->
+            <div class="detail-card">
+                <div class="section-title">基本信息</div>
+                <div class="info-row gap-1">
+                    <div class="detail-field"><div class="lbl">订单编号</div><div class="val">{{ data.orderNo }}</div></div>
+                    <div class="detail-field"><div class="lbl">仓库</div><div class="val">{{ data.warehouse }}</div></div>
+                    <div class="detail-field"><div class="lbl">订单类型</div><div class="val">{{ data.orderType }}</div></div>
+                    <div class="detail-field"><div class="lbl">订单状态</div><div class="val"><el-tag :type="statusTagType" size="small">{{ data.status }}</el-tag></div></div>
+                    <div class="detail-field"><div class="lbl">下单时间</div><div class="val">{{ data.orderTime }}</div></div>
+                </div>
+                <div class="info-row gap-1">
+                    <div class="detail-field"><div class="lbl">客户类型</div><div class="val">{{ data.customerType }}</div></div>
+                    <div class="detail-field"><div class="lbl">客户编码</div><div class="val">{{ data.customerCode }}</div></div>
+                    <div class="detail-field"><div class="lbl">客户名称</div><div class="val">{{ data.customerName }}</div></div>
+                    <div class="detail-field"><div class="lbl">下单人</div><div class="val">{{ data.placer }}</div></div>
+                    <div class="detail-field"><div class="lbl">下单手机</div><div class="val">{{ data.placerPhone }}</div></div>
+                </div>
+                <div class="info-row gap-1">
+                    <div class="detail-field"><div class="lbl">订单金额</div><div class="val">¥{{ data.totalAmount }}</div></div>
+                    <div class="detail-field"><div class="lbl">折扣金额</div><div class="val">¥{{ data.discountAmount }}</div></div>
+                    <div class="detail-field"><div class="lbl">优惠券金额</div><div class="val">¥{{ data.couponAmount }}</div></div>
+                    <div class="detail-field"><div class="lbl">促销金额</div><div class="val">¥{{ data.promoAmount }}</div></div>
+                    <div class="detail-field"><div class="lbl">物流运费</div><div class="val">¥{{ data.freight }}</div></div>
+                </div>
+                <div class="info-row gap-1">
+                    <div class="detail-field"><div class="lbl">实付金额</div><div class="val" style="font-size:15px;color:#dc2626;font-weight:700;">¥{{ data.paidTotal }}</div></div>
+                </div>
+            </div>
+
+            <!-- 区块二：商品信息 -->
+            <div class="detail-card">
+                <div class="section-title">商品信息</div>
+                <el-table :data="data.products" border stripe :header-cell-style="{background:'#f5f7fa',color:'#606266',fontWeight:500}">
+                    <el-table-column prop="warehouse" label="配送仓库" width="100"></el-table-column>
+                    <el-table-column prop="skuCode" label="商品条码" width="100"></el-table-column>
+                    <el-table-column prop="skuName" label="商品名称" width="140"></el-table-column>
+                    <el-table-column prop="unit" label="结算单位" width="80"></el-table-column>
+                    <el-table-column prop="qty" label="订购数量" width="80"></el-table-column>
+                    <el-table-column prop="price" label="商品单价" width="90"></el-table-column>
+                    <el-table-column prop="total" label="商品总金额" width="100"></el-table-column>
+                    <el-table-column prop="promo" label="促销金额" width="80"></el-table-column>
+                    <el-table-column prop="coupon" label="优惠券金额" width="90"></el-table-column>
+                    <el-table-column prop="discount" label="折扣金额" width="80"></el-table-column>
+                    <el-table-column prop="paid" label="商品实付金额" width="110"></el-table-column>
+                    <el-table-column prop="service" label="附加服务" width="80"></el-table-column>
+                    <el-table-column prop="sapPush" label="是否推送SAP" width="100"></el-table-column>
+                    <el-table-column prop="sapQty" label="SAP实际出库数量" width="130"></el-table-column>
+                    <el-table-column prop="sapPushTime" label="推送SAP时间" width="140"></el-table-column>
+                    <el-table-column prop="sapDocTime" label="SAP分拣出库单时间" width="160"></el-table-column>
+                </el-table>
+            </div>
+
+            <!-- 区块三：配送 + 物流 -->
+            <div class="two-col">
+                <div class="detail-card">
+                    <div class="section-title">配送信息</div>
+                    <div class="info-item"><span class="info-label">配送方式：</span><span class="info-value">{{ data.deliveryMethod }}</span></div>
+                    <div class="info-item"><span class="info-label">收货人：</span><span class="info-value">{{ data.receiver }}</span></div>
+                    <div class="info-item"><span class="info-label">收货地址：</span><span class="info-value">{{ data.receiverAddress }}</span></div>
+                    <div class="info-item"><span class="info-label">联系方式：</span><span class="info-value">{{ data.receiverPhone }}</span></div>
+                    <div class="info-item"><span class="info-label">配送时间：</span><span class="info-value">{{ data.deliveryTime }}</span></div>
+                    <div class="info-item"><span class="info-label">备注：</span><span class="info-value">{{ data.deliveryNote }}</span></div>
+                </div>
+                <div class="detail-card">
+                    <div class="section-title">物流信息</div>
+                    <div class="info-item"><span class="info-label">物流单号：</span><span class="info-value">{{ data.logisticsNo }}</span></div>
+                    <div class="info-item"><span class="info-label">司机姓名：</span><span class="info-value">{{ data.driverName }}</span></div>
+                    <div class="info-item"><span class="info-label">司机电话：</span><span class="info-value">{{ data.driverPhone }}</span></div>
+                    <div class="info-item"><span class="info-label">发车时间：</span><span class="info-value">{{ data.departTime }}</span></div>
+                    <div class="info-item"><span class="info-label">到达时间：</span><span class="info-value">{{ data.arriveTime }}</span></div>
+                    <div class="info-item"><span class="info-label">卸货时间：</span><span class="info-value">{{ data.unloadTime }}</span></div>
+                </div>
+            </div>
+
+            <!-- 区块四：支付信息 -->
+            <div class="detail-card">
+                <div class="section-title">支付信息</div>
+                <div class="info-row" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="detail-field"><div class="lbl">支付方式</div><div class="val">{{ data.payMethod }}</div></div>
+                    <div class="detail-field"><div class="lbl">支付时间</div><div class="val">{{ data.payTime }}</div></div>
+                    <div class="detail-field"><div class="lbl">商户号</div><div class="val">{{ data.merchantNo }}</div></div>
+                    <div class="detail-field"><div class="lbl">商户号名称</div><div class="val">{{ data.merchantName }}</div></div>
+                </div>
+                <div style="display: flex; align-items: center; margin-top: 12px; padding: 8px 10px; background: #f5f7fa; border-radius: 4px;">
+                    <span style="font-size: 11px; color: #909399; margin-right: 6px;">支付流水：</span>
+                    <span style="font-size: 13px; color: #303133; flex: 1;">{{ data.payFlowNo }}</span>
+                    <el-button type="primary" link size="small" @click="viewFlow">查看流水</el-button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: 退货单 -->
+        <div v-if="activeTab === 'return'">
+            <div class="detail-card" style="text-align: center; padding: 60px 0; color: #909399;">
+                <div style="font-size: 48px; margin-bottom: 12px;">📋</div>
+                <div>暂无退货记录</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+    <script>
+        const { createApp, ref, reactive } = Vue;
+        const app = createApp({
+            setup() {
+                const activeTab = ref('order');
+
+                const data = reactive({
+                    orderNo: '20232343443A', warehouse: 'B端仓库', orderType: '普通订单', status: '已完成',
+                    orderTime: '2026-10-10 10:23:34',
+                    customerType: '普通客户', customerCode: '714790', customerName: '张三',
+                    placer: '王五', placerPhone: '15626270709',
+                    totalAmount: '120.00', discountAmount: '0.00', couponAmount: '10.00', promoAmount: '0.00',
+                    freight: '20.00', paidTotal: '110.00',
+                    products: [
+                        { warehouse: 'B端业务仓', skuCode: '20050306', skuName: '冷鲜瘦肉', unit: '千克', qty: 1, price: '50.00', total: '50.00', promo: '0.00', coupon: '5.00', discount: '0.00', paid: '45.00', service: '', sapPush: '已推送', sapQty: '1', sapPushTime: '2026-06-06 10:30:00', sapDocTime: '2026-06-08 09:15:00' },
+                        { warehouse: 'A端业务仓', skuCode: '21153037', skuName: '优鲜带颈通排', unit: '千克', qty: 2, price: '25.00', total: '50.00', promo: '0.00', coupon: '5.00', discount: '0.00', paid: '45.00', service: '', sapPush: '已推送', sapQty: '2', sapPushTime: '2026-06-06 10:30:00', sapDocTime: '2026-06-08 09:15:00' },
+                    ],
+                    deliveryMethod: '物流配送', receiver: '张三', receiverAddress: '广东省广州市西乡街道', receiverPhone: '15626270708',
+                    deliveryTime: '2026-08-09 00:00 ~ 2026-08-08 05:00', deliveryNote: '密码锁5200，放到具体的冰柜',
+                    logisticsNo: '8127287182', driverName: '张三', driverPhone: '15626270708',
+                    departTime: '2025-08-08 10:34:34', arriveTime: '2025-08-08 10:34:34', unloadTime: '2025-08-08 10:34:34',
+                    payMethod: '微信', payTime: '2025-08-08 10:34:34', merchantNo: '13234241', merchantName: '深圳供应链有限公司',
+                    payFlowNo: '420000314720260610569710',
+                });
+
+                const statusTagType = ref('success');
+
+                function goBack() {
+                    window.location.href = '销售订单-后台-原型.html';
+                }
+                function viewFlow() {
+                    ElementPlus.ElMessageBox.alert(
+                        '交易状态：支付成功\n付款银行：招商银行\n交易单号：420000314720260610569710\n商户单号：20232343443A',
+                        '支付流水详情',
+                        { confirmButtonText: '关闭', type: 'info' }
+                    ).catch(() => {});
+                }
+
+                return { activeTab, data, statusTagType, goBack, viewFlow };
+            }
+        });
+        app.use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+    </script>
+</body>
+</html>

@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #fff;
+            margin: 0;
+            padding: 24px;
+        }
+        .prd-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; color: #303133; }
+        .prd-subtitle { font-size: 14px; color: #909399; margin-bottom: 24px; }
+
+        /* 工具栏 */
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .search-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+        /* 状态标签 */
+        .status-tag-active { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
+        .status-tag-disabled { background: #f5f7fa; color: #909399; border: 1px solid #e4e7ed; }
+
+        /* 业务员标签 */
+        .salesperson-tag-yes { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+        <h1 class="prd-title">用户管理</h1>
+        <p class="prd-subtitle">管理系统用户账号，包括新增、编辑、角色分配和数据权限配置，确保用户具备正确的系统访问权限</p>
+
+        <!-- ========== 搜索筛选栏 ========== -->
+        <div class="toolbar">
+            <div class="search-bar">
+                <el-input v-model="search.account" placeholder="请输入工号" clearable style="width:180px;" @keyup.enter="doSearch" />
+                <el-input v-model="search.name" placeholder="请输入用户名" clearable style="width:180px;" @keyup.enter="doSearch" />
+                <el-input v-model="search.phone" placeholder="请输入手机号" clearable style="width:180px;" @keyup.enter="doSearch" />
+                <el-select v-model="search.status" placeholder="状态" clearable style="width:120px;" @change="doSearch">
+                    <el-option label="启用" :value="1"></el-option>
+                    <el-option label="停用" :value="0"></el-option>
+                </el-select>
+                <el-select v-model="search.isSalesperson" placeholder="是否业务员" clearable style="width:140px;" @change="doSearch">
+                    <el-option label="是" :value="1"></el-option>
+                    <el-option label="否" :value="0"></el-option>
+                </el-select>
+                <el-button type="primary" @click="doSearch">查询</el-button>
+                <el-button @click="resetSearch">重置</el-button>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <span style="font-size:14px; color:#909399;">共 <b style="color:#303133;">{{ total }}</b> 条记录</span>
+                <el-button type="primary" @click="openUserForm(null)">+ 新增用户</el-button>
+            </div>
+        </div>
+
+        <!-- ========== 用户列表表格 ========== -->
+        <el-table :data="tableData" stripe v-loading="loading" style="width:100%;">
+            <el-table-column prop="account" label="账号" width="100">
+                <template #default="scope">
+                    <b>{{ scope.row.account }}</b>
+                </template>
+            </el-table-column>
+            <el-table-column prop="name" label="用户名" width="110"></el-table-column>
+            <el-table-column label="手机号码" width="140">
+                <template #default="scope">
+                    <span style="color:#909399;">{{ maskPhone(scope.row.phone) }}</span>
+                </template>
+            </el-table-column>
+            <el-table-column label="状态" width="90" align="center">
+                <template #default="scope">
+                    <el-tag
+                        :class="scope.row.status === 1 ? 'status-tag-active' : 'status-tag-disabled'"
+                        size="small"
+                        disable-transitions
+                    >{{ scope.row.status === 1 ? '启用' : '停用' }}</el-tag>
+                </template>
+            </el-table-column>
+            <el-table-column label="是否业务员" width="110" align="center">
+                <template #default="scope">
+                    <el-tag
+                        v-if="scope.row.isSalesperson === 1"
+                        class="salesperson-tag-yes"
+                        size="small"
+                        disable-transitions
+                    >是</el-tag>
+                    <span v-else style="color:#909399;">否</span>
+                </template>
+            </el-table-column>
+            <el-table-column prop="createdAt" label="创建时间" width="170"></el-table-column>
+            <el-table-column label="最后登录" width="170">
+                <template #default="scope">
+                    {{ scope.row.lastLoginAt || '-' }}
+                </template>
+            </el-table-column>
+            <el-table-column prop="createdBy" label="创建人" width="90"></el-table-column>
+            <el-table-column label="操作" width="240" fixed="right">
+                <template #default="scope">
+                    <el-button type="primary" link size="small" @click="openUserForm(scope.row)">编辑</el-button>
+                    <el-button type="success" link size="small" @click="openRoleConfig(scope.row)">角色</el-button>
+                    <el-button type="warning" link size="small" @click="openPermConfig(scope.row)">权限</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <!-- 空状态 -->
+        <div v-if="tableData.length === 0 && !loading" style="text-align:center; padding:60px 0; color:#909399;">
+            <div style="font-size:48px; margin-bottom:12px;">👤</div>
+            <div>{{ hasSearch ? '未找到匹配的用户' : '暂无用户数据' }}</div>
+        </div>
+
+        <!-- 分页 -->
+        <div style="margin-top:16px; display:flex; justify-content:flex-end;" v-if="total > 0">
+            <el-pagination
+                v-model:current-page="pageNum"
+                v-model:page-size="pageSize"
+                :page-sizes="[10, 20, 50]"
+                :total="total"
+                layout="total, sizes, prev, pager, next"
+                background
+            />
+        </div>
+
+        <!-- ==================== 弹窗：新增 / 编辑用户 ==================== -->
+        <el-dialog
+            v-model="userDialog.visible"
+            :title="userDialog.isEdit ? '编辑用户' : '新增用户'"
+            width="560px"
+            :close-on-click-modal="false"
+            @close="resetUserForm"
+        >
+            <el-form ref="userFormRef" :model="userForm" :rules="userRules" label-width="110px">
+                <el-form-item label="账号" prop="account">
+                    <el-input
+                        v-model="userForm.account"
+                        placeholder="请输入钱大妈统一工号"
+                        maxlength="32"
+                        :disabled="userDialog.isEdit"
+                    />
+                    <div style="font-size:12px; color:#909399; margin-top:4px;">
+                        钱大妈统一工号，创建后不可修改
+                    </div>
+                </el-form-item>
+                <el-form-item label="用户名" prop="name">
+                    <el-input v-model="userForm.name" placeholder="请输入用户名" maxlength="64" />
+                </el-form-item>
+                <el-form-item label="手机号码" prop="phone">
+                    <el-input v-model="userForm.phone" placeholder="请输入11位手机号" maxlength="11" />
+                    <div style="font-size:12px; color:#909399; margin-top:4px;">
+                        11位手机号，全局唯一
+                    </div>
+                </el-form-item>
+                <el-form-item label="状态" prop="status">
+                    <el-radio-group v-model="userForm.status">
+                        <el-radio :value="1">启用</el-radio>
+                        <el-radio :value="0">停用</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <el-form-item label="是否业务员" prop="isSalesperson">
+                    <el-radio-group v-model="userForm.isSalesperson">
+                        <el-radio :value="0">否</el-radio>
+                        <el-radio :value="1">是</el-radio>
+                    </el-radio-group>
+                    <div style="font-size:12px; color:#909399; margin-top:4px;">
+                        标记为业务员后，在特定功能表单中会触发额外权限控制
+                    </div>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="userDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitUserForm" :loading="userDialog.submitting">
+                    确认{{ userDialog.isEdit ? '保存' : '创建' }}
+                </el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 弹窗：配置角色 ==================== -->
+        <el-dialog
+            v-model="roleDialog.visible"
+            :title="'配置角色 — ' + (roleDialog.user ? roleDialog.user.name + '（' + roleDialog.user.account + '）' : '')"
+            width="500px"
+            :close-on-click-modal="false"
+        >
+            <div style="font-size:14px; color:#909399; margin-bottom:16px;">
+                选择该用户绑定的角色（支持多选，保存时全量覆盖）
+            </div>
+
+            <!-- 角色列表为空 -->
+            <div v-if="allRoles.length === 0" style="text-align:center; padding:60px 0; color:#909399;">
+                <div style="font-size:48px; margin-bottom:12px;">🔒</div>
+                <div>暂无可用角色，请先在角色管理中创建角色</div>
+            </div>
+
+            <!-- 角色复选框列表 -->
+            <el-checkbox-group v-model="roleDialog.checkedIds" v-else>
+                <div style="border:1px solid #e4e7ed; border-radius:8px; max-height:280px; overflow-y:auto;">
+                    <div
+                        v-for="role in allRoles" :key="role.id"
+                        style="display:flex; align-items:center; gap:10px; padding:12px 16px; cursor:pointer; transition:background 0.15s;"
+                        :style="{ borderTop: role.id !== allRoles[0].id ? '1px solid #ebeef5' : 'none' }"
+                        @mouseenter="$event.target.style.background='#f5f7fa'"
+                        @mouseleave="$event.target.style.background=''"
+                    >
+                        <el-checkbox :label="role.id" :value="role.id" style="margin-right:0;">{{ role.name }}</el-checkbox>
+                    </div>
+                </div>
+            </el-checkbox-group>
+
+            <template #footer>
+                <el-button @click="roleDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitRoleConfig" :loading="roleDialog.submitting">保存</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ==================== 弹窗：配置数据权限 ==================== -->
+        <el-dialog
+            v-model="permDialog.visible"
+            :title="'配置数据权限 — ' + (permDialog.user ? permDialog.user.name + '（' + permDialog.user.account + '）' : '')"
+            width="500px"
+            :close-on-click-modal="false"
+        >
+            <div style="font-size:14px; color:#909399; margin-bottom:16px;">
+                数据维度：<b style="color:#303133;">销售大区</b>（来源于运营管理 → 销售大区管理）
+            </div>
+
+            <!-- 大区列表为空 -->
+            <div v-if="allRegions.length === 0" style="text-align:center; padding:60px 0; color:#909399;">
+                <div style="font-size:48px; margin-bottom:12px;">🗺️</div>
+                <div>暂无可用销售大区，请先在运营管理中创建销售大区</div>
+            </div>
+
+            <!-- 大区复选框列表 -->
+            <el-checkbox-group v-model="permDialog.checkedIds" v-else>
+                <div style="border:1px solid #e4e7ed; border-radius:8px; max-height:280px; overflow-y:auto;">
+                    <div
+                        v-for="region in allRegions" :key="region.id"
+                        style="display:flex; align-items:center; gap:10px; padding:12px 16px; cursor:pointer; transition:background 0.15s;"
+                        :style="{ borderTop: region.id !== allRegions[0].id ? '1px solid #ebeef5' : 'none' }"
+                        @mouseenter="$event.target.style.background='#f5f7fa'"
+                        @mouseleave="$event.target.style.background=''"
+                    >
+                        <el-checkbox :label="region.id" :value="region.id" style="margin-right:0;">{{ region.name }}</el-checkbox>
+                    </div>
+                </div>
+            </el-checkbox-group>
+
+            <template #footer>
+                <el-button @click="permDialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitPermConfig" :loading="permDialog.submitting">保存</el-button>
+            </template>
+        </el-dialog>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+
+    <script>
+        const { createApp, ref, reactive, computed, watch } = Vue;
+
+        const app = createApp({
+            setup() {
+                // ================================================================
+                // Mock 数据
+                // ================================================================
+                const allRoles = ref([
+                    { id: 1, name: '系统管理员' },
+                    { id: 2, name: '运营管理员' },
+                    { id: 3, name: '仓库管理员' },
+                    { id: 4, name: '财务人员' },
+                    { id: 5, name: '业务员' },
+                    { id: 6, name: '数据分析员' },
+                ]);
+
+                const allRegions = ref([
+                    { id: 1, name: '华南大区' },
+                    { id: 2, name: '华东大区' },
+                    { id: 3, name: '华中大区' },
+                    { id: 4, name: '西南大区' },
+                    { id: 5, name: '西北大区' },
+                    { id: 6, name: '华北大区' },
+                    { id: 7, name: '东北大区' },
+                ]);
+
+                let nextId = 8;
+                const allUsers = ref([
+                    { id: 1, account: '1001', name: '张三', phone: '13812345678', status: 1, isSalesperson: 1, createdAt: '2026-05-15 09:30:00', createdBy: '李四', lastLoginAt: '2026-06-30 08:45:12', roleIds: [1, 2], regionIds: [1, 2] },
+                    { id: 2, account: '1002', name: '王五', phone: '13987654321', status: 1, isSalesperson: 0, createdAt: '2026-05-20 14:20:00', createdBy: '李四', lastLoginAt: '2026-06-29 17:30:05', roleIds: [5], regionIds: [1] },
+                    { id: 3, account: '1003', name: '赵六', phone: '13611112222', status: 0, isSalesperson: 0, createdAt: '2026-04-10 10:00:00', createdBy: '李四', lastLoginAt: '2026-06-01 11:20:30', roleIds: [3, 4], regionIds: [3, 4] },
+                    { id: 4, account: '1004', name: '钱七', phone: '13733334444', status: 1, isSalesperson: 1, createdAt: '2026-06-01 08:15:00', createdBy: '张三', lastLoginAt: '2026-06-30 07:50:00', roleIds: [5], regionIds: [5, 6] },
+                    { id: 5, account: '1005', name: '孙八', phone: '13555556666', status: 1, isSalesperson: 0, createdAt: '2026-06-15 16:45:00', createdBy: '张三', lastLoginAt: '2026-06-28 13:10:22', roleIds: [2], regionIds: [2] },
+                    { id: 6, account: '1006', name: '周九', phone: '13477778888', status: 0, isSalesperson: 1, createdAt: '2026-03-20 11:30:00', createdBy: '李四', lastLoginAt: '2026-05-15 09:00:00', roleIds: [5, 6], regionIds: [7] },
+                    { id: 7, account: '1007', name: '吴十', phone: '13399990000', status: 1, isSalesperson: 0, createdAt: '2026-06-25 09:00:00', createdBy: '张三', lastLoginAt: '', roleIds: [6], regionIds: [1, 2, 3] },
+                ]);
+
+                // ================================================================
+                // 搜索 & 分页
+                // ================================================================
+                const search = reactive({ account: '', name: '', phone: '', status: null, isSalesperson: null });
+                const pageNum = ref(1);
+                const pageSize = ref(20);
+                const loading = ref(false);
+
+                const hasSearch = computed(() => {
+                    return search.account || search.name || search.phone ||
+                        search.status !== null || search.isSalesperson !== null;
+                });
+
+                const filteredUsers = computed(() => {
+                    let list = allUsers.value;
+                    if (search.account)  list = list.filter(u => u.account.toLowerCase().includes(search.account.toLowerCase()));
+                    if (search.name)     list = list.filter(u => u.name.toLowerCase().includes(search.name.toLowerCase()));
+                    if (search.phone)    list = list.filter(u => u.phone.includes(search.phone));
+                    if (search.status !== null && search.status !== '') list = list.filter(u => u.status === search.status);
+                    if (search.isSalesperson !== null && search.isSalesperson !== '') list = list.filter(u => u.isSalesperson === search.isSalesperson);
+                    return list;
+                });
+
+                const total = computed(() => filteredUsers.value.length);
+
+                const tableData = computed(() => {
+                    const start = (pageNum.value - 1) * pageSize.value;
+                    return filteredUsers.value.slice(start, start + pageSize.value);
+                });
+
+                // 搜索条件变化时回到第一页
+                watch([() => search.account, () => search.name, () => search.phone, () => search.status, () => search.isSalesperson], () => {
+                    pageNum.value = 1;
+                });
+
+                function doSearch() { pageNum.value = 1; }
+                function resetSearch() {
+                    search.account = '';
+                    search.name = '';
+                    search.phone = '';
+                    search.status = null;
+                    search.isSalesperson = null;
+                    pageNum.value = 1;
+                }
+
+                // ================================================================
+                // 工具方法
+                // ================================================================
+                function maskPhone(phone) {
+                    if (!phone) return '-';
+                    return phone.slice(0, 3) + '****' + phone.slice(7);
+                }
+
+                // ================================================================
+                // 新增 / 编辑用户弹窗
+                // ================================================================
+                const userDialog = reactive({ visible: false, isEdit: false, submitting: false, editId: null });
+                const userFormRef = ref(null);
+                const userForm = reactive({ account: '', name: '', phone: '', status: 1, isSalesperson: 0 });
+
+                const userRules = {
+                    account:  [{ required: true, message: '请输入账号（工号）', trigger: 'blur' }],
+                    name:     [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+                    phone: [
+                        { required: true, message: '请输入手机号码', trigger: 'blur' },
+                        { pattern: /^\d{11}$/, message: '请输入正确的11位手机号', trigger: 'blur' },
+                    ],
+                };
+
+                function openUserForm(row) {
+                    userDialog.submitting = false;
+                    if (row) {
+                        // 编辑
+                        userDialog.isEdit = true;
+                        userDialog.editId = row.id;
+                        userForm.account = row.account;
+                        userForm.name = row.name;
+                        userForm.phone = row.phone;
+                        userForm.status = row.status;
+                        userForm.isSalesperson = row.isSalesperson;
+                    } else {
+                        // 新增
+                        userDialog.isEdit = false;
+                        userDialog.editId = null;
+                        userForm.account = '';
+                        userForm.name = '';
+                        userForm.phone = '';
+                        userForm.status = 1;
+                        userForm.isSalesperson = 0;
+                    }
+                    userDialog.visible = true;
+                    // 清除校验
+                    setTimeout(() => { if (userFormRef.value) userFormRef.value.clearValidate(); }, 0);
+                }
+
+                function resetUserForm() {
+                    userDialog.editId = null;
+                }
+
+                function submitUserForm() {
+                    if (!userFormRef.value) return;
+                    userFormRef.value.validate((valid) => {
+                        if (!valid) return;
+
+                        if (!userDialog.isEdit) {
+                            // 唯一性校验
+                            if (allUsers.value.some(u => u.account === userForm.account)) {
+                                ElementPlus.ElMessage.error('账号已存在，请勿重复创建');
+                                return;
+                            }
+                            if (allUsers.value.some(u => u.phone === userForm.phone)) {
+                                ElementPlus.ElMessage.error('手机号已被其他用户使用');
+                                return;
+                            }
+                            userDialog.submitting = true;
+                            setTimeout(() => {
+                                allUsers.value.push({
+                                    id: nextId++,
+                                    account: userForm.account,
+                                    name: userForm.name,
+                                    phone: userForm.phone,
+                                    status: userForm.status,
+                                    isSalesperson: userForm.isSalesperson,
+                                    createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
+                                    createdBy: '管理员',
+                                    lastLoginAt: '',
+                                    roleIds: [],
+                                    regionIds: [],
+                                });
+                                userDialog.submitting = false;
+                                userDialog.visible = false;
+                                ElementPlus.ElMessage.success('用户创建成功');
+                            }, 400);
+                        } else {
+                            // 编辑
+                            if (allUsers.value.some(u => u.phone === userForm.phone && u.id !== userDialog.editId)) {
+                                ElementPlus.ElMessage.error('手机号已被其他用户使用');
+                                return;
+                            }
+                            userDialog.submitting = true;
+                            setTimeout(() => {
+                                const u = allUsers.value.find(x => x.id === userDialog.editId);
+                                if (u) {
+                                    u.name = userForm.name;
+                                    u.phone = userForm.phone;
+                                    u.status = userForm.status;
+                                    u.isSalesperson = userForm.isSalesperson;
+                                }
+                                userDialog.submitting = false;
+                                userDialog.visible = false;
+                                ElementPlus.ElMessage.success('用户更新成功');
+                            }, 400);
+                        }
+                    });
+                }
+
+                // ================================================================
+                // 配置角色弹窗
+                // ================================================================
+                const roleDialog = reactive({ visible: false, submitting: false, user: null });
+                const roleCheckedIds = ref([]);
+
+                function openRoleConfig(row) {
+                    roleDialog.user = row;
+                    roleDialog.submitting = false;
+                    roleCheckedIds.value = [...row.roleIds];
+                    roleDialog.visible = true;
+                }
+
+                function submitRoleConfig() {
+                    if (!roleDialog.user) return;
+                    roleDialog.submitting = true;
+                    setTimeout(() => {
+                        const u = allUsers.value.find(x => x.id === roleDialog.user.id);
+                        if (u) u.roleIds = [...roleCheckedIds.value];
+                        roleDialog.submitting = false;
+                        roleDialog.visible = false;
+                        ElementPlus.ElMessage.success('角色配置已保存');
+                    }, 400);
+                }
+
+                // ================================================================
+                // 配置数据权限弹窗
+                // ================================================================
+                const permDialog = reactive({ visible: false, submitting: false, user: null });
+                const permCheckedIds = ref([]);
+
+                function openPermConfig(row) {
+                    permDialog.user = row;
+                    permDialog.submitting = false;
+                    permCheckedIds.value = [...row.regionIds];
+                    permDialog.visible = true;
+                }
+
+                function submitPermConfig() {
+                    if (!permDialog.user) return;
+                    permDialog.submitting = true;
+                    setTimeout(() => {
+                        const u = allUsers.value.find(x => x.id === permDialog.user.id);
+                        if (u) u.regionIds = [...permCheckedIds.value];
+                        permDialog.submitting = false;
+                        permDialog.visible = false;
+                        ElementPlus.ElMessage.success('数据权限配置已保存');
+                    }, 400);
+                }
+
+                // ================================================================
+                // 返回
+                // ================================================================
+                return {
+                    search, pageNum, pageSize, loading, hasSearch,
+                    tableData, total, allRoles, allRegions,
+                    userDialog, userFormRef, userForm, userRules,
+                    roleDialog, roleCheckedIds,
+                    permDialog, permCheckedIds,
+                    maskPhone, doSearch, resetSearch,
+                    openUserForm, resetUserForm, submitUserForm,
+                    openRoleConfig, submitRoleConfig,
+                    openPermConfig, submitPermConfig,
+                };
+            }
+        });
+
+        app.use(ElementPlus).mount('#prd-root');
+    </script>
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公告管理</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 10px;
+        }
+        .search-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+            padding-bottom: 0px;
+            margin-bottom: 10px;
+        }
+        .data-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .toolbar-left {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 0;
+            color: #909399;
+        }
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        .content-cell {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+        <!-- ========== 查询区 ========== -->
+        <div class="search-card">
+            <el-form :inline="true" :model="search">
+                <el-form-item label="销售大区">
+                    <el-select v-model="search.region" placeholder="全部" clearable style="width:180px;">
+                        <el-option label="海南区" value="hainan"></el-option>
+                        <el-option label="广深区" value="guangshen"></el-option>
+                        <el-option label="华东区" value="huadong"></el-option>
+                        <el-option label="华中区" value="huazhong"></el-option>
+                        <el-option label="西南区" value="xinan"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="状态">
+                    <el-select v-model="search.status" placeholder="全部" clearable style="width:140px;">
+                        <el-option label="启用" :value="true"></el-option>
+                        <el-option label="禁用" :value="false"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" @click="doSearch">查询</el-button>
+                    <el-button @click="resetSearch">重置</el-button>
+                </el-form-item>
+            </el-form>
+        </div>
+
+        <!-- ========== 操作&数据区 ========== -->
+        <div class="data-card">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <el-button type="primary" @click="openAdd">新增公告</el-button>
+                </div>
+                <span style="font-size:14px; color:#909399;">共 <b style="color:#303133;">{{ total }}</b> 条记录</span>
+            </div>
+
+            <el-table
+                :data="tableData"
+                v-loading="loading"
+                stripe
+                style="width:100%;"
+                :header-cell-style="{background:'#f5f7fa', color:'#606266', fontWeight:500}"
+            >
+                <el-table-column type="selection" width="50"></el-table-column>
+                <el-table-column prop="region" label="销售大区" width="120"></el-table-column>
+                <el-table-column label="公告内容" min-width="280">
+                    <template #default="scope">
+                        <el-tooltip :content="scope.row.content" placement="top" :disabled="!scope.row.content || scope.row.content.length < 30">
+                            <span class="content-cell">{{ scope.row.summary || scope.row.content || '-' }}</span>
+                        </el-tooltip>
+                    </template>
+                </el-table-column>
+                <el-table-column label="状态" width="100" align="center">
+                    <template #default="scope">
+                        <el-switch
+                            v-model="scope.row.status"
+                            :active-value="true"
+                            :inactive-value="false"
+                            active-color="#67c23a"
+                            inactive-color="#f56c6c"
+                            inline-prompt
+                            active-text="启用"
+                            inactive-text="禁用"
+                            @change="toggleStatus(scope.row)"
+                        ></el-switch>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="updater" label="更新人" width="100"></el-table-column>
+                <el-table-column prop="updateTime" label="更新时间" width="170" sortable></el-table-column>
+                <el-table-column label="操作" width="80" fixed="right">
+                    <template #default="scope">
+                        <el-button type="primary" link @click="openEdit(scope.row)">编辑</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+
+            <div v-if="tableData.length === 0 && !loading" class="empty-state">
+                <div class="empty-state-icon">📢</div>
+                <div>暂无公告数据</div>
+            </div>
+
+            <div style="margin-top:16px; display:flex; justify-content:flex-start;" v-if="total > 0">
+                <el-pagination
+                    v-model:current-page="pageNum"
+                    v-model:page-size="pageSize"
+                    :page-sizes="[10, 20, 50]"
+                    :total="total"
+                    layout="total, sizes, prev, pager, next"
+                    background
+                ></el-pagination>
+            </div>
+        </div>
+
+        <!-- ========== 新增/编辑弹窗 ========== -->
+        <el-dialog
+            v-model="dialog.visible"
+            :title="dialog.isEdit ? '编辑公告' : '新增公告'"
+            width="560px"
+            :close-on-click-modal="false"
+            @close="resetForm"
+        >
+            <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+                <el-form-item label="销售大区" prop="region">
+                    <el-select v-model="form.region" placeholder="请选择销售大区" style="width:100%;">
+                        <el-option label="海南区" value="hainan"></el-option>
+                        <el-option label="广深区" value="guangshen"></el-option>
+                        <el-option label="华东区" value="huadong"></el-option>
+                        <el-option label="华中区" value="huazhong"></el-option>
+                        <el-option label="西南区" value="xinan"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="状态" prop="status">
+                    <el-switch
+                        v-model="form.status"
+                        :active-value="true"
+                        :inactive-value="false"
+                        active-color="#67c23a"
+                        inactive-color="#f56c6c"
+                        inline-prompt
+                        active-text="启用"
+                        inactive-text="禁用"
+                    ></el-switch>
+                </el-form-item>
+                <el-form-item label="公告内容" prop="content">
+                    <el-input
+                        v-model="form.content"
+                        type="textarea"
+                        placeholder="请输入公告内容，最多500字符"
+                        maxlength="500"
+                        show-word-limit
+                        :rows="6"
+                    ></el-input>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="dialog.visible = false">取消</el-button>
+                <el-button type="primary" @click="submitForm" :loading="dialog.submitting">确定</el-button>
+            </template>
+        </el-dialog>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/element-plus/dist/index.full.min.js"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.min.js"></script>
+    <script>
+        const { createApp, ref, reactive, computed, watch, nextTick } = Vue;
+
+        const app = createApp({
+            setup() {
+                let nextId = 9;
+                const allData = ref([
+                    { id: 1, region: '海南区', content: '每日满500元即可享受免运费配送服务，不满500元收取20元配送费。活动有效期至2026年7月31日。', summary: '每日满500元免运费配送活动通知', status: true, updater: '张三', updateTime: '2026-06-30 14:22:00' },
+                    { id: 2, region: '广深区', content: '新客户首单专享9折优惠，折扣上限200元，每位新客户仅限参与一次。活动有效期至2026年8月15日。', summary: '新客户首单9折优惠活动', status: true, updater: '李四', updateTime: '2026-06-29 10:15:00' },
+                    { id: 3, region: '华东区', content: '因仓库升级改造，2026年7月5日至7月8日期间配送时效可能延迟0.5-1天，敬请谅解。', summary: '华东区配送时效调整通知', status: true, updater: '王五', updateTime: '2026-06-28 16:08:00' },
+                    { id: 4, region: '华中区', content: '新品上架通知：新鲜三黄鸡、土猪肉、有机蔬菜等新品已上线，欢迎下单采购。', summary: '新品上架通知', status: false, updater: '赵六', updateTime: '2026-06-27 09:30:00' },
+                    { id: 5, region: '西南区', content: '春节备货提醒：请各位客户提前做好春节备货计划，春节期间（1月28日-2月4日）将暂停配送服务。', summary: '春节备货及配送安排通知', status: false, updater: '张三', updateTime: '2026-06-26 11:45:00' },
+                    { id: 6, region: '海南区', content: '冷链配送标准升级：所有生鲜品类均采用冷链配送，确保食材新鲜度。配送温度严格控制在0-4℃。', summary: '冷链配送标准升级通知', status: true, updater: '李四', updateTime: '2026-06-25 08:20:00' },
+                    { id: 7, region: '广深区', content: '平台系统将于2026年7月2日凌晨2:00-4:00进行维护升级，届时小程序将暂停服务，请您提前安排好下单时间。', summary: '系统维护升级公告', status: true, updater: '王五', updateTime: '2026-06-24 15:10:00' },
+                    { id: 8, region: '华东区', content: '供应商调整通知：因供应链优化，即日起华东区猪肉类商品供应商调整为XX食品集团，品质升级，价格不变。', summary: '华东区猪肉供应商调整通知', status: true, updater: '赵六', updateTime: '2026-06-23 12:00:00' },
+                ]);
+
+                const regionMap = { hainan: '海南区', guangshen: '广深区', huadong: '华东区', huazhong: '华中区', xinan: '西南区' };
+
+                // ================================================================
+                // 搜索 & 分页
+                // ================================================================
+                const search = reactive({ region: '', status: null });
+                const pageNum = ref(1);
+                const pageSize = ref(20);
+                const loading = ref(false);
+
+                const filteredData = computed(() => {
+                    let list = allData.value;
+                    if (search.region) list = list.filter(r => r.region === regionMap[search.region]);
+                    if (search.status !== null && search.status !== '') list = list.filter(r => r.status === search.status);
+                    return list;
+                });
+
+                const total = computed(() => filteredData.value.length);
+
+                const tableData = computed(() => {
+                    const start = (pageNum.value - 1) * pageSize.value;
+                    return filteredData.value.slice(start, start + pageSize.value);
+                });
+
+                watch([() => search.region, () => search.status], () => { pageNum.value = 1; });
+
+                function doSearch() { pageNum.value = 1; }
+                function resetSearch() {
+                    search.region = '';
+                    search.status = null;
+                    pageNum.value = 1;
+                }
+
+                // ================================================================
+                // 状态开关切换（列表内直接操作）
+                // ================================================================
+                function toggleStatus(row) {
+                    const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+                    row.updater = '当前用户';
+                    row.updateTime = now;
+                    ElementPlus.ElMessage.success('公告状态已更新为' + (row.status ? '启用' : '禁用'));
+                }
+
+                // ================================================================
+                // 新增/编辑弹窗
+                // ================================================================
+                const dialog = reactive({ visible: false, isEdit: false, submitting: false, editId: null });
+                const formRef = ref(null);
+                const form = reactive({ region: '', status: true, content: '' });
+
+                const rules = {
+                    region: [{ required: true, message: '请选择销售大区', trigger: 'change' }],
+                    content: [
+                        { required: true, message: '请输入公告内容', trigger: 'blur' },
+                        { max: 500, message: '公告内容不超过500字符', trigger: 'blur' },
+                    ],
+                };
+
+                function openAdd() {
+                    dialog.isEdit = false;
+                    dialog.editId = null;
+                    dialog.submitting = false;
+                    form.region = '';
+                    form.status = true;
+                    form.content = '';
+                    dialog.visible = true;
+                    nextTick(() => { if (formRef.value) formRef.value.clearValidate(); });
+                }
+
+                function openEdit(row) {
+                    dialog.isEdit = true;
+                    dialog.editId = row.id;
+                    dialog.submitting = false;
+                    form.region = Object.keys(regionMap).find(k => regionMap[k] === row.region) || '';
+                    form.status = row.status;
+                    form.content = row.content;
+                    dialog.visible = true;
+                    nextTick(() => { if (formRef.value) formRef.value.clearValidate(); });
+                }
+
+                function resetForm() {
+                    dialog.editId = null;
+                }
+
+                function submitForm() {
+                    if (!formRef.value) return;
+                    formRef.value.validate((valid) => {
+                        if (!valid) return;
+                        dialog.submitting = true;
+                        const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+                        setTimeout(() => {
+                            if (dialog.isEdit) {
+                                const item = allData.value.find(r => r.id === dialog.editId);
+                                if (item) {
+                                    item.region = regionMap[form.region] || form.region;
+                                    item.content = form.content;
+                                    item.summary = form.content.length > 30 ? form.content.slice(0, 30) + '...' : form.content;
+                                    item.status = form.status;
+                                    item.updater = '当前用户';
+                                    item.updateTime = now;
+                                }
+                                ElementPlus.ElMessage.success('公告更新成功');
+                            } else {
+                                const content = form.content;
+                                allData.value.unshift({
+                                    id: nextId++,
+                                    region: regionMap[form.region] || form.region,
+                                    content: content,
+                                    summary: content.length > 30 ? content.slice(0, 30) + '...' : content,
+                                    status: form.status,
+                                    updater: '当前用户',
+                                    updateTime: now,
+                                });
+                                ElementPlus.ElMessage.success('公告创建成功');
+                            }
+                            dialog.submitting = false;
+                            dialog.visible = false;
+                        }, 400);
+                    });
+                }
+
+                return {
+                    search, pageNum, pageSize, loading,
+                    tableData, total,
+                    dialog, formRef, form, rules, regionMap,
+                    doSearch, resetSearch,
+                    toggleStatus,
+                    openAdd, openEdit, resetForm, submitForm,
+                };
+            }
+        });
+
+        app.use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+    </script>
+</body>
+</html>

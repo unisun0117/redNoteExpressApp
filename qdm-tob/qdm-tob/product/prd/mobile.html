@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>钱鲜达</title>
+    <link rel="stylesheet" href="./lib/vant.css">
+    <style>
+        :root {
+            --van-primary-color: #ff0000;
+            --van-nav-bar-background: #ffffff;
+            --van-nav-bar-title-text-color: #111827;
+        }
+        body {
+            background-color: #f3f4f6;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box;
+        }
+        .iphone-shell {
+            width: 375px !important; height: 812px !important;
+            background: #ffffff; border: 12px solid #111827; border-radius: 36px;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.3), 0 0 0 2px #4b5563;
+            display: flex; flex-direction: column; position: relative; overflow: hidden; box-sizing: content-box;
+        }
+        .app-main-body { flex: 1; position: relative; width: 100%; background: #f8fafc; overflow: hidden; }
+        .tab-iframe-view { width: 100%; height: 100%; border: none; display: block; position: absolute; top: 0; left: 0; }
+        .van-nav-bar { border-bottom: 1px solid #f1f5f9; flex-shrink: 0; }
+        .van-nav-bar__title { font-weight: 700 !important; font-size: 16px !important; }
+        .van-tabbar { position: static !important; flex-shrink: 0; border-top: 1px solid #f1f5f9; background: #ffffff; }
+        iframe::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="app" class="iphone-shell">
+
+        <div class="app-main-body">
+            <div v-if="globalLoading" class="absolute inset-0 flex flex-col items-center justify-center bg-white z-50">
+                <van-loading type="spinner" color="#ff0000" size="30px"></van-loading>
+                <span class="mt-2 text-xs text-slate-400 font-medium">应用就绪中...</span>
+            </div>
+
+            <div v-for="tab in tabList" :key="tab.id" v-show="activeTab === tab.id" class="w-full h-full">
+                <iframe 
+                    :key="tab.key"
+                    :src="tab.url" 
+                    class="tab-iframe-view" 
+                    @load="onIframeTrackingLoad($event, tab.id)"
+                ></iframe>
+            </div>
+        </div>
+
+        <van-tabbar 
+            v-show="!isCurrentInSubPage" 
+            v-model="activeTab" 
+            :fixed="false" 
+            :border="false" 
+            active-color="#ff0000" 
+            inactive-color="#64748b"
+        >
+            <van-tabbar-item v-for="tab in tabList" :key="tab.id" :name="tab.id" :icon="tab.icon">
+                {{ tab.title }}
+            </van-tabbar-item>
+        </van-tabbar>
+
+    </div>
+
+    <script src="./lib/vue.global.js"></script>
+    <script src="./node_modules/vant/lib/vant.min.js"></script>
+    <script>
+        const { createApp, ref, computed } = Vue;
+
+        // 纯净配置，再也不需要去配任何显隐开关
+        const TAB_CONFIG = [
+            { id: 'home',     title: '首页',   icon: 'wap-home-o',     url: '../spec/04-营销管理/首页推荐商品展示-小程序-原型.html' },
+            { id: 'category', title: '分类',   icon: 'apps-o',         url: '../spec/02-客户管理/分类-原型.html' },
+            { id: 'cart',     title: '购物车', icon: 'shopping-cart-o', url: '../spec/03-交易管理/购物车-小程序-原型.html' },
+            { id: 'order',    title: '订单',   icon: 'orders-o',       url: '../spec/03-交易管理/销售订单-小程序-原型.html' }, 
+            { id: 'mine',     title: '我的',   icon: 'user-o',         url: '../spec/10-公共服务管理/我的-原型.html' }
+        ];
+
+        createApp({
+            setup() {
+                const activeTab = ref('home');
+                
+                // 核心黑科技数据结构：为每个 Tab 动态注入独立的 loadCount（载入计数器）与 key（渲染钥匙）
+                const tabList = ref(TAB_CONFIG.map(item => ({
+                    ...item,
+                    loadCount: 0, 
+                    key: 0        
+                })));
+                
+                const globalLoading = ref(true);
+
+                // 计算当前处于激活状态的 Tab 对象
+                const currentTabObj = computed(() => {
+                    return tabList.value.find(t => t.id === activeTab.value);
+                });
+
+                // 【核心判断】：如果当前活跃 Tab 的 Iframe 载入次数大于 1，说明它在内部完成了跳转，即判定进入了详情子页
+                const isCurrentInSubPage = computed(() => {
+                    return currentTabObj.value ? currentTabObj.value.loadCount > 1 : false;
+                });
+
+                // ==================== 🧠 框架层脉搏监听器 ====================
+                const onIframeTrackingLoad = (event, id) => {
+                    const targetTab = tabList.value.find(t => t.id === id);
+                    if (targetTab) {
+                        targetTab.loadCount++; // 每载入一次（无论是初次还是内部跳转），计数器累加
+                    }
+                    
+                    // 消除首屏遮罩
+                    if (id === activeTab.value) {
+                        globalLoading.value = false;
+                    }
+                };
+
+                // ==================== 🔙 框架层返回逻辑 ====================
+                const handleFrameworkBack = () => {
+                    const current = currentTabObj.value;
+                    if (current) {
+                        current.loadCount = 0;
+                        current.key++;
+                    }
+                };
+
+                // 监听子页面通过 postMessage 发起的返回请求
+                window.addEventListener('message', (event) => {
+                    if (event.data && event.data.action === 'back') {
+                        handleFrameworkBack();
+                    }
+                });
+
+                return {
+                    activeTab,
+                    tabList,
+                    isCurrentInSubPage,
+                    globalLoading,
+                    onIframeTrackingLoad,
+                    handleFrameworkBack
+                };
+            }
+        }).use(vant).mount('#app');
+    </script>
+</body>
+</html>

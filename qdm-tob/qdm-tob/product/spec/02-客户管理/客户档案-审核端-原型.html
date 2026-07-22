@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>地址审核</title>
+    <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        :root {
+            --van-primary-color: #3B82F6;
+        }
+        body {
+            background-color: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+    <div id="prd-root" class="pb-24">
+
+        <!-- 公司信息（只读） -->
+        <div class="text-sm font-semibold text-slate-700 px-5 pt-4 pb-2">公司信息</div>
+        <van-cell-group inset>
+            <van-cell title="公司名称" :value="auditData.companyName"></van-cell>
+            <van-cell title="营业执照编号" :value="auditData.licenseNo"></van-cell>
+            <van-cell title="营业执照照片" is-link @click="previewImage('营业执照')">
+                <template #default>
+                    <div class="w-20 h-14 bg-slate-200 rounded flex items-center justify-center text-xs text-slate-400">点击放大</div>
+                </template>
+            </van-cell>
+            <van-cell title="门头照片" is-link @click="previewImage('门头')">
+                <template #default>
+                    <div class="w-20 h-14 bg-slate-200 rounded flex items-center justify-center text-xs text-slate-400">点击放大</div>
+                </template>
+            </van-cell>
+        </van-cell-group>
+
+        <!-- 收货信息（只读） -->
+        <div class="text-sm font-semibold text-slate-700 px-5 pt-4 pb-2">收货信息</div>
+        <van-cell-group inset>
+            <van-cell title="收货人" :value="auditData.contactName"></van-cell>
+            <van-cell title="联系电话" :value="auditData.contactPhone"></van-cell>
+            <van-cell title="所在地区" :value="auditData.region"></van-cell>
+            <van-cell title="详细地址" :value="auditData.detailAddress" label="经纬度：113.32, 23.13"></van-cell>
+            <van-cell title="可收货时段" :value="auditData.receiveTime"></van-cell>
+            <van-cell title="收货要求" :value="auditData.remark"></van-cell>
+            <van-cell title="存放位置照片" is-link @click="previewImage('存放位置')">
+                <template #default>
+                    <span class="text-xs text-slate-400">x2（点击放大）</span>
+                </template>
+            </van-cell>
+        </van-cell-group>
+
+        <!-- 推荐信息（只读） -->
+        <div class="text-sm font-semibold text-slate-700 px-5 pt-4 pb-2">推荐信息</div>
+        <van-cell-group inset>
+            <van-cell title="推荐码来源" value="区域分配 · 无推荐码">
+                <template #value>
+                    <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">区域分配</span>
+                    <span class="text-slate-400 ml-1">无推荐码</span>
+                </template>
+            </van-cell>
+        </van-cell-group>
+
+        <!-- 业务属性绑定（审核人填写） -->
+        <div class="text-sm font-semibold text-slate-700 px-5 pt-4 pb-2">
+            业务属性绑定 <span class="text-red-500 text-xs font-normal">（审核必填）</span>
+        </div>
+        <van-cell-group inset>
+            <van-field
+                v-model="formData.priceGroup"
+                is-link
+                readonly
+                label="价格组"
+                placeholder="请选择价格组"
+                :rules="[{ required: true, message: '请选择价格组' }]"
+                @click="openPicker('priceGroup')"
+            ></van-field>
+            <van-field
+                v-model="formData.settleCompany"
+                is-link
+                readonly
+                label="结算公司"
+                placeholder="请选择结算公司"
+                :rules="[{ required: true, message: '请选择结算公司' }]"
+                @click="openPicker('settleCompany')"
+            ></van-field>
+            <van-field
+                v-model="formData.bizType"
+                is-link
+                readonly
+                label="经营类型"
+                placeholder="请选择经营类型"
+                :rules="[{ required: true, message: '请选择经营类型' }]"
+                @click="openPicker('bizType')"
+            ></van-field>
+            <van-field
+                v-model="formData.settleType"
+                is-link
+                readonly
+                label="结算类型"
+                placeholder="请选择结算类型"
+                :rules="[{ required: true, message: '请选择结算类型' }]"
+                @click="openPicker('settleType')"
+            ></van-field>
+            <van-field
+                v-model="formData.internalNote"
+                label="内部收货备注"
+                placeholder="审核人补充的内部备注（小程序端不可见）"
+                type="textarea"
+                rows="2"
+                autosize
+            ></van-field>
+        </van-cell-group>
+
+        <!-- 底部操作栏 -->
+        <div class="fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-slate-100 flex gap-3 z-50">
+            <van-button block round @click="showRejectDialog = true">驳回</van-button>
+            <van-button type="primary" block round @click="showApproveDialog = true">通过</van-button>
+        </div>
+
+        <!-- 驳回弹窗 -->
+        <van-dialog
+            v-model:show="showRejectDialog"
+            title="驳回原因"
+            show-cancel-button
+            confirm-button-text="确认驳回"
+            confirm-button-color="#DC2626"
+            @confirm="submitReject"
+        >
+            <div class="px-5 pb-4">
+                <van-field
+                    v-model="rejectReason"
+                    type="textarea"
+                    placeholder="请输入驳回原因，客户可见（限200字）"
+                    maxlength="200"
+                    rows="3"
+                    autosize
+                ></van-field>
+            </div>
+        </van-dialog>
+
+        <!-- 通过确认弹窗 -->
+        <van-dialog
+            v-model:show="showApproveDialog"
+            title="确认通过审核"
+            message="通过后系统将向 SAP 申报创建客户档案。"
+            show-cancel-button
+            confirm-button-text="确认通过"
+            confirm-button-color="#16A34A"
+            @confirm="submitApprove"
+        ></van-dialog>
+
+        <!-- 选择器弹出层 -->
+        <van-popup v-model:show="showPicker" position="bottom" round>
+            <van-picker
+                :columns="pickerColumns"
+                @confirm="onPickerConfirm"
+                @cancel="showPicker = false"
+            ></van-picker>
+        </van-popup>
+
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+    <script>
+        const { createApp, ref, reactive } = Vue;
+        const app = createApp({
+            setup: function () {
+                var auditData = reactive({
+                    companyName: '天福茗茶有限公司',
+                    licenseNo: '91350100MA12345678',
+                    contactName: '陈经理',
+                    contactPhone: '13812341234',
+                    region: '广东省广州市天河区',
+                    detailAddress: '天河路123号天福大厦1层',
+                    receiveTime: '06:00 - 08:00',
+                    remark: '需冷链配送，提前1小时通知',
+                });
+
+                var formData = reactive({
+                    priceGroup: '',
+                    settleCompany: '',
+                    bizType: '',
+                    settleType: '',
+                    internalNote: '',
+                });
+
+                var showRejectDialog = ref(false);
+                var showApproveDialog = ref(false);
+                var showPicker = ref(false);
+                var rejectReason = ref('');
+                var pickerColumns = ref([]);
+                var currentPickerField = ref('');
+
+                var pickerOptions = {
+                    priceGroup: ['标准价', '批发价', '协议价A'],
+                    settleCompany: ['钱鲜达供应链有限公司', '鲜美来食品有限公司'],
+                    bizType: ['面馆', '校食堂', '酒店', '快餐店'],
+                    settleType: ['现结', '账期'],
+                };
+
+                function openPicker(field) {
+                    currentPickerField.value = field;
+                    pickerColumns.value = pickerOptions[field].map(function (item) {
+                        return { text: item, value: item };
+                    });
+                    showPicker.value = true;
+                }
+
+                function onPickerConfirm(data) {
+                    formData[currentPickerField.value] = data.selectedOptions[0].value;
+                    showPicker.value = false;
+                }
+
+                function previewImage(type) {
+                    vant.showToast(type + '照片 - 全屏预览');
+                }
+
+                function submitReject() {
+                    if (!rejectReason.value.trim()) {
+                        vant.showToast('请输入驳回原因');
+                        return;
+                    }
+                    vant.showToast('已驳回，客户将收到通知');
+                    rejectReason.value = '';
+                }
+
+                function submitApprove() {
+                    var empty = ['priceGroup', 'settleCompany', 'bizType', 'settleType'].find(function (k) { return !formData[k]; });
+                    if (empty) {
+                        vant.showToast('请完善业务属性绑定后提交');
+                        return;
+                    }
+                    vant.showToast('审核通过，已向 SAP 申报创建客户档案');
+                }
+
+                return {
+                    auditData, formData,
+                    showRejectDialog, showApproveDialog, showPicker,
+                    rejectReason, pickerColumns,
+                    openPicker, onPickerConfirm, previewImage,
+                    submitReject, submitApprove,
+                };
+            },
+        });
+        app.use(vant).mount('#prd-root');
+    </script>
+</body>
+</html>

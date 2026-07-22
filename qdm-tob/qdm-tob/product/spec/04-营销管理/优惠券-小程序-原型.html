@@ -1,0 +1,291 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>我的优惠券</title>
+  <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root { --van-primary-color: #ff0000; }
+    body {
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      margin: 0; padding: 12px; box-sizing: border-box;
+    }
+    ::-webkit-scrollbar { display: none; }
+
+    /* 卡片 */
+    .coupon-card {
+      background: #fff; border-radius: 12px; overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06); position: relative;
+      transition: opacity 0.2s;
+    }
+    .coupon-card::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 4px; background: #dc2626; border-radius: 12px 0 0 12px;
+    }
+    .coupon-card.expired { opacity: 0.5; }
+    .coupon-card.expired::before { background: #f59e0b; }
+    .coupon-card.used { opacity: 0.5; }
+    .coupon-card.used::before { background: #9ca3af; }
+
+    .card-body { padding: 14px 16px 14px 20px; position: relative; }
+
+    .coupon-name-row {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
+    }
+    .coupon-name { font-size: 15px; font-weight: 600; color: #1f2937; }
+
+    .discount-text {
+      font-size: 26px; font-weight: 800; color: #dc2626; line-height: 1.3;
+      margin-bottom: 2px; letter-spacing: -0.5px;
+    }
+    .coupon-card.expired .discount-text { color: #d97706; }
+    .coupon-card.used .discount-text { color: #9ca3af; }
+
+    /* 品类标签 */
+    .category-row {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px;
+    }
+    .cat-tag {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      background: #f3f4f6; color: #6b7280; font-size: 12px; line-height: 1.5;
+    }
+
+    .meta-row {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 12px; color: #9ca3af; margin-top: 4px;
+    }
+    .meta-row .mlabel { color: #6b7280; flex-shrink: 0; }
+
+    .divider-dashed { border-top: 1px dashed #e5e7eb; margin: 10px 0 6px; }
+
+    /* 空状态 */
+    .empty-wrap {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 60px 20px;
+    }
+    .empty-icon {
+      width: 80px; height: 80px; background: #f1f5f9; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 36px; margin-bottom: 16px;
+    }
+    .empty-text { font-size: 14px; color: #9ca3af; }
+
+    /* 骨架屏 */
+    .skeleton-wrap { padding-top: 4px; }
+  </style>
+</head>
+<body>
+  <div id="prd-root">
+
+    <!-- ===== 加载态 ===== -->
+    <div v-if="loading" class="skeleton-wrap space-y-3">
+      <div v-for="i in 3" :key="i" class="bg-white rounded-xl p-4 shadow-sm">
+        <van-skeleton row="1" row-width="60%" class="mb-2"></van-skeleton>
+        <van-skeleton row="1" row-width="40%" class="mb-2"></van-skeleton>
+        <van-skeleton row="1" row-width="70%" class="mb-2"></van-skeleton>
+        <van-skeleton row="1" row-width="50%"></van-skeleton>
+      </div>
+    </div>
+
+    <!-- ===== 正常内容 ===== -->
+    <div v-else>
+      <van-tabs v-model:active="activeTab" sticky color="#dc2626" title-active-color="#dc2626" title-inactive-color="#9ca3af" :line-width="28" :line-height="3" :duration="0.25">
+        <!-- ========== 页签一：未使用 ========== -->
+        <van-tab title="未使用">
+          <div v-if="unusedCoupons.length === 0" class="empty-wrap">
+            <div class="empty-icon">🎫</div>
+            <div class="empty-text">暂无未使用的优惠券</div>
+          </div>
+          <div v-else class="space-y-3 pt-3 pb-4">
+            <div v-for="c in unusedCoupons" :key="c.id" class="coupon-card" :class="{ expired: c._expired }">
+              <div class="card-body">
+                <!-- 名称 + 已过期标记 -->
+                <div class="coupon-name-row">
+                  <span class="coupon-name">{{ c.name }}</span>
+                  <van-tag v-if="c._expired" type="warning" size="medium" round>已过期</van-tag>
+                </div>
+                <!-- 优惠规则 -->
+                <div class="discount-text">满{{ fmtInt(c.threshold) }}减{{ fmtInt(c.discount) }}</div>
+                <!-- 适用品类（后台设定） -->
+                <div class="category-row">
+                  <span v-for="cat in c.categories" :key="cat" class="cat-tag">{{ cat }}</span>
+                </div>
+                <!-- 有效期 -->
+                <div class="meta-row">
+                  <van-icon name="clock-o" size="13"></van-icon>
+                  <span>{{ c.startDate }} ~ {{ c.endDate }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </van-tab>
+
+        <!-- ========== 页签二：已使用 ========== -->
+        <van-tab title="已使用">
+          <div v-if="usedCoupons.length === 0" class="empty-wrap">
+            <div class="empty-icon">📋</div>
+            <div class="empty-text">暂无已使用的优惠券</div>
+          </div>
+          <div v-else class="space-y-3 pt-3 pb-4">
+            <div v-for="c in usedCoupons" :key="c.id" class="coupon-card used">
+              <div class="card-body">
+                <!-- 名称 -->
+                <div class="coupon-name-row">
+                  <span class="coupon-name">{{ c.name }}</span>
+                </div>
+                <!-- 优惠规则 -->
+                <div class="discount-text">满{{ fmtInt(c.threshold) }}减{{ fmtInt(c.discount) }}</div>
+                <!-- 适用品类（后台设定） -->
+                <div class="category-row">
+                  <span v-for="cat in c.categories" :key="cat" class="cat-tag">{{ cat }}</span>
+                </div>
+                <!-- 有效期 -->
+                <div class="meta-row">
+                  <van-icon name="clock-o" size="13"></van-icon>
+                  <span>{{ c.startDate }} ~ {{ c.endDate }}</span>
+                </div>
+                <!-- 使用信息 -->
+                <div class="divider-dashed"></div>
+                <div class="meta-row">
+                  <van-icon name="checked" size="13"></van-icon>
+                  <span class="mlabel">使用时间：</span><span>{{ c.useTime }}</span>
+                </div>
+                <div class="meta-row">
+                  <van-icon name="orders-o" size="13"></van-icon>
+                  <span class="mlabel">订单号：</span><span>{{ c.orderNo }}</span>
+                </div>
+                <div class="meta-row">
+                  <van-icon name="balance-o" size="13"></van-icon>
+                  <span class="mlabel">订单金额：</span><span>¥{{ fmtMoney(c.orderAmount) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </van-tab>
+      </van-tabs>
+    </div>
+
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+  <script>
+    const { createApp, ref, computed } = Vue;
+    createApp({
+      setup() {
+        const loading = ref(true);
+        const activeTab = ref(0);
+
+        // ============ Mock 数据 ============
+        // 每张券的 categories 对应后台创建时绑定的品类
+        const allCoupons = ref([
+          {
+            id: 1, name: '新春促销海鲜券', threshold: 100, discount: 20,
+            categories: ['海鲜类', '冻品类'],
+            startDate: '2026-07-01', endDate: '2026-07-31',
+            receiveTime: '2026-07-01 10:30:00',
+            status: 'UNUSED', useTime: null, orderNo: null, orderAmount: null,
+          },
+          {
+            id: 2, name: '蔬菜季优惠券', threshold: 50, discount: 10,
+            categories: ['蔬菜类', '水果类'],
+            startDate: '2026-05-01', endDate: '2026-06-30',
+            receiveTime: '2026-05-15 09:20:00',
+            status: 'EXPIRED', useTime: null, orderNo: null, orderAmount: null,
+          },
+          {
+            id: 3, name: '新客专享券', threshold: 200, discount: 50,
+            categories: ['肉类（非猪肉）', '禽蛋类'],
+            startDate: '2026-07-15', endDate: '2026-08-15',
+            receiveTime: '2026-07-15 14:00:00',
+            status: 'UNUSED', useTime: null, orderNo: null, orderAmount: null,
+          },
+          {
+            id: 4, name: '端午特惠券', threshold: 150, discount: 30,
+            categories: ['粮油副食', '调味品类'],
+            startDate: '2026-06-01', endDate: '2026-06-15',
+            receiveTime: '2026-06-01 08:00:00',
+            status: 'EXPIRED', useTime: null, orderNo: null, orderAmount: null,
+          },
+          {
+            id: 5, name: '夏日清凉券', threshold: 80, discount: 15,
+            categories: ['酒水饮料', '乳品类'],
+            startDate: '2026-06-01', endDate: '2026-08-31',
+            receiveTime: '2026-06-20 16:45:00',
+            status: 'UNUSED', useTime: null, orderNo: null, orderAmount: null,
+          },
+          {
+            id: 6, name: '年终回馈券', threshold: 300, discount: 80,
+            categories: ['海鲜类', '肉类（非猪肉）'],
+            startDate: '2026-01-01', endDate: '2026-03-31',
+            receiveTime: '2026-01-10 11:30:00',
+            status: 'USED', useTime: '2026-02-14 18:20:00',
+            orderNo: 'OD20260214003', orderAmount: 520.00,
+          },
+          {
+            id: 7, name: '开春大促券', threshold: 100, discount: 25,
+            categories: ['蔬菜类', '水果类', '粮油副食'],
+            startDate: '2026-03-01', endDate: '2026-04-30',
+            receiveTime: '2026-03-05 10:15:00',
+            status: 'USED', useTime: '2026-03-22 09:45:00',
+            orderNo: 'OD20260322018', orderAmount: 186.50,
+          },
+          {
+            id: 8, name: '每周福利券', threshold: 60, discount: 12,
+            categories: ['冻品类'],
+            startDate: '2026-06-15', endDate: '2026-07-15',
+            receiveTime: '2026-06-18 20:00:00',
+            status: 'USED', useTime: '2026-06-25 12:10:00',
+            orderNo: 'OD20260625007', orderAmount: 95.00,
+          },
+        ]);
+
+        // ============ Computed ============
+        const today = '2026-07-03';
+
+        const unusedCoupons = computed(() => {
+          const list = allCoupons.value
+            .filter(c => c.status === 'UNUSED' || c.status === 'EXPIRED' || c.status === 'LOCKED');
+
+          list.forEach(c => { c._expired = c.status === 'EXPIRED' || c.endDate < today; });
+
+          const active = list.filter(c => !c._expired);
+          const expired = list.filter(c => c._expired);
+
+          active.sort((a, b) => {
+            if (a.endDate !== b.endDate) return a.endDate.localeCompare(b.endDate);
+            return b.receiveTime.localeCompare(a.receiveTime);
+          });
+          expired.sort((a, b) => {
+            if (a.endDate !== b.endDate) return b.endDate.localeCompare(a.endDate);
+            return b.receiveTime.localeCompare(a.receiveTime);
+          });
+
+          return [...active, ...expired];
+        });
+
+        const usedCoupons = computed(() => {
+          return allCoupons.value
+            .filter(c => c.status === 'USED')
+            .sort((a, b) => b.useTime.localeCompare(a.useTime));
+        });
+
+        // ============ 工具方法 ============
+        const fmtInt = (v) => Number.isInteger(v) ? v.toString() : v.toFixed(0);
+        const fmtMoney = (v) => {
+          if (v === null || v === undefined) return '--';
+          return v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
+
+        setTimeout(() => { loading.value = false; }, 800);
+
+        return {
+          loading, activeTab, unusedCoupons, usedCoupons, fmtInt, fmtMoney,
+        };
+      }
+    }).use(vant).mount('#prd-root');
+  </script>
+</body>
+</html>

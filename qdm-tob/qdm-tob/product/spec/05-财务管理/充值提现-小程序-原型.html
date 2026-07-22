@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>我的钱包</title>
+  <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root { --van-primary-color: #ff0000; }
+    body {
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      margin: 0; padding: 12px; box-sizing: border-box;
+    }
+    ::-webkit-scrollbar { display: none; }
+    .amount-box {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 56px; border: 1.5px solid #e2e8f0; border-radius: 10px;
+      font-size: 16px; font-weight: 600; color: #334155; background: #fff; transition: all 0.2s;
+    }
+    .amount-box.active { border-color: #dc2626; color: #dc2626; background: #fef2f2; }
+  </style>
+</head>
+<body>
+  <div id="prd-root" class="space-y-4 pb-16">
+
+    <!-- ========== 钱包首页 ========== -->
+    <div v-if="page === 'wallet'" class="space-y-4">
+      <!-- 余额卡片 -->
+      <div class="rounded-2xl p-6 text-white bg-gradient-to-br from-slate-800 to-slate-950 shadow-lg">
+        <div class="text-sm opacity-65 mb-1">预付款账户 · {{ account.name }}</div>
+        <div class="text-4xl font-bold tracking-tight">¥{{ formatMoney(account.balance) }}</div>
+        <div class="text-xs opacity-50 mt-2 flex items-center gap-1">
+          <van-icon name="lock" size="12"></van-icon>冻结金额 ¥{{ formatMoney(account.frozen) }}
+        </div>
+      </div>
+
+      <!-- 充值 / 提现双按钮 -->
+      <div class="flex gap-3">
+        <van-button type="primary" block round size="large" @click="page='recharge'" class="font-semibold">
+          <van-icon name="card" class="mr-1"></van-icon>充值
+        </van-button>
+        <van-button type="primary" plain block round size="large" @click="page='withdraw'" class="font-semibold">
+          <van-icon name="gold-coin-o" class="mr-1"></van-icon>提现
+        </van-button>
+      </div>
+
+      <!-- 快捷入口 -->
+      <van-cell-group inset class="rounded-2xl overflow-hidden">
+        <van-cell title="查看交易流水" is-link url="../../spec/05-财务管理/资金流水-小程序-原型.html"></van-cell>
+        <van-cell title="查看充值提现记录" is-link @click="vanToast('跳转充值提现记录')"></van-cell>
+      </van-cell-group>
+    </div>
+
+    <!-- ========== 充值页 ========== -->
+    <div v-if="page === 'recharge'" class="space-y-4">
+      <!-- 充值账户 -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm">
+        <div class="text-sm font-semibold text-slate-800 mb-3">充值到账账户</div>
+        <div class="text-base text-slate-800 font-semibold flex items-center gap-2">
+          <van-tag type="danger" plain>预付款</van-tag>{{ account.name }}
+        </div>
+      </div>
+
+      <!-- 充值金额选择 -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm">
+        <div class="text-sm font-semibold text-slate-800 mb-3">选择充值金额</div>
+        <van-grid :column-num="3" :gutter="10" :border="false" class="mb-3">
+          <van-grid-item v-for="a in preAmouts" :key="a" @click="selectQuickAmount(a)">
+            <template #default>
+              <div class="amount-box" :class="{ active: selectedAmount === a && !isCustom }">
+                <span>¥{{ a.toLocaleString() }}</span>
+              </div>
+            </template>
+          </van-grid-item>
+        </van-grid>
+
+        <van-field
+          v-model="customAmount"
+          type="number"
+          label="其他金额"
+          placeholder="请输入充值金额"
+          input-align="right"
+          @focus="isCustom = true; selectedAmount = null"
+          class="pt-2"
+        >
+          <template #button><span class="text-slate-500 font-semibold">元</span></template>
+        </van-field>
+      </div>
+
+      <!-- 充值说明 -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm">
+        <div class="text-sm font-semibold text-slate-800 mb-3">预付款充值说明</div>
+        <div class="text-xs text-slate-500 leading-relaxed space-y-1">
+          <div>1. 平台会随机选取幸运商户参与充值返券活动；</div>
+          <div>2. 下单时使用"预付款余额"支付，视同于现金结算；</div>
+          <div>3. 预付款余额不能转移、转赠，有效期至用完为止；</div>
+          <div>4. 正常情况下实时到账，如遇支付机构异常以实际到账为准。</div>
+        </div>
+      </div>
+
+      <!-- 协议勾选 -->
+      <div class="px-1 py-2">
+        <van-checkbox v-model="agreed" icon-size="16px" checked-color="#dc2626">
+          <span class="text-xs text-slate-500">
+            我已阅读并接受 <a href="#" @click.prevent="vanToast('打开预付款充值协议')" class="text-red-600 no-underline font-semibold">《预付款充值协议》</a>
+          </span>
+        </van-checkbox>
+      </div>
+
+      <!-- 提交按钮 -->
+      <div class="fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur border-t border-slate-100 z-50">
+        <van-button type="primary" block round size="large" :loading="submitting" loading-text="正在调起支付..." @click="submitRecharge" class="font-semibold">
+          确认充值（微信支付）
+        </van-button>
+      </div>
+    </div>
+
+    <!-- ========== 提现页 ========== -->
+    <div v-if="page === 'withdraw'" class="space-y-4">
+      <!-- 提现银行卡 -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm">
+        <div class="text-sm font-semibold text-slate-800 mb-3">提现至银行卡</div>
+        <van-cell title="招商银行 (尾号8899)" label="预计24小时内到账" is-link center icon-prefix="van-icon" icon="credit-pay" class="!p-0"></van-cell>
+      </div>
+
+      <!-- 提现金额 -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm">
+        <div class="text-sm font-semibold text-slate-800 mb-3">提现金额</div>
+        <van-field
+          v-model="withdrawAmount"
+          type="number"
+          placeholder="0.00"
+          label="¥"
+          label-width="30px"
+          class="!text-2xl !font-bold"
+        >
+          <template #button>
+            <van-button size="small" type="primary" plain round @click="withdrawAmount = account.balance">全部提现</van-button>
+          </template>
+        </van-field>
+        <div class="text-xs text-slate-400 mt-3 pt-3 border-t border-slate-100">
+          当前可用余额 ¥{{ formatMoney(account.balance) }}
+        </div>
+      </div>
+
+      <!-- 提交按钮 -->
+      <div class="fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur border-t border-slate-100 z-50">
+        <van-button type="primary" block round size="large" :loading="submitting" loading-text="处理中..." @click="submitWithdraw" class="font-semibold">
+          确认提现
+        </van-button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+  <script>
+    const { createApp, ref, reactive, computed } = Vue;
+    createApp({
+      setup() {
+        const page = ref('wallet');
+        const account = reactive({ name: '王博A', balance: 1280.00, frozen: 200.00 });
+
+        const preAmouts = [5000, 10000, 15000, 20000, 30000, 50000];
+        const selectedAmount = ref(5000);
+        const customAmount = ref('');
+        const isCustom = ref(false);
+        const agreed = ref(false);
+        const withdrawAmount = ref('');
+        const submitting = ref(false);
+
+        const finalRechargeAmount = computed(() => {
+          return isCustom.value ? Number(customAmount.value) : selectedAmount.value;
+        });
+
+        function formatMoney(val) {
+          if (val == null) return '0.00';
+          return Number(val).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        function selectQuickAmount(amt) {
+          isCustom.value = false;
+          customAmount.value = '';
+          selectedAmount.value = amt;
+        }
+        function vanToast(msg) { vant.showToast(msg); }
+
+        function submitRecharge() {
+          if (!finalRechargeAmount.value || finalRechargeAmount.value <= 0) {
+            vant.showToast('请输入或选择有效的充值金额'); return;
+          }
+          if (!agreed.value) {
+            vant.showConfirmDialog({
+              title: '提示', message: '确认充值前请阅读并接受《预付款充值协议》', confirmButtonColor: '#dc2626'
+            }).then(() => { agreed.value = true; }).catch(() => {});
+            return;
+          }
+          submitting.value = true;
+          setTimeout(() => {
+            submitting.value = false;
+            account.balance += finalRechargeAmount.value;
+            vant.showSuccessToast('充值成功 ¥' + finalRechargeAmount.value.toLocaleString());
+            page.value = 'wallet';
+          }, 1200);
+        }
+        function submitWithdraw() {
+          const amt = Number(withdrawAmount.value);
+          if (!amt || amt <= 0) { vant.showToast('请输入提现金额'); return; }
+          if (amt > account.balance) { vant.showToast('超出了可用余额'); return; }
+          submitting.value = true;
+          setTimeout(() => {
+            submitting.value = false;
+            account.balance -= amt;
+            vant.showSuccessToast('提现申请已提交');
+            withdrawAmount.value = '';
+            page.value = 'wallet';
+          }, 1200);
+        }
+
+        return {
+          page, account, preAmouts, selectedAmount, customAmount, isCustom,
+          agreed, withdrawAmount, submitting,
+          formatMoney, selectQuickAmount, vanToast, submitRecharge, submitWithdraw,
+        };
+      }
+    }).use(vant).mount('#prd-root');
+  </script>
+</body>
+</html>

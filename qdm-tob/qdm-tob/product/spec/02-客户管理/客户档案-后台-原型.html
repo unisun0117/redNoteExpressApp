@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户资料管理（公司档案）</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 10px;
+        }
+        .query-card { background: #fff; border-radius: 8px; padding: 10px; padding-bottom: 0px; margin-bottom: 10px; }
+        .data-card { background: #fff; border-radius: 8px; padding: 10px; }
+        .toolbar-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .detail-section { margin-bottom: 16px; }
+        .detail-section h4 { margin: 0 0 8px 0; font-size: 14px; font-weight: 600; color: #303133; padding-bottom: 6px; border-bottom: 1px solid #ebeef5; }
+        .detail-row { display: flex; font-size: 13px; line-height: 2; }
+        .detail-label { color: #909399; width: 90px; flex-shrink: 0; }
+        .detail-value { color: #303133; flex: 1; }
+        .audit-log-item { padding: 8px 0; border-bottom: 1px solid #f2f2f2; font-size: 13px; }
+        .audit-log-item:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+        <!-- ========== 查询区 ========== -->
+        <div class="query-card">
+            <el-form :model="search" inline>
+                <el-form-item label="公司名称">
+                    <el-input v-model="search.companyName" placeholder="公司名称" clearable style="width:160px;"></el-input>
+                </el-form-item>
+                <el-form-item label="销售大区">
+                    <el-select v-model="search.salesRegion" placeholder="全部" clearable style="width:140px;">
+                        <el-option label="华南大区" value="华南大区"></el-option>
+                        <el-option label="华东大区" value="华东大区"></el-option>
+                        <el-option label="华中大区" value="华中大区"></el-option>
+                        <el-option label="西南大区" value="西南大区"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="所在地区">
+                    <el-cascader v-model="search.region" :options="regionOptions" placeholder="全部" clearable style="width:180px;"></el-cascader>
+                </el-form-item>
+                <el-form-item label="业务员">
+                    <el-input v-model="search.salesman" placeholder="按姓名搜索" clearable style="width:130px;"></el-input>
+                </el-form-item>
+                <el-form-item label="审核状态">
+                    <el-select v-model="search.status" placeholder="全部" clearable style="width:110px;">
+                        <el-option label="待审核" value="PENDING"></el-option>
+                        <el-option label="已通过" value="PASS"></el-option>
+                        <el-option label="已驳回" value="REJECT"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="审核人">
+                    <el-input v-model="search.auditor" placeholder="按姓名搜索" clearable style="width:130px;"></el-input>
+                </el-form-item>
+                <el-form-item label="注册时间">
+                    <el-date-picker v-model="search.dateRange" type="daterange" range-separator="~" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" style="width:220px;"></el-date-picker>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" @click="doSearch">查询</el-button>
+                    <el-button @click="resetSearch">重置</el-button>
+                </el-form-item>
+            </el-form>
+        </div>
+
+        <!-- ========== 操作&数据区 ========== -->
+        <div class="data-card">
+            <div class="toolbar-row">
+                <el-button type="primary" @click="openAdd">新增客户资料</el-button>
+                <span style="font-size:13px;color:#909399;">共 {{ total }} 条记录</span>
+            </div>
+
+            <el-table :data="tableData" stripe v-loading="loading" style="width:100%;" :header-cell-style="{background:'#f5f7fa',color:'#606266',fontWeight:500}" @selection-change="handleSelectionChange">
+                <el-table-column type="selection" width="50"></el-table-column>
+                <el-table-column prop="sapCustomerId" label="SAP客户编码" width="130" show-overflow-tooltip></el-table-column>
+                <el-table-column prop="companyName" label="客户公司名称" width="160" show-overflow-tooltip>
+                    <template #default="scope"><span style="color:#409eff;cursor:pointer;" @click="viewDetail(scope.row)">{{ scope.row.companyName }}</span></template>
+                </el-table-column>
+                <el-table-column label="已绑定账号" width="100" align="center">
+                    <template #default="scope">
+                        <span v-if="scope.row.boundUsers && scope.row.boundUsers.length" style="color:#409eff;cursor:pointer;" @click="openBind(scope.row)">{{ scope.row.boundUsers.length }} 个</span>
+                        <span v-else style="color:#c0c4cc;">0</span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="salesRegion" label="销售大区" width="100"></el-table-column>
+                <el-table-column prop="contactName" label="收货人" width="80"></el-table-column>
+                <el-table-column prop="contactPhone" label="联系电话" width="120"></el-table-column>
+                <el-table-column label="所在地区" min-width="130" show-overflow-tooltip>
+                    <template #default="scope"><span>{{ scope.row.province }}{{ scope.row.city }}{{ scope.row.district }} {{ scope.row.address }}</span></template>
+                </el-table-column>
+                <el-table-column label="审核状态" width="85" align="center">
+                    <template #default="scope"><el-tag :type="statusTag(scope.row.status)" size="small">{{ statusText(scope.row.status) }}</el-tag></template>
+                </el-table-column>
+                <el-table-column prop="priceGroup" label="价格组" width="90"></el-table-column>
+                <el-table-column prop="settleCompany" label="结算公司" width="110" show-overflow-tooltip></el-table-column>
+                <el-table-column prop="bizType" label="经营类型" width="90"></el-table-column>
+                <el-table-column prop="settleType" label="结算类型" width="90" align="center">
+                    <template #default="scope"><el-tag :type="scope.row.settleType === 'PERIOD' ? 'warning' : 'info'" size="small">{{ scope.row.settleType === 'PERIOD' ? '账期' : scope.row.settleType === 'CASH' ? '现结' : '-' }}</el-tag></template>
+                </el-table-column>
+                <el-table-column prop="salesmanName" label="业务员" width="90"></el-table-column>
+                <el-table-column prop="auditor" label="审核处理人" width="100"></el-table-column>
+                <el-table-column prop="lastOrderTime" label="最近下单时间" width="150"></el-table-column>
+                <el-table-column prop="createTime" label="注册提交时间" width="150"></el-table-column>
+                <el-table-column label="操作" width="260" fixed="right">
+                    <template #default="scope">
+                        <el-button type="primary" link @click="viewDetail(scope.row)">查看详情</el-button>
+                        <el-button v-if="scope.row.status === 'PASS'" type="primary" link @click="openEdit(scope.row)">编辑</el-button>
+                        <el-button v-if="scope.row.status === 'PENDING'" type="warning" link @click="openAssign(scope.row)">分配审核人</el-button>
+                        <el-button v-if="scope.row.status === 'PASS'" type="primary" link @click="openBind(scope.row)">绑定账号</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+
+            <div style="margin-top:16px;display:flex;justify-content:flex-start;">
+                <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize" :page-sizes="[10,20,50]" :total="total" layout="total,sizes,prev,pager,next" background></el-pagination>
+            </div>
+        </div>
+
+        <!-- ========== 查看详情抽屉 ========== -->
+        <el-drawer v-model="detailDialog.visible" title="客户资料详情（公司档案）" direction="rtl" size="600px" :close-on-click-modal="false">
+            <div v-if="detailDialog.data" style="padding:0 20px;">
+                <div class="detail-section">
+                    <h4>基本信息</h4>
+                    <div class="detail-row"><span class="detail-label">公司名称</span><span class="detail-value" style="font-weight:500;">{{ detailDialog.data.companyName }}</span></div>
+                    <div class="detail-row"><span class="detail-label">SAP客户编码</span><span class="detail-value">{{ detailDialog.data.sapCustomerId || '审核通过后回写' }}</span></div>
+                    <div class="detail-row"><span class="detail-label">营业执照编号</span><span class="detail-value">{{ detailDialog.data.licenseNo || '-' }}</span></div>
+                    <div class="detail-row"><span class="detail-label">门头照片</span><span class="detail-value"><span v-if="detailDialog.data.doorPhoto" style="color:#409eff;cursor:pointer;text-decoration:underline;" @click="previewImage('门头照片')">点击查看</span><span v-else style="color:#c0c4cc;">未上传</span></span></div>
+                    <div class="detail-row"><span class="detail-label">执照照片</span><span class="detail-value"><span v-if="detailDialog.data.licensePhoto" style="color:#409eff;cursor:pointer;text-decoration:underline;" @click="previewImage('营业执照照片')">点击查看</span><span v-else style="color:#c0c4cc;">未上传</span></span></div>
+                    <div class="detail-row"><span class="detail-label">审核状态</span><span class="detail-value"><el-tag :type="statusTag(detailDialog.data.status)" size="small">{{ statusText(detailDialog.data.status) }}</el-tag></span></div>
+                    <div class="detail-row"><span class="detail-label">注册时间</span><span class="detail-value">{{ detailDialog.data.createTime }}</span></div>
+                    <div class="detail-row"><span class="detail-label">最近更新</span><span class="detail-value">{{ detailDialog.data.updateTime }}</span></div>
+                </div>
+                <div class="detail-section">
+                    <h4>收货信息</h4>
+                    <div class="detail-row"><span class="detail-label">收货人</span><span class="detail-value">{{ detailDialog.data.contactName }}</span></div>
+                    <div class="detail-row"><span class="detail-label">联系电话</span><span class="detail-value">{{ detailDialog.data.contactPhone }}</span></div>
+                    <div class="detail-row"><span class="detail-label">所在省份</span><span class="detail-value">{{ detailDialog.data.province }}</span></div>
+                    <div class="detail-row"><span class="detail-label">所在城市</span><span class="detail-value">{{ detailDialog.data.city }}</span></div>
+                    <div class="detail-row"><span class="detail-label">所在区县</span><span class="detail-value">{{ detailDialog.data.district }}</span></div>
+                    <div class="detail-row"><span class="detail-label">详细地址</span><span class="detail-value">{{ detailDialog.data.address }}</span></div>
+                    <div class="detail-row"><span class="detail-label">经度</span><span class="detail-value">{{ detailDialog.data.lng }}</span></div>
+                    <div class="detail-row"><span class="detail-label">纬度</span><span class="detail-value">{{ detailDialog.data.lat }}</span></div>
+                </div>
+                <div class="detail-section">
+                    <h4>收货配置</h4>
+                    <div class="detail-row"><span class="detail-label">收货时段起</span><span class="detail-value">{{ detailDialog.data.receiveStart }}</span></div>
+                    <div class="detail-row"><span class="detail-label">收货时段止</span><span class="detail-value">{{ detailDialog.data.receiveEnd }}</span></div>
+                    <div class="detail-row"><span class="detail-label">存放位置图片</span><span class="detail-value"><span v-if="detailDialog.data.storagePhotos&&detailDialog.data.storagePhotos!=='0张'" style="color:#409eff;cursor:pointer;text-decoration:underline;" @click="previewImage('收货存放位置图片 ('+detailDialog.data.storagePhotos+')')">点击查看 {{ detailDialog.data.storagePhotos }}</span><span v-else style="color:#c0c4cc;">未上传</span></span></div>
+                    <div class="detail-row"><span class="detail-label">收货要求</span><span class="detail-value">{{ detailDialog.data.receiveRequire || '-' }}</span></div>
+                </div>
+                <div class="detail-section">
+                    <h4>业务属性</h4>
+                    <div class="detail-row"><span class="detail-label">销售大区</span><span class="detail-value" style="color:#409eff;font-weight:500;">{{ detailDialog.data.salesRegion || '-' }}</span></div>
+                    <div class="detail-row"><span class="detail-label">价格组</span><span class="detail-value">{{ detailDialog.data.priceGroup || '-' }}</span></div>
+                    <div class="detail-row"><span class="detail-label">结算公司</span><span class="detail-value">{{ detailDialog.data.settleCompany || '-' }}</span></div>
+                    <div class="detail-row"><span class="detail-label">经营类型</span><span class="detail-value">{{ detailDialog.data.bizType || '-' }}</span></div>
+                    <div class="detail-row"><span class="detail-label">结算类型</span><span class="detail-value" style="font-weight:500;">{{ detailDialog.data.settleType === 'PERIOD' ? '账期' : detailDialog.data.settleType === 'CASH' ? '现结' : '-' }}</span></div>
+                    <div class="detail-row"><span class="detail-label">归属业务员</span><span class="detail-value" style="color:#409eff;">{{ detailDialog.data.salesmanName || '无（区域分配）' }}</span></div>
+                    <div class="detail-row"><span class="detail-label">审核处理人</span><span class="detail-value">{{ detailDialog.data.auditor || '-' }}</span></div>
+                    <div class="detail-row"><span class="detail-label">审核人类型</span><span class="detail-value">{{ detailDialog.data.auditorType || '-' }}</span></div>
+                    <div class="detail-row"><span class="detail-label">驳回意见</span><span class="detail-value" style="color:#f56c6c;">{{ detailDialog.data.auditOpinion || '-' }}</span></div>
+                    <div class="detail-row"><span class="detail-label">审核时间</span><span class="detail-value">{{ detailDialog.data.auditTime || '-' }}</span></div>
+                </div>
+                <div class="detail-section">
+                    <h4>审核记录</h4>
+                    <div v-if="detailDialog.data.auditLogs && detailDialog.data.auditLogs.length">
+                        <div class="audit-log-item" v-for="log in detailDialog.data.auditLogs" :key="log.id">
+                            <span style="color:#909399;">{{ log.time }}</span>
+                            <span style="margin-left:8px;">{{ log.action }}</span>
+                            <span style="margin-left:8px;color:#909399;">{{ log.operator }}</span>
+                            <span v-if="log.opinion" style="margin-left:8px;color:#f56c6c;">{{ log.opinion }}</span>
+                        </div>
+                    </div>
+                    <div v-else style="font-size:12px;color:#c0c4cc;">暂无审核记录</div>
+                </div>
+            </div>
+        </el-drawer>
+
+        <!-- ========== 编辑业务属性弹窗 ========== -->
+        <el-dialog v-model="editDialog.visible" title="编辑业务属性" width="520px" :close-on-click-modal="false" @close="resetEditForm">
+            <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="100px">
+                <el-form-item label="公司名称"><el-input v-model="editForm.companyName" disabled></el-input></el-form-item>
+                <el-form-item label="价格组" prop="priceGroup">
+                    <el-select v-model="editForm.priceGroup" placeholder="请选择价格组" style="width:100%;">
+                        <el-option label="标准价" value="标准价"></el-option><el-option label="批发价" value="批发价"></el-option><el-option label="协议价A" value="协议价A"></el-option><el-option label="协议价B" value="协议价B"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="结算公司" prop="settleCompany">
+                    <el-select v-model="editForm.settleCompany" placeholder="请选择结算公司" style="width:100%;">
+                        <el-option label="钱鲜达供应链有限公司" value="钱鲜达供应链有限公司"></el-option><el-option label="鲜美来食品有限公司" value="鲜美来食品有限公司"></el-option><el-option label="鲜达物流有限公司" value="鲜达物流有限公司"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="经营类型" prop="bizType">
+                    <el-select v-model="editForm.bizType" placeholder="请选择经营类型" style="width:100%;">
+                        <el-option label="面馆" value="面馆"></el-option><el-option label="校食堂" value="校食堂"></el-option><el-option label="酒店" value="酒店"></el-option><el-option label="快餐店" value="快餐店"></el-option><el-option label="火锅店" value="火锅店"></el-option><el-option label="食堂承包" value="食堂承包"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="结算类型" prop="settleType">
+                    <el-select v-model="editForm.settleType" placeholder="请选择结算类型" style="width:100%;">
+                        <el-option label="现结" value="CASH"></el-option><el-option label="账期" value="PERIOD"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="收货要求"><el-input v-model="editForm.receiveRequire" type="textarea" :rows="3" maxlength="500" show-word-limit placeholder="审核人补充的收货要求"></el-input></el-form-item>
+            </el-form>
+            <template #footer><el-button @click="editDialog.visible = false">取消</el-button><el-button type="primary" @click="submitEdit">确定</el-button></template>
+        </el-dialog>
+
+        <!-- ========== 分配审核人弹窗 ========== -->
+        <el-dialog v-model="assignDialog.visible" title="手动分配审核人" width="480px" :close-on-click-modal="false">
+            <el-form :model="assignForm" label-width="100px">
+                <el-form-item label="公司名称"><span>{{ assignForm.companyName }}</span></el-form-item>
+                <el-form-item label="当前审核人"><span>{{ assignForm.currentAuditor || '未分配' }}</span></el-form-item>
+                <el-form-item label="分配审核人" prop="auditor">
+                    <el-select v-model="assignForm.auditor" placeholder="请选择审核人" style="width:100%;">
+                        <el-option label="张三（业务员-华南大区）" value="zs"></el-option><el-option label="李四（业务员-华东大区）" value="ls"></el-option><el-option label="王五（区域经理-华东区）" value="ww"></el-option><el-option label="赵六（区域经理-华中区）" value="zl"></el-option>
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <template #footer><el-button @click="assignDialog.visible = false">取消</el-button><el-button type="primary" @click="submitAssign">确认分配</el-button></template>
+        </el-dialog>
+
+        <!-- ========== 绑定小程序账号弹窗 ========== -->
+        <el-dialog v-model="bindDialog.visible" title="绑定小程序账号" width="550px" :close-on-click-modal="false" @close="bindSearch.keyword=''">
+            <div style="margin-bottom:12px;font-size:13px;color:#606266;">公司：<strong>{{ bindDialog.companyName }}</strong></div>
+            <div style="margin-bottom:16px;">
+                <span style="font-size:13px;color:#303133;">已绑定：</span>
+                <el-tag v-for="(u,idx) in bindDialog.boundUsers" :key="idx" size="small" closable style="margin:2px 4px;" @close="unbindUser(idx)">{{ u.name }} {{ u.phone }}</el-tag>
+                <span v-if="!bindDialog.boundUsers||!bindDialog.boundUsers.length" style="font-size:12px;color:#c0c4cc;">暂无</span>
+            </div>
+            <el-divider></el-divider>
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <el-input v-model="bindSearch.keyword" placeholder="搜索小程序用户（手机号）" clearable style="flex:1;" @keyup.enter="searchUsers"></el-input>
+                <el-button type="primary" @click="searchUsers">搜索</el-button>
+            </div>
+            <el-table :data="bindSearch.results" size="small" style="width:100%;" max-height="200">
+                <el-table-column prop="name" label="姓名" width="100"></el-table-column>
+                <el-table-column prop="phone" label="手机号" width="120"></el-table-column>
+                <el-table-column prop="wechatNickname" label="微信昵称" width="120"></el-table-column>
+                <el-table-column label="操作" width="80"><template #default="scope"><el-button type="primary" link size="small" @click="doBind(scope.row)">绑定</el-button></template></el-table-column>
+            </el-table>
+            <div v-if="bindSearch.searched&&!bindSearch.results.length" style="font-size:12px;color:#c0c4cc;text-align:center;padding:20px;">未找到匹配的小程序用户</div>
+            <template #footer><el-button @click="bindDialog.visible = false">关闭</el-button></template>
+        </el-dialog>
+
+        <!-- ========== 新增客户资料弹窗 ========== -->
+        <el-dialog v-model="addDialog.visible" title="新增客户资料" width="600px" :close-on-click-modal="false" @close="resetAddForm">
+            <el-form ref="addFormRef" :model="addForm" :rules="addRules" label-width="110px">
+                <el-form-item label="公司名称" prop="companyName">
+                    <el-input v-model="addForm.companyName" placeholder="请输入公司名称" maxlength="100"></el-input>
+                </el-form-item>
+                <el-form-item label="收货人姓名" prop="contactName">
+                    <el-input v-model="addForm.contactName" placeholder="请输入收货人姓名" maxlength="50"></el-input>
+                </el-form-item>
+                <el-form-item label="联系电话" prop="contactPhone">
+                    <el-input v-model="addForm.contactPhone" placeholder="请输入11位手机号" maxlength="11"></el-input>
+                </el-form-item>
+                <el-form-item label="所在地区" prop="region">
+                    <el-cascader v-model="addForm.region" :options="regionOptions" placeholder="请选择省/市/区" style="width:100%;"></el-cascader>
+                </el-form-item>
+                <el-form-item label="详细地址" prop="address">
+                    <el-input v-model="addForm.address" placeholder="请输入详细地址" maxlength="500"></el-input>
+                </el-form-item>
+                <el-form-item label="营业执照编号" prop="licenseNo">
+                    <el-input v-model="addForm.licenseNo" placeholder="18位统一社会信用代码" maxlength="18"></el-input>
+                </el-form-item>
+                <el-form-item label="可收货时段" prop="receiveTime">
+                    <el-time-picker v-model="addForm.receiveTime" is-range format="HH:mm" value-format="HH:mm" range-separator="~" start-placeholder="开始" end-placeholder="结束" style="width:100%;"></el-time-picker>
+                </el-form-item>
+                <el-form-item label="收货要求">
+                    <el-input v-model="addForm.receiveRequire" type="textarea" :rows="2" maxlength="500" show-word-limit placeholder="选填"></el-input>
+                </el-form-item>
+                <el-form-item label="">
+                    <span style="font-size:12px;color:#909399;">提交后状态为待审核，自动触发统一代办分配审核人。门头照片、营业执照照片提交时必传（此处mock展示）。</span>
+                </el-form-item>
+            </el-form>
+            <template #footer><el-button @click="addDialog.visible = false">取消</el-button><el-button type="primary" @click="submitAdd">提交审核</el-button></template>
+        </el-dialog>
+
+        <!-- ========== 图片预览遮罩 ========== -->
+        <div v-if="imgPreview.visible" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:3000;display:flex;flex-direction:column;align-items:center;justify-content:center;" @click="imgPreview.visible=false">
+            <div style="color:#fff;font-size:16px;margin-bottom:16px;">{{ imgPreview.title }}</div>
+            <div style="width:400px;height:300px;background:#333;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#999;font-size:14px;">[ 图片预览区域 ]<br/>{{ imgPreview.title }}</div>
+            <span style="color:#999;font-size:12px;margin-top:12px;cursor:pointer;" @click="imgPreview.visible=false">点击任意位置关闭</span>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+    <script>
+        const { createApp, ref, reactive, nextTick, watch } = Vue;
+        createApp({
+            setup() {
+                const loading = ref(false); const pageNum = ref(1); const pageSize = ref(20); const total = ref(0);
+                const tableData = ref([]); const selectedRows = ref([]); const editFormRef = ref(null);
+
+                const search = reactive({ companyName:'', salesRegion:'', region:[], salesman:'', status:'', auditor:'', dateRange:[] });
+                const regionOptions = [
+                    { value:'广东省',label:'广东省',children:[{value:'广州市',label:'广州市',children:[{value:'天河区',label:'天河区'},{value:'白云区',label:'白云区'}]},{value:'深圳市',label:'深圳市',children:[{value:'南山区',label:'南山区'},{value:'福田区',label:'福田区'}]}]},
+                    { value:'海南省',label:'海南省',children:[{value:'海口市',label:'海口市',children:[{value:'龙华区',label:'龙华区'}]}]},
+                    { value:'浙江省',label:'浙江省',children:[{value:'杭州市',label:'杭州市',children:[{value:'余杭区',label:'余杭区'}]}]},
+                ];
+
+                const statusTag = function(s){ return { PASS:'success', PENDING:'warning', REJECT:'danger' }[s]||'info'; };
+                const statusText = function(s){ return { PASS:'已通过', PENDING:'待审核', REJECT:'已驳回' }[s]||s; };
+
+                const allData = [
+                    { id:1, sapCustomerId:'CUST-1001', companyName:'天福茗茶有限公司', salesRegion:'华南大区', contactName:'陈经理', contactPhone:'138****1234', province:'广东省', city:'广州市', district:'天河区', address:'天河路123号天福大厦1层', lng:'113.329518', lat:'23.131890', receiveStart:'06:00', receiveEnd:'08:00', receiveRequire:'需冷链配送，提前1小时通知', licenseNo:'91350100MA12345678', doorPhoto:'已上传', licensePhoto:'已上传', storagePhotos:'2张', salesmanId:'', salesmanName:'', priceGroup:'标准价', settleCompany:'钱鲜达供应链有限公司', bizType:'酒店', settleType:'PERIOD', status:'PASS', auditor:'张三', auditorType:'SALESMAN', auditOpinion:'', auditTime:'2026-06-29 10:15', createTime:'2026-06-20 09:15', updateTime:'2026-06-29 10:15', lastOrderTime:'2026-07-01 08:30', boundUsers:[{id:'U001',name:'陈经理',phone:'138****1234'}], auditLogs:[{id:1,time:'2026-06-20 09:15',action:'SUBMIT',operator:'客户-陈经理'},{id:2,time:'2026-06-29 10:15',action:'APPROVE',operator:'张三（业务员）'}] },
+                    { id:2, sapCustomerId:'', companyName:'永辉超市股份有限公司', salesRegion:'华南大区', contactName:'林采购', contactPhone:'139****5678', province:'海南省', city:'海口市', district:'龙华区', address:'椰海大道88号', lng:'110.329518', lat:'20.031890', receiveStart:'05:00', receiveEnd:'07:00', receiveRequire:'', licenseNo:'91350100MA87654321', doorPhoto:'已上传', licensePhoto:'已上传', storagePhotos:'1张', salesmanId:'SLS-001', salesmanName:'林业务员', priceGroup:'', settleCompany:'', bizType:'', settleType:'', status:'PENDING', auditor:'李四', auditorType:'SALESMAN', auditOpinion:'', auditTime:'', createTime:'2026-06-30 09:30', updateTime:'2026-06-30 09:30', lastOrderTime:'-', boundUsers:[], auditLogs:[{id:1,time:'2026-06-30 09:30',action:'SUBMIT',operator:'客户-林采购',opinion:'推荐码：SLS-001'}] },
+                    { id:3, sapCustomerId:'', companyName:'海底捞餐饮有限公司', salesRegion:'华东大区', contactName:'王店长', contactPhone:'136****9012', province:'浙江省', city:'杭州市', district:'余杭区', address:'文一西路2000号', lng:'120.006780', lat:'30.303450', receiveStart:'06:00', receiveEnd:'08:00', receiveRequire:'需验收后签收', licenseNo:'91310115MA11223344', doorPhoto:'已上传', licensePhoto:'已上传', storagePhotos:'0张', salesmanId:'', salesmanName:'', priceGroup:'', settleCompany:'', bizType:'', settleType:'', status:'REJECT', auditor:'王五', auditorType:'MANAGER', auditOpinion:'营业执照照片不清晰，请重新上传', auditTime:'2026-06-30 08:00', createTime:'2026-06-29 16:08', updateTime:'2026-06-30 08:00', lastOrderTime:'-', boundUsers:[], auditLogs:[{id:1,time:'2026-06-29 16:08',action:'SUBMIT',operator:'客户-王店长'},{id:2,time:'2026-06-30 08:00',action:'REJECT',operator:'王五（区域经理）',opinion:'营业执照照片不清晰，请重新上传'}] },
+                    { id:4, sapCustomerId:'CUST-1004', companyName:'真功夫餐饮管理有限公司', salesRegion:'华南大区', contactName:'刘总', contactPhone:'137****3456', province:'广东省', city:'深圳市', district:'南山区', address:'科技园南路1号', lng:'113.944528', lat:'22.581008', receiveStart:'07:00', receiveEnd:'08:00', receiveRequire:'', licenseNo:'91440101MA55667788', salesmanId:'', salesmanName:'', priceGroup:'批发价', settleCompany:'鲜美来食品有限公司', bizType:'快餐店', settleType:'CASH', status:'PASS', auditor:'张三', auditorType:'SALESMAN', auditOpinion:'', auditTime:'2026-06-26 09:00', createTime:'2026-06-25 11:20', updateTime:'2026-06-26 09:00', lastOrderTime:'2026-06-30 14:00', boundUsers:[{id:'U004',name:'刘总',phone:'137****3456'}], auditLogs:[{id:1,time:'2026-06-25 11:20',action:'SUBMIT',operator:'客户-刘总'},{id:2,time:'2026-06-26 09:00',action:'APPROVE',operator:'张三（业务员）'}] },
+                    { id:5, sapCustomerId:'', companyName:'南京大学后勤集团', salesRegion:'华南大区', contactName:'周主任', contactPhone:'135****7890', province:'海南省', city:'海口市', district:'龙华区', address:'学院路1号', lng:'110.329518', lat:'20.031890', receiveStart:'06:00', receiveEnd:'08:00', receiveRequire:'需提供检疫证明', licenseNo:'91320105MA99001122', doorPhoto:'已上传', licensePhoto:'未上传', storagePhotos:'0张', salesmanId:'', salesmanName:'', priceGroup:'', settleCompany:'', bizType:'', settleType:'', status:'PENDING', auditor:'', auditorType:'', auditOpinion:'', auditTime:'', createTime:'2026-06-28 10:30', updateTime:'2026-06-28 10:30', lastOrderTime:'-', boundUsers:[], auditLogs:[{id:1,time:'2026-06-28 10:30',action:'SUBMIT',operator:'客户-周主任'}] },
+                ];
+
+                const loadData = function(){
+                    loading.value = true;
+                    setTimeout(function(){
+                        var f = allData.slice();
+                        if(search.companyName) f = f.filter(function(i){ return i.companyName.indexOf(search.companyName)>-1; });
+                        if(search.salesRegion) f = f.filter(function(i){ return i.salesRegion===search.salesRegion; });
+                        if(search.salesman) f = f.filter(function(i){ return (i.salesmanName||'').indexOf(search.salesman)>-1; });
+                        if(search.status) f = f.filter(function(i){ return i.status===search.status; });
+                        if(search.auditor) f = f.filter(function(i){ return i.auditor.indexOf(search.auditor)>-1; });
+                        total.value = f.length;
+                        var s = (pageNum.value-1)*pageSize.value;
+                        tableData.value = f.slice(s, s+pageSize.value);
+                        loading.value = false;
+                    }, 300);
+                };
+                const doSearch = function(){ pageNum.value=1; loadData(); };
+                const resetSearch = function(){ search.companyName=''; search.salesRegion=''; search.region=[]; search.salesman=''; search.status=''; search.auditor=''; search.dateRange=[]; pageNum.value=1; loadData(); };
+                const handleSelectionChange = function(rows){ selectedRows.value=rows; };
+
+                const addFormRef = ref(null);
+                const addDialog = reactive({ visible:false });
+                const addForm = reactive({ companyName:'', contactName:'', contactPhone:'', region:[], address:'', licenseNo:'', receiveTime:[new Date(2026,6,1,0,0),new Date(2026,6,1,8,0)], receiveRequire:'' });
+                const addRules = {
+                    companyName:[{required:true,message:'请输入公司名称',trigger:'blur'}],
+                    contactName:[{required:true,message:'请输入收货人姓名',trigger:'blur'}],
+                    contactPhone:[{required:true,message:'请输入联系电话',trigger:'blur'},{pattern:/^1[3-9]\d{9}$/,message:'请输入正确的手机号',trigger:'blur'}],
+                    region:[{required:true,message:'请选择所在地区',trigger:'change'}],
+                    address:[{required:true,message:'请输入详细地址',trigger:'blur'}],
+                    licenseNo:[{required:true,message:'请输入营业执照编号',trigger:'blur'},{pattern:/^[0-9A-HJ-NPQRTUWXY]{2}\d{6}[0-9A-HJ-NPQRTUWXY]{10}$/,message:'请输入正确的统一社会信用代码',trigger:'blur'}],
+                    receiveTime:[{required:true,message:'请选择收货时段',trigger:'change'}],
+                };
+                const openAdd = function(){ resetAddForm(); addDialog.visible=true; };
+                const resetAddForm = function(){
+                    addForm.companyName=''; addForm.contactName=''; addForm.contactPhone=''; addForm.region=[];
+                    addForm.address=''; addForm.licenseNo=''; addForm.receiveRequire='';
+                    addForm.receiveTime=[new Date(2026,6,1,0,0),new Date(2026,6,1,8,0)];
+                    nextTick(function(){ addFormRef.value&&addFormRef.value.clearValidate(); });
+                };
+                const submitAdd = function(){
+                    addFormRef.value&&addFormRef.value.validate(function(valid){
+                        if(!valid) return;
+                        var exist=allData.some(function(i){return i.companyName===addForm.companyName;});
+                        if(exist){ ElementPlus.ElMessage.warning('该公司名称已存在，请勿重复提交'); return; }
+                        var now=new Date().toISOString().replace('T',' ').slice(0,16);
+                        allData.unshift({
+                            id:Date.now(), sapCustomerId:'', companyName:addForm.companyName, salesRegion:'',
+                            contactName:addForm.contactName, contactPhone:addForm.contactPhone.slice(0,3)+'****'+addForm.contactPhone.slice(7),
+                            province:addForm.region[0]||'', city:addForm.region[1]||'', district:addForm.region[2]||'',
+                            address:addForm.address, lng:'', lat:'',
+                            receiveStart:(addForm.receiveTime&&addForm.receiveTime.length===2)?(String(addForm.receiveTime[0].getHours()).padStart(2,'0')+':'+String(addForm.receiveTime[0].getMinutes()).padStart(2,'0')):'00:00',
+                            receiveEnd:(addForm.receiveTime&&addForm.receiveTime.length===2)?(String(addForm.receiveTime[1].getHours()).padStart(2,'0')+':'+String(addForm.receiveTime[1].getMinutes()).padStart(2,'0')):'08:00',
+                            receiveRequire:addForm.receiveRequire, licenseNo:addForm.licenseNo,
+                            doorPhoto:'已上传', licensePhoto:'已上传', storagePhotos:'0张',
+                            salesmanId:'', salesmanName:'', priceGroup:'', settleCompany:'', bizType:'', settleType:'',
+                            status:'PENDING', auditor:'', auditorType:'', auditOpinion:'', auditTime:'',
+                            createTime:now, updateTime:now, lastOrderTime:'-', boundUsers:[],
+                            auditLogs:[{id:Date.now(),time:now,action:'SUBMIT',operator:'管理员(后台新增)',opinion:'后台直接录入'}],
+                        });
+                        ElementPlus.ElMessage.success('客户资料已创建，状态：待审核，已触发统一代办分配审核人');
+                        addDialog.visible=false; loadData();
+                    });
+                };
+                const detailDialog = reactive({ visible:false, data:null });
+                const viewDetail = function(row){ detailDialog.data=row; detailDialog.visible=true; };
+                const imgPreview = reactive({ visible:false, title:'' });
+                const previewImage = function(title){ imgPreview.title=title; imgPreview.visible=true; };
+
+                const editDialog = reactive({ visible:false });
+                const editForm = reactive({ id:null,companyName:'',priceGroup:'',settleCompany:'',bizType:'',settleType:'',receiveRequire:'' });
+                const editRules = {
+                    priceGroup:[{required:true,message:'请选择价格组',trigger:'change'}],
+                    settleCompany:[{required:true,message:'请选择结算公司',trigger:'change'}],
+                    bizType:[{required:true,message:'请选择经营类型',trigger:'change'}],
+                    settleType:[{required:true,message:'请选择结算类型',trigger:'change'}],
+                };
+                const openEdit = function(row){
+                    editForm.id=row.id; editForm.companyName=row.companyName;
+                    editForm.priceGroup=row.priceGroup; editForm.settleCompany=row.settleCompany;
+                    editForm.bizType=row.bizType; editForm.settleType=row.settleType; editForm.receiveRequire=row.receiveRequire;
+                    editDialog.visible=true;
+                    nextTick(function(){ editFormRef.value&&editFormRef.value.clearValidate(); });
+                };
+                const resetEditForm = function(){ editForm.id=null;editForm.companyName='';editForm.priceGroup='';editForm.settleCompany='';editForm.bizType='';editForm.settleType='';editForm.receiveRequire=''; };
+                const submitEdit = function(){
+                    editFormRef.value&&editFormRef.value.validate(function(valid){
+                        if(!valid) return;
+                        var item = allData.find(function(i){ return i.id===editForm.id; });
+                        if(item){ item.priceGroup=editForm.priceGroup; item.settleCompany=editForm.settleCompany; item.bizType=editForm.bizType; item.settleType=editForm.settleType; item.receiveRequire=editForm.receiveRequire; item.updateTime=new Date().toISOString().replace('T',' ').slice(0,16); }
+                        ElementPlus.ElMessage.success('业务属性更新成功（不触发重新审核）');
+                        editDialog.visible=false; loadData();
+                    });
+                };
+
+                const assignDialog = reactive({ visible:false });
+                const assignForm = reactive({ id:null,companyName:'',currentAuditor:'',auditor:'' });
+                const openAssign = function(row){ assignForm.id=row.id; assignForm.companyName=row.companyName; assignForm.currentAuditor=row.auditor; assignForm.auditor=''; assignDialog.visible=true; };
+                const submitAssign = function(){
+                    if(!assignForm.auditor){ ElementPlus.ElMessage.warning('请选择审核人'); return; }
+                    var item = allData.find(function(i){ return i.id===assignForm.id; });
+                    if(item){ var nm={zs:'张三',ls:'李四',ww:'王五',zl:'赵六'}; item.auditor=nm[assignForm.auditor]||''; item.auditLogs.push({id:Date.now(),time:new Date().toISOString().replace('T',' ').slice(0,16),action:'REASSIGN',operator:'管理员',opinion:'分配给：'+item.auditor}); }
+                    ElementPlus.ElMessage.success('审核人分配成功，已重新下发统一代办任务');
+                    assignDialog.visible=false; loadData();
+                };
+
+                var mockSysUsers = [
+                    {id:'U001',name:'陈经理',phone:'138****1234',wechatNickname:'陈***'},{id:'U002',name:'林采购',phone:'139****5678',wechatNickname:'Lin***'},{id:'U003',name:'王店长',phone:'136****9012',wechatNickname:'王店长'},{id:'U004',name:'刘总',phone:'137****3456',wechatNickname:'刘总'},{id:'U005',name:'周主任',phone:'135****7890',wechatNickname:''},
+                ];
+                const bindDialog = reactive({ visible:false, companyName:'', boundUsers:[], addressId:null });
+                const bindSearch = reactive({ keyword:'', results:[], searched:false });
+                const openBind = function(row){
+                    bindDialog.addressId=row.id; bindDialog.companyName=row.companyName;
+                    bindDialog.boundUsers=(row.boundUsers||[]).slice();
+                    bindSearch.keyword=''; bindSearch.results=[]; bindSearch.searched=false; bindDialog.visible=true;
+                };
+                const searchUsers = function(){
+                    var kw=bindSearch.keyword.toLowerCase();
+                    bindSearch.results = mockSysUsers.filter(function(u){
+                        if(!kw) return false;
+                        var already=(bindDialog.boundUsers||[]).some(function(b){return b.id===u.id;});
+                        return !already&&(u.phone.indexOf(kw)>-1||u.name.toLowerCase().indexOf(kw)>-1);
+                    });
+                    bindSearch.searched=true;
+                };
+                const doBind = function(user){
+                    bindDialog.boundUsers.push({id:user.id,name:user.name,phone:user.phone});
+                    var item=allData.find(function(i){return i.id===bindDialog.addressId;});
+                    if(item) item.boundUsers=bindDialog.boundUsers.slice();
+                    bindSearch.results=[]; bindSearch.searched=false; bindSearch.keyword='';
+                    ElementPlus.ElMessage.success('已将 '+user.name+' 绑定到该公司地址（角色：MEMBER）');
+                };
+                const unbindUser = function(idx){
+                    bindDialog.boundUsers.splice(idx,1);
+                    var item=allData.find(function(i){return i.id===bindDialog.addressId;});
+                    if(item) item.boundUsers=bindDialog.boundUsers.slice();
+                    ElementPlus.ElMessage.success('已解绑（逻辑删除绑定关系）');
+                };
+
+                loadData();
+                watch([pageNum,pageSize],function(){ loadData(); });
+                return {
+                    search,loading,pageNum,pageSize,total,tableData,selectedRows,regionOptions,statusTag,statusText,
+                    doSearch,resetSearch,handleSelectionChange,
+                    detailDialog,viewDetail,imgPreview,previewImage,
+                    editDialog,editForm,editFormRef,editRules,openEdit,resetEditForm,submitEdit,
+                    assignDialog,assignForm,openAssign,submitAssign,
+                    bindDialog,bindSearch,openBind,searchUsers,doBind,unbindUser,
+                    addDialog,addForm,addFormRef,addRules,openAdd,resetAddForm,submitAdd,
+                };
+            }
+        }).use(ElementPlus,{locale:ElementPlusLocaleZhCn}).mount('#prd-root');
+    </script>
+</body>
+</html>

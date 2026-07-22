@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售订单</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 10px;
+        }
+        .query-card { background: #fff; border-radius: 8px; padding: 10px; padding-bottom: 0px; margin-bottom: 10px; }
+        .data-card { background: #fff; border-radius: 8px; padding: 10px; }
+        .toolbar-row { display: flex; align-items: center; margin-bottom: 12px; gap: 8px; }
+        .toolbar-row .left { display: flex; gap: 8px; }
+        .toolbar-row .right { margin-left: auto; font-size: 13px; color: #909399; }
+        .formula-bar { background: #fef2f2; color: #dc2626; font-size: 12px; padding: 8px 12px; border-radius: 6px; margin-top: 10px; line-height: 1.8; }
+        .query-row { display: flex; flex-wrap: wrap; gap: 0; margin-bottom: 0; }
+        .query-row .el-form-item { margin-right: 0; margin-bottom: 10px; }
+        .drawer-iframe { width: 100%; height:calc(100vh - 140px); border: none; }
+        .el-drawer__header{
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+        <!-- ========== 查询区 ========== -->
+        <div class="query-card">
+            <el-form :model="search" inline>
+                <!-- 第一行 -->
+                <div class="query-row" style="gap: 0;">
+                    <el-form-item label="下单日期">
+                        <el-date-picker v-model="search.orderDateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" style="width: 240px;"></el-date-picker>
+                    </el-form-item>
+                    <el-form-item label="到货日期">
+                        <el-date-picker v-model="search.arrivalDateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" style="width: 240px;"></el-date-picker>
+                    </el-form-item>
+                    <el-form-item label="订单编号">
+                        <el-input v-model="search.orderNo" placeholder="订单编号" clearable style="width: 160px;"></el-input>
+                    </el-form-item>
+                    <el-form-item label="订单状态">
+                        <el-select v-model="search.status" placeholder="全部" clearable style="width: 120px;">
+                            <el-option label="待支付" value="PENDING_PAY"></el-option>
+                            <el-option label="待出库" value="PENDING_SHIP"></el-option>
+                            <el-option label="出库中" value="SHIPPING"></el-option>
+                            <el-option label="已完成" value="COMPLETED"></el-option>
+                            <el-option label="已取消" value="CANCELLED"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="销售人员">
+                        <el-input v-model="search.salesman" placeholder="姓名/手机号" clearable style="width: 160px;"></el-input>
+                    </el-form-item>
+                </div>
+                <!-- 第二行 -->
+                <div class="query-row" style="gap: 0;">
+                    <el-form-item label="客户信息">
+                        <el-input v-model="search.customerInfo" placeholder="客户编码/名称" clearable style="width: 180px;"></el-input>
+                    </el-form-item>
+                    <el-form-item label="客户类型">
+                        <el-select v-model="search.customerType" placeholder="全部" clearable style="width: 120px;">
+                            <el-option label="普通客户" value="NORMAL"></el-option>
+                            <el-option label="VIP客户" value="VIP"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="客户地址">
+                        <el-input v-model="search.customerAddress" placeholder="客户地址" clearable style="width: 180px;"></el-input>
+                    </el-form-item>
+                    <el-form-item label="所在城市">
+                        <el-cascader v-model="search.city" :options="cityOptions" placeholder="省/市/区" clearable style="width: 180px;"></el-cascader>
+                    </el-form-item>
+                    <el-form-item label="差补状态">
+                        <el-select v-model="search.diffStatus" placeholder="全部" clearable style="width: 120px;">
+                            <el-option label="未差补" value="NONE"></el-option>
+                            <el-option label="无差补" value="NO_DIFF"></el-option>
+                            <el-option label="已差补" value="DIFFED"></el-option>
+                        </el-select>
+                    </el-form-item>
+                </div>
+                <!-- 第三行 -->
+                <div class="query-row" style="gap: 0; align-items: center;">
+                    <el-form-item label="商品信息">
+                        <el-input v-model="search.productInfo" placeholder="商品编码/名称" clearable style="width: 180px;"></el-input>
+                    </el-form-item>
+                    <el-form-item label="商品类目">
+                        <el-select v-model="search.productCategory" placeholder="任意类目层级" clearable style="width: 160px;">
+                            <el-option label="生鲜" value="fresh"></el-option>
+                            <el-option label="冻品" value="frozen"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="销售大区">
+                        <el-select v-model="search.salesRegion" placeholder="全部" clearable style="width: 140px;">
+                            <el-option label="海南区" value="hainan"></el-option>
+                            <el-option label="广深区" value="guangshen"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="出库仓库">
+                        <el-select v-model="search.warehouse" placeholder="全部" clearable style="width: 140px;">
+                            <el-option label="B端业务仓" value="b_warehouse"></el-option>
+                            <el-option label="A端业务仓" value="a_warehouse"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="退货状态">
+                        <el-select v-model="search.returnStatus" placeholder="全部" clearable style="width: 120px;">
+                            <el-option label="未退货" value="NO_RETURN"></el-option>
+                            <el-option label="已退货" value="RETURNED"></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item style="margin-left: auto;">
+                        <el-button @click="resetSearch">重置</el-button>
+                        <el-button type="primary" @click="doSearch">查询</el-button>
+                    </el-form-item>
+                </div>
+            </el-form>
+        </div>
+
+        <!-- ========== 操作 & 数据区 ========== -->
+        <div class="data-card">
+            <div class="toolbar-row">
+                <div class="left">
+                    <el-button type="primary" plain size="small" @click="showToast('导出汇总中...')">导出汇总</el-button>
+                    <el-button type="primary" plain size="small" @click="showToast('导出明细中...')">导出明细</el-button>
+                    <el-button type="primary" plain size="small" @click="showToast('导出采购明细中...')">导出采购明细</el-button>
+                </div>
+                <div class="right">共 {{ tableData.length }} 条记录</div>
+            </div>
+
+            <el-table :data="tableData" border stripe style="width: 100%;" :header-cell-style="{background:'#f5f7fa',color:'#606266',fontWeight:500}">
+                <el-table-column type="selection" width="40"></el-table-column>
+                <el-table-column prop="orderNo" label="订单编号" width="120" fixed>
+                    <template #default="scope">
+                        <el-link type="primary" @click="openDetail">{{ scope.row.orderNo }}</el-link>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="settleType" label="结算类型" width="90"></el-table-column>
+                <el-table-column prop="salesRegion" label="销售大区" width="90"></el-table-column>
+                <el-table-column prop="orderTime" label="下单时间" width="150"></el-table-column>
+                <el-table-column prop="arrivalDate" label="到货日期" width="100"></el-table-column>
+                <el-table-column prop="customerCode" label="客户编码" width="100"></el-table-column>
+                <el-table-column prop="customerName" label="客户名称" width="100"></el-table-column>
+                <el-table-column prop="status" label="订单状态" width="90">
+                    <template #default="scope">
+                        <el-tag :type="statusTagType(scope.row.status)" size="small">{{ scope.row.status }}</el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="skuCount" label="订单SKU数" width="100"></el-table-column>
+                <el-table-column prop="totalAmount" width="120">
+                    <template #header>
+                        <el-tooltip content="订单总金额 = 商品总金额 + 运费" placement="top" effect="dark">
+                            <span>订单总金额 <el-icon><svg viewBox="0 0 1024 1024" width="1em" height="1em"><path fill="currentColor" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path fill="currentColor" d="M464 688a48 48 0 1096 0 48 48 0 10-96 0zm24-112h48c4.4 0 8-3.6 8-8V296c0-4.4-3.6-8-8-8h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8z"/></svg></el-icon></span>
+                        </el-tooltip>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="goodsAmount" width="120">
+                    <template #header>
+                        <el-tooltip content="商品总金额 = 商品原价总金额" placement="top" effect="dark">
+                            <span>商品总金额 <el-icon><svg viewBox="0 0 1024 1024" width="1em" height="1em"><path fill="currentColor" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path fill="currentColor" d="M464 688a48 48 0 1096 0 48 48 0 10-96 0zm24-112h48c4.4 0 8-3.6 8-8V296c0-4.4-3.6-8-8-8h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8z"/></svg></el-icon></span>
+                        </el-tooltip>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="promoAmount" label="促销金额" width="90"></el-table-column>
+                <el-table-column prop="couponAmount" label="优惠券金额" width="100"></el-table-column>
+                <el-table-column prop="discountAmount" label="折扣金额" width="90"></el-table-column>
+                <el-table-column prop="goodsPaid" width="130">
+                    <template #header>
+                        <el-tooltip content="商品实付金额 = 商品总金额 - 促销金额 - 优惠券金额 - 折扣金额" placement="top" effect="dark">
+                            <span>商品实付金额 <el-icon><svg viewBox="0 0 1024 1024" width="1em" height="1em"><path fill="currentColor" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path fill="currentColor" d="M464 688a48 48 0 1096 0 48 48 0 10-96 0zm24-112h48c4.4 0 8-3.6 8-8V296c0-4.4-3.6-8-8-8h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8z"/></svg></el-icon></span>
+                        </el-tooltip>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="freight" label="运费" width="80"></el-table-column>
+                <el-table-column prop="paidTotal" width="120">
+                    <template #header>
+                        <el-tooltip content="实付总金额 = 商品实付金额 + 运费" placement="top" effect="dark">
+                            <span>实付总金额 <el-icon><svg viewBox="0 0 1024 1024" width="1em" height="1em"><path fill="currentColor" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z"/><path fill="currentColor" d="M464 688a48 48 0 1096 0 48 48 0 10-96 0zm24-112h48c4.4 0 8-3.6 8-8V296c0-4.4-3.6-8-8-8h-48c-4.4 0-8 3.6-8 8v272c0 4.4 3.6 8 8 8z"/></svg></el-icon></span>
+                        </el-tooltip>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="diffStatus" label="差补状态" width="90"></el-table-column>
+                <el-table-column prop="returnStatus" label="退货状态" width="90"></el-table-column>
+                <el-table-column prop="salesman" label="销售员" width="80"></el-table-column>
+                <el-table-column prop="salesmanPhone" label="销售员手机" width="120"></el-table-column>
+                <el-table-column prop="settleCustomer" label="结算客户" width="100"></el-table-column>
+                <el-table-column label="操作" width="100" fixed="right">
+                    <template #default="scope">
+                        <el-button type="primary" link size="small" @click="openDetail">详情</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+
+            <div style="display: flex; justify-content: flex-start; margin-top: 12px;">
+                <el-pagination
+                    v-model:current-page="page.current"
+                    v-model:page-size="page.size"
+                    :page-sizes="[20, 50, 100]"
+                    :total="page.total"
+                    layout="total, sizes, prev, pager, next"
+                    background
+                ></el-pagination>
+            </div>
+        </div>
+
+        <!-- ========== 详情抽屉 ========== -->
+        <el-drawer
+            v-model="drawerVisible"
+            title="订单详情"
+            direction="rtl"
+            size="85%"
+            style="width:85%; background: #f0f2f5;"
+            :before-close="closeDrawer"
+        >
+        <!-- Tab 栏 -->
+        <el-tabs v-model="activeTab">
+            <el-tab-pane label="订单详情" name="order">
+                <iframe class="drawer-iframe" src="销售订单-后台-详情-原型.html"></iframe>
+            </el-tab-pane>
+            <el-tab-pane label="退货单" name="return">
+                <iframe class="drawer-iframe" src="销售订单-后台-详情-原型.html"></iframe>
+            </el-tab-pane>
+        </el-tabs>
+        </el-drawer>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+    <script>
+        const { createApp, ref, reactive } = Vue;
+        const app = createApp({
+            setup() {
+                const activeTab = ref('order');
+                const search = reactive({
+                    orderDateRange: null, arrivalDateRange: null, orderNo: '', status: '',
+                    salesman: '', customerInfo: '', customerType: '', customerAddress: '',
+                    city: null, diffStatus: '', productInfo: '', productCategory: '',
+                    salesRegion: '', warehouse: '', returnStatus: '',
+                });
+                const page = reactive({ current: 1, size: 20, total: 45 });
+                const drawerVisible = ref(false);
+
+                const cityOptions = [
+                    { value: 'guangdong', label: '广东省', children: [
+                        { value: 'guangzhou', label: '广州市' }, { value: 'shenzhen', label: '深圳市' }
+                    ]},
+                    { value: 'hainan', label: '海南省', children: [
+                        { value: 'haikou', label: '海口市' }
+                    ]},
+                ];
+
+                const tableData = ref([
+                    { orderNo:'200121121', settleType:'现结', salesRegion:'海南区', orderTime:'2026-06-06 10:23:34', arrivalDate:'2026-06-07', customerCode:'7123456', customerName:'大碗厨', status:'待支付', skuCount:1, totalAmount:120, goodsAmount:100, promoAmount:0, couponAmount:10, discountAmount:0, goodsPaid:90, freight:20, paidTotal:110, diffStatus:'未差补', returnStatus:'未退货', salesman:'张三', salesmanPhone:'15626270709', settleCustomer:'1001234' },
+                    { orderNo:'200121122', settleType:'账期', salesRegion:'广深区', orderTime:'2026-06-06 14:15:22', arrivalDate:'2026-06-08', customerCode:'7123457', customerName:'湘味轩', status:'待出库', skuCount:14, totalAmount:580, goodsAmount:500, promoAmount:0, couponAmount:30, discountAmount:0, goodsPaid:470, freight:50, paidTotal:520, diffStatus:'已差补', returnStatus:'未退货', salesman:'李四', salesmanPhone:'13800138000', settleCustomer:'1001235' },
+                    { orderNo:'200121123', settleType:'现结', salesRegion:'海南区', orderTime:'2026-06-05 09:12:10', arrivalDate:'2026-06-06', customerCode:'7123458', customerName:'海味鲜', status:'出库中', skuCount:6, totalAmount:350, goodsAmount:300, promoAmount:5, couponAmount:15, discountAmount:0, goodsPaid:280, freight:30, paidTotal:310, diffStatus:'无差补', returnStatus:'未退货', salesman:'王五', salesmanPhone:'13900139000', settleCustomer:'1001236' },
+                    { orderNo:'200121124', settleType:'现结', salesRegion:'广深区', orderTime:'2026-06-04 16:33:45', arrivalDate:'2026-06-06', customerCode:'7123459', customerName:'鲜之源', status:'已完成', skuCount:3, totalAmount:220, goodsAmount:200, promoAmount:0, couponAmount:20, discountAmount:0, goodsPaid:180, freight:20, paidTotal:200, diffStatus:'无差补', returnStatus:'未退货', salesman:'赵六', salesmanPhone:'13700137000', settleCustomer:'1001237' },
+                ]);
+
+                function doSearch() {
+                    vant && vant.showToast ? vant.showToast('执行查询') : ElementPlus.ElMessage.success('执行查询');
+                }
+                function resetSearch() {
+                    Object.keys(search).forEach(k => search[k] = k === 'status' || k === 'customerType' || k === 'diffStatus' || k === 'productCategory' || k === 'salesRegion' || k === 'warehouse' || k === 'returnStatus' ? '' : (k === 'city' ? null : (k.includes('Date') ? null : '')));
+                }
+                function showToast(msg) {
+                    ElementPlus.ElMessage.info(msg);
+                }
+                function openDetail() {
+                    drawerVisible.value = true;
+                }
+                function closeDrawer() {
+                    drawerVisible.value = false;
+                }
+                function statusTagType(status) {
+                    const map = { '待支付':'warning', '待出库':'', '出库中':'primary', '已完成':'success', '已取消':'info' };
+                    return map[status] || '';
+                }
+
+                return { activeTab, search, page, drawerVisible, cityOptions, tableData, doSearch, resetSearch, showToast, statusTagType, openDetail, closeDrawer };
+            }
+        });
+        app.use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+    </script>
+</body>
+</html>

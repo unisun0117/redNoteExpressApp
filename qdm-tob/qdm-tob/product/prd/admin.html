@@ -1,0 +1,474 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QDM-TOB 运营管理平台</title>
+    <link rel="stylesheet" href="./lib/element-plus.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="./menu.js"></script>
+
+    <style>
+        :root {
+            --sidebar-bg: #304156;
+            --sidebar-text: #bfcbd9;
+            --header-bg: #fff;
+        }
+        html, body, #app { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+
+        .el-header {
+            background: var(--header-bg);
+            border-bottom: 1px solid #e4e7ed;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.06);
+            z-index: 10;
+        }
+        .logo-wap{ width:180px; }
+        .header-left { display: flex; align-items: center; gap: 10px; }
+        .header-logo {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, #409eff, #337ecc);
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: 700; font-size: 16px;
+        }
+        .header-title { font-size: 18px; font-weight: 600; color: #303133; }
+        .header-right { display: flex; align-items: center; gap: 16px; }
+
+        .el-aside {
+            background: var(--sidebar-bg);
+            transition: width 0.28s;
+            overflow-x: hidden;
+            box-shadow: 2px 0 6px rgba(0,0,0,.1);
+            position: relative;
+            z-index: 9;
+            display: flex;
+            flex-direction: column;
+        }
+        .el-menu-vertical:not(.el-menu--collapse) { width: 200px; }
+
+        .sidebar-toggle {
+            height: 40px;
+            display: flex; align-items: center; justify-content: center;
+            /* position: fixed; */
+            color: var(--sidebar-text);
+            cursor: pointer;
+            font-size: 18px;
+            border-top: 1px solid rgba(255,255,255,.06);
+            transition: background 0.2s;
+            z-index: 5000;
+            bottom: 0px;
+            left: 0;
+            max-width: 200px;
+            min-width: 64px;
+            width: 100%;
+        }
+        .sidebar-toggle.isCollapse { 
+            width: 64px;
+        }
+        .sidebar-toggle:hover { background: rgba(255,255,255,.05); color: #fff; }
+
+        .el-main { background: #f0f2f5; overflow-y: auto; padding: 0px; }
+
+        .breadcrumb-bar {
+            background: #fff;
+            padding: 8px 12px;
+            padding-left: 0px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px 24px;
+            display: flex; align-items: center;
+            gap: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.04);
+            cursor: pointer;
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+        .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); transform: translateY(-2px); }
+        .stat-icon {
+            width: 56px; height: 56px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; color: #fff;
+        }
+        .stat-value { font-size: 28px; font-weight: 700; color: #303133; }
+        .stat-label { font-size: 14px; color: #909399; margin-top: 2px; }
+
+        .content-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.04);
+        }
+        .content-card .card-title {
+            font-size: 16px; font-weight: 600; color: #303133;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #ebeef5;
+        }
+
+        .todo-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f2f2f2;
+        }
+        .todo-item:last-child { border-bottom: none; }
+
+        .quick-link {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: #606266;
+        }
+        .quick-link:hover { background: #ecf5ff; color: #409eff; }
+        .quick-link .el-icon { font-size: 18px; }
+
+        .iframe-container {
+            width: 100%; height: 100%;
+            border: none; background: #fff;
+        }
+
+        .placeholder-page {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            min-height: 400px;
+            color: #909399;
+        }
+        .placeholder-page .el-icon { font-size: 64px; color: #dcdfe6; margin-bottom: 16px; }
+        .placeholder-page .placeholder-title { font-size: 18px; color: #606266; margin-bottom: 8px; }
+        .placeholder-page .placeholder-desc { font-size: 14px; }
+
+        .notification-badge { cursor: pointer; }
+        .flex{display: flex;}
+        .el-menu-vertical { border-right: none !important;}
+    </style>
+</head>
+<body>
+    <div id="app">
+        <el-container class="h-full">
+            <!-- ========== 顶部导航栏 ========== -->
+            <el-header height="56px">
+                <div class="header-left">
+                    <div class="flex items-center logo-wap">
+                        <div class="header-logo">Q</div>
+                        <span class="header-title ml-2">TOB 运营管理</span>
+                    </div>
+                    <!-- 面包屑 -->
+                    <div class="breadcrumb-bar">
+                        <el-breadcrumb>
+                            <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+                            <el-breadcrumb-item v-if="breadcrumbParent">{{ breadcrumbParent }}</el-breadcrumb-item>
+                            <el-breadcrumb-item v-if="currentPageName">{{ currentPageName }}</el-breadcrumb-item>
+                        </el-breadcrumb>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <el-badge :value="notificationCount" :hidden="notificationCount === 0" class="notification-badge flex">
+                        <el-icon :size="20" color="#606266"><bell /></el-icon>
+                    </el-badge>
+                    <el-dropdown trigger="click" @command="handleUserCommand">
+                        <span class="flex items-center gap-2 cursor-pointer">
+                            <el-avatar :size="32" icon="UserFilled" style="background:#409eff;"></el-avatar>
+                            <span class="text-sm text-slate-700 hidden sm:inline">管理员</span>
+                            <el-icon class="text-slate-400"><arrow-down /></el-icon>
+                        </span>
+                        <template #dropdown>
+                            <el-dropdown-menu>
+                                <el-dropdown-item command="profile">
+                                    <el-icon><user /></el-icon>个人设置
+                                </el-dropdown-item>
+                                <el-dropdown-item command="logout" divided>
+                                    <el-icon><switch-button /></el-icon>退出登录
+                                </el-dropdown-item>
+                            </el-dropdown-menu>
+                        </template>
+                    </el-dropdown>
+                </div>
+            </el-header>
+
+            <el-container class="overflow-hidden">
+                <!-- ========== 侧边栏 ========== -->
+                <el-aside :width="isCollapse ? '64px' : '200px'">
+                    <el-scrollbar :height="'calc(100vh - 96px)'" class="h-full">
+                        <el-menu
+                            :default-active="activeMenu"
+                            class="el-menu-vertical"
+                            background-color="#304156"
+                            text-color="#bfcbd9"
+                            active-text-color="#409eff"
+                            :collapse="isCollapse"
+                            :collapse-transition="false"
+                            @select="handleMenuSelect"
+                        >
+                            <el-sub-menu v-for="group in menuData" :key="group.id" :index="group.id">
+                                <template #title>
+                                    <el-icon>
+                                        <component :is="group.iconKebab || 'folder'" />
+                                    </el-icon>
+                                    <span>{{ group.title }}</span>
+                                </template>
+                                <el-menu-item v-for="item in group.children" :key="item.id" :index="item.id">
+                                    <el-icon><document /></el-icon>
+                                    {{ item.name }}
+                                </el-menu-item>
+                            </el-sub-menu>
+                        </el-menu>
+                    </el-scrollbar>
+                    <div class="sidebar-toggle" :class="{isCollapse: !!isCollapse}" @click="isCollapse = !isCollapse">
+                        <el-icon v-if="!isCollapse"><fold /></el-icon>
+                        <el-icon v-else><expand /></el-icon>
+                    </div>
+                </el-aside>
+
+                <!-- ========== 主内容区 ========== -->
+                <el-main>
+                    <!-- Dashboard 首页 -->
+                    <div v-if="activeMenu === '/'" class="p-3">
+                        <!-- 统计卡片 -->
+                        <el-row :gutter="20" class="mb-5">
+                            <el-col :span="6">
+                                <div class="stat-card" @click="handleMenuSelect('/approve')">
+                                    <div class="stat-icon" style="background:linear-gradient(135deg,#f56c6c,#e64242);">
+                                        <el-icon><bell /></el-icon>
+                                    </div>
+                                    <div>
+                                        <div class="stat-value">{{ dashboard.pendingApprovals }}</div>
+                                        <div class="stat-label">待办处理</div>
+                                    </div>
+                                </div>
+                            </el-col>
+                            <el-col :span="6">
+                                <div class="stat-card" @click="handleMenuSelect('/trade/order')">
+                                    <div class="stat-icon" style="background:linear-gradient(135deg,#409eff,#337ecc);">
+                                        <el-icon><document /></el-icon>
+                                    </div>
+                                    <div>
+                                        <div class="stat-value">{{ dashboard.todayOrders }}</div>
+                                        <div class="stat-label">今日订单</div>
+                                    </div>
+                                </div>
+                            </el-col>
+                            <el-col :span="6">
+                                <div class="stat-card" @click="handleMenuSelect('/customer/profile')">
+                                    <div class="stat-icon" style="background:linear-gradient(135deg,#67c23a,#5daf34);">
+                                        <el-icon><user /></el-icon>
+                                    </div>
+                                    <div>
+                                        <div class="stat-value">{{ dashboard.activeCustomers }}</div>
+                                        <div class="stat-label">活跃客户</div>
+                                    </div>
+                                </div>
+                            </el-col>
+                            <el-col :span="6">
+                                <div class="stat-card" @click="handleMenuSelect('/finance/payment')">
+                                    <div class="stat-icon" style="background:linear-gradient(135deg,#e6a23c,#cf9236);">
+                                        <el-icon><money /></el-icon>
+                                    </div>
+                                    <div>
+                                        <div class="stat-value">¥{{ dashboard.revenue }}</div>
+                                        <div class="stat-label">今日营收（元）</div>
+                                    </div>
+                                </div>
+                            </el-col>
+                        </el-row>
+
+                        <!-- 两列内容 -->
+                        <el-row :gutter="20">
+                            <el-col :span="16">
+                                <div class="content-card">
+                                    <div class="card-title">最近待办</div>
+                                    <div v-for="todo in dashboard.recentTodos" :key="todo.id" class="todo-item">
+                                        <div>
+                                            <el-tag :type="todo.tagType" size="small" class="mr-2">{{ todo.type }}</el-tag>
+                                            <span class="text-sm text-slate-700">{{ todo.title }}</span>
+                                        </div>
+                                        <span class="text-xs text-slate-400">{{ todo.time }}</span>
+                                    </div>
+                                    <div v-if="dashboard.recentTodos.length === 0" class="text-center text-slate-400 py-8 text-sm">
+                                        暂无待办事项
+                                    </div>
+                                </div>
+                            </el-col>
+                            <el-col :span="8">
+                                <div class="content-card">
+                                    <div class="card-title">快捷入口</div>
+                                    <div
+                                        v-for="link in quickLinks" :key="link.id"
+                                        class="quick-link"
+                                        @click="handleMenuSelect(link.id)"
+                                    >
+                                        <el-icon :color="link.color"><component :is="link.icon" /></el-icon>
+                                        <span class="text-sm">{{ link.name }}</span>
+                                    </div>
+                                </div>
+                            </el-col>
+                        </el-row>
+                    </div>
+
+                    <!-- iframe 加载区（非首页菜单） -->
+                    <div v-else class="relative" style="height: calc(100% - 41px);">
+                        <div v-if="iframeLoading" class="absolute inset-0 flex flex-col items-center justify-center bg-white z-50">
+                            <el-icon class="is-loading text-3xl text-sky-500"><loading /></el-icon>
+                            <span class="mt-3 text-sm text-slate-500">正在加载页面...</span>
+                        </div>
+                        <iframe
+                            v-if="currentUrl"
+                            :src="currentUrl"
+                            class="iframe-container"
+                            @load="onIframeLoad"
+                        ></iframe>
+                        <div v-else class="h-full flex flex-col items-center justify-center bg-white text-slate-400">
+                            <el-icon style="font-size:64px;"><folder-opened /></el-icon>
+                            <p class="mt-4 text-sm">{{ currentPageName }} — 文档待添加</p>
+                            <p class="text-xs text-slate-300 mt-1">请将对应 HTML 文件放入 product/prd/ 目录</p>
+                        </div>
+                    </div>
+                </el-main>
+            </el-container>
+        </el-container>
+    </div>
+
+    <script src="./lib/vue.global.js"></script>
+    <script src="./lib/element-plus.min.js"></script>
+    <script src="./lib/element-icons.min.js"></script>
+
+    <script>
+        const { createApp, ref, computed } = Vue;
+
+        const app = createApp({
+            setup() {
+                const isCollapse = ref(false);
+                const activeMenu = ref('/');
+                const currentUrl = ref('');
+                const iframeLoading = ref(false);
+                const notificationCount = ref(5);
+
+                const menuData = ref(window.PRD_MENU_DATA || []);
+
+                // PascalCase → kebab-case icon mapping
+                const iconKebabMap = {
+                    HomeFilled: 'home-filled', Goods: 'goods', User: 'user',
+                    Present: 'present', Document: 'document', Money: 'money',
+                    Setting: 'setting', DataAnalysis: 'data-analysis', Tools: 'tools',
+                };
+
+                const augmentedMenuData = computed(() => {
+                    return menuData.value.map(group => ({
+                        ...group,
+                        iconKebab: iconKebabMap[group.icon] || 'folder',
+                    }));
+                });
+
+                // 从菜单数据中查找 url（item.url 在 menu.js 中配置）
+                const resolveUrl = (index) => {
+                    for (const group of menuData.value) {
+                        const found = group.children.find(item => item.id === index);
+                        if (found && found.url) return found.url;
+                    }
+                    return null;
+                };
+
+                const currentPageName = computed(() => {
+                    for (const group of menuData.value) {
+                        const found = group.children.find(item => item.id === activeMenu.value);
+                        if (found) return found.name;
+                    }
+                    return '';
+                });
+
+                const breadcrumbParent = computed(() => {
+                    if (activeMenu.value === '/') return '';
+                    for (const group of menuData.value) {
+                        const found = group.children.find(item => item.id === activeMenu.value);
+                        if (found) return group.title;
+                    }
+                    return '';
+                });
+
+                const today = computed(() => {
+                    const d = new Date();
+                    return d.getFullYear() + '-' +
+                        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(d.getDate()).padStart(2, '0');
+                });
+
+                const dashboard = ref({
+                    pendingApprovals: 12,
+                    todayOrders: 156,
+                    activeCustomers: 2834,
+                    revenue: '128,960',
+                    recentTodos: [
+                        { id: 1, type: '价格审核', tagType: 'warning', title: '商品 [SKU-10234] 价格变更待审核', time: '10分钟前' },
+                        { id: 2, type: '客户审核', tagType: 'primary', title: '客户 [天福茗茶] 资料变更待审核', time: '30分钟前' },
+                        { id: 3, type: '退货审批', tagType: 'danger', title: '订单 [ORD-20260701-0034] 退货申请', time: '1小时前' },
+                        { id: 4, type: '提现审核', tagType: 'info', title: '客户 [永辉超市] 申请提现 ¥5,000', time: '2小时前' },
+                        { id: 5, type: '价格审核', tagType: 'warning', title: '商品 [SKU-10289] 价格变更待审核', time: '3小时前' },
+                    ],
+                });
+
+                const quickLinks = [
+                    { id: '/product/warehouse', name: '商品资料管理', icon: 'goods', color: '#409eff' },
+                    { id: '/marketing/coupon', name: '优惠券管理', icon: 'present', color: '#e6a23c' },
+                    { id: '/trade/order', name: '销售订单查询', icon: 'document', color: '#67c23a' },
+                    { id: '/operation/region', name: '销售大区管理', icon: 'setting', color: '#f56c6c' },
+                    { id: '/report/product', name: '商品统计报表', icon: 'data-analysis', color: '#909399' },
+                    { id: '/system/account', name: '账户权限管理', icon: 'tools', color: '#8e44ad' },
+                ];
+
+                const handleMenuSelect = (index) => {
+                    activeMenu.value = index;
+                    if (index === '/') {
+                        currentUrl.value = '';
+                        iframeLoading.value = false;
+                        return;
+                    }
+                    const targetUrl = resolveUrl(index);
+                    if (targetUrl) {
+                        iframeLoading.value = true;
+                        currentUrl.value = targetUrl + '?t=' + Date.now();
+                    } else {
+                        currentUrl.value = '';
+                        iframeLoading.value = false;
+                    }
+                };
+
+                const onIframeLoad = () => {
+                    iframeLoading.value = false;
+                };
+
+                const handleUserCommand = (command) => {
+                    if (command === 'logout') {
+                        ElementPlus.ElMessage.success('已退出登录');
+                    } else if (command === 'profile') {
+                        ElementPlus.ElMessage.info('个人设置页面开发中');
+                    }
+                };
+
+                return {
+                    isCollapse, activeMenu, currentUrl, iframeLoading,
+                    menuData: augmentedMenuData, currentPageName, breadcrumbParent,
+                    today, notificationCount, dashboard, quickLinks,
+                    handleMenuSelect, onIframeLoad, handleUserCommand,
+                };
+            }
+        });
+
+        // Register all Element Plus icons (PascalCase + kebab-case fallback)
+        for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+            const kebabKey = key.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '');
+            app.component(kebabKey, component);
+            app.component(key, component);
+        }
+
+        app.use(ElementPlus).mount('#app');
+    </script>
+</body>
+</html>

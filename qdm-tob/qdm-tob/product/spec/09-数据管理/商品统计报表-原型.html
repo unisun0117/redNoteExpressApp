@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品统计报表</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <style>
+        :root { --primary: #409eff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; background: #f0f2f5; margin: 0; padding: 10px; }
+        .breadcrumb-bar { background: #fff; border-radius: 8px; padding: 10px 16px; margin-bottom: 10px; font-size: 14px; color: #606266; }
+        .breadcrumb-bar .sep { margin: 0 6px; color: #c0c4cc; }
+        .breadcrumb-bar .link { color: #409eff; cursor: pointer; }
+        .breadcrumb-bar .link:hover { text-decoration: underline; }
+        .breadcrumb-bar .current { color: #303133; font-weight: 500; }
+        .query-card { background: #fff; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; }
+        .data-card { background: #fff; border-radius: 8px; padding: 12px 16px; }
+        .toolbar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .sortable-header { cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 2px; }
+        .sortable-header:hover { color: #409eff; }
+        .sort-icon-active { color: #409eff; }
+        .sort-popover-content { display: flex; flex-direction: column; gap: 2px; min-width: 80px; }
+        .sort-popover-content .sort-btn { cursor: pointer; padding: 4px 12px; border-radius: 4px; font-size: 13px; color: #606266; transition: background .2s; }
+        .sort-popover-content .sort-btn:hover { background: #ecf5ff; color: #409eff; }
+        .sort-popover-content .sort-btn.active { color: #409eff; font-weight: 600; background: #ecf5ff; }
+        .product-name-link { cursor: pointer; color: #409eff; }
+        .product-name-link:hover { text-decoration: underline; color: #337ecc; }
+        .stat-cards-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-card { flex: 1; min-width: 130px; background: linear-gradient(135deg, #f5f7fa 0%, #fff 100%); border: 1px solid #ebeef5; border-radius: 10px; padding: 16px 18px; text-align: center; transition: transform .2s, box-shadow .2s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+        .stat-card .label { font-size: 12px; color: #909399; margin-bottom: 6px; }
+        .stat-card .value { font-size: 28px; font-weight: 700; color: #303133; }
+        .stat-card .unit { font-size: 13px; font-weight: 400; color: #909399; margin-left: 2px; }
+        .chart-container { width: 100%; height: 400px; margin-top: 8px; }
+        .empty-state { text-align: center; padding: 60px 0; color: #909399; }
+        .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+        .interval-hint { font-size: 12px; color: #909399; margin-left: 12px; }
+    </style>
+</head>
+<body>
+<div id="prd-root">
+    <div class="breadcrumb-bar">
+        <span class="link" @click="goBack">商品统计报表</span>
+        <span class="sep">/</span>
+        <span class="current">商品下单分布</span>
+    </div>
+
+    <div class="query-card">
+        <div class="toolbar-row">
+            <el-button type="primary" @click="doSearch">查询</el-button>
+            <el-button @click="resetSearch">重置</el-button>
+            <el-button @click="doExport">导出</el-button>
+        </div>
+        <el-form :model="search" inline>
+            <el-form-item label="到货时间">
+                <el-date-picker v-model="search.arrivalDateRange" type="daterange" range-separator="至"
+                    start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" style="width:260px;"></el-date-picker>
+            </el-form-item>
+            <el-form-item label="商品类目">
+                <el-cascader v-model="search.category" :options="categoryTree"
+                    :props="{ checkStrictly: true, label: 'name', value: 'id', emitPath: false }"
+                    placeholder="全部" clearable style="width:220px;"></el-cascader>
+            </el-form-item>
+            <el-form-item label="商品信息">
+                <el-input v-model="search.productInfo" placeholder="商品条码/商品名称" clearable style="width:210px;"></el-input>
+            </el-form-item>
+            <el-form-item label="仓库">
+                <el-select v-model="search.warehouse" placeholder="全部" clearable style="width:190px;">
+                    <el-option v-for="w in warehouseOptions" :key="w.value" :label="w.label" :value="w.value"></el-option>
+                </el-select>
+            </el-form-item>
+        </el-form>
+    </div>
+
+    <div class="data-card">
+        <div style="display:flex; justify-content:flex-end; margin-bottom:10px; font-size:13px; color:#909399;">
+            共 <b style="color:#303133; margin:0 4px;">{{ total }}</b> 条记录
+        </div>
+        <el-table :data="tableData" v-loading="loading" border stripe style="width:100%; min-width:1600px;"
+            :header-cell-style="{background:'#f5f7fa', color:'#606266', fontWeight:500}">
+            <el-table-column label="序号" width="60" align="center" fixed>
+                <template #default="scope">{{ (pageNum-1)*pageSize + scope.$index + 1 }}</template>
+            </el-table-column>
+            <el-table-column prop="productName" label="商品名称" width="140" fixed show-overflow-tooltip>
+                <template #default="scope">
+                    <el-tooltip placement="right" effect="light" :show-after="300">
+                        <template #content>
+                            <div style="line-height:1.8;font-size:13px;">
+                                <div><b>商品名称：</b>{{ scope.row.productName }}</div>
+                                <div><b>商品条码：</b>{{ scope.row.barcode }}</div>
+                                <div><b>商品类目：</b>{{ scope.row.categoryPath }}</div>
+                                <div><b>所属仓库：</b>{{ scope.row.warehouseName || '多仓' }}</div>
+                            </div>
+                        </template>
+                        <span class="product-name-link" @click="openProductDetail(scope.row)">{{ scope.row.productName }}</span>
+                    </el-tooltip>
+                </template>
+            </el-table-column>
+            <el-table-column prop="productCode" label="商品编号" width="110" show-overflow-tooltip></el-table-column>
+            <el-table-column prop="barcode" label="商品条码" width="140" show-overflow-tooltip></el-table-column>
+            <el-table-column width="100" align="center">
+                <template #header><sort-header label="订货单数" field="orderCount" :sort-state="sortState" @sort="onSort"></sort-header></template>
+                <template #default="scope">{{ scope.row.orderCount }}</template>
+            </el-table-column>
+            <el-table-column width="100" align="center">
+                <template #header><sort-header label="退货单数" field="returnCount" :sort-state="sortState" @sort="onSort"></sort-header></template>
+                <template #default="scope">{{ scope.row.returnCount }}</template>
+            </el-table-column>
+            <el-table-column width="100" align="center">
+                <template #header><sort-header label="差补单数" field="diffCount" :sort-state="sortState" @sort="onSort"></sort-header></template>
+                <template #default="scope">{{ scope.row.diffCount }}</template>
+            </el-table-column>
+            <el-table-column width="120" align="right">
+                <template #header><sort-header label="订货数(KG)" field="orderQty" :sort-state="sortState" @sort="onSort"></sort-header></template>
+                <template #default="scope">{{ scope.row.orderQty.toFixed(2) }}</template>
+            </el-table-column>
+            <el-table-column width="120" align="right">
+                <template #header><sort-header label="退货数(KG)" field="returnQty" :sort-state="sortState" @sort="onSort"></sort-header></template>
+                <template #default="scope">{{ scope.row.returnQty.toFixed(2) }}</template>
+            </el-table-column>
+            <el-table-column width="120" align="right">
+                <template #header><sort-header label="补差数(KG)" field="diffQty" :sort-state="sortState" @sort="onSort"></sort-header></template>
+                <template #default="scope">{{ scope.row.diffQty.toFixed(2) }}</template>
+            </el-table-column>
+            <el-table-column width="130" align="right">
+                <template #header><sort-header label="销售金额" field="saleAmount" :sort-state="sortState" @sort="onSort"></sort-header></template>
+                <template #default="scope">{{ scope.row.saleAmount.toFixed(2) }}</template>
+            </el-table-column>
+            <el-table-column width="130" align="right">
+                <template #header><sort-header label="退货金额" field="returnAmount" :sort-state="sortState" @sort="onSort"></sort-header></template>
+                <template #default="scope">{{ scope.row.returnAmount.toFixed(2) }}</template>
+            </el-table-column>
+            <el-table-column width="130" align="right">
+                <template #header><sort-header label="补差金额" field="diffAmount" :sort-state="sortState" @sort="onSort"></sort-header></template>
+                <template #default="scope">{{ scope.row.diffAmount.toFixed(2) }}</template>
+            </el-table-column>
+            <el-table-column width="130" align="right">
+                <template #header><sort-header label="实际收款额" field="actualReceived" :sort-state="sortState" @sort="onSort"></sort-header></template>
+                <template #default="scope">{{ scope.row.actualReceived.toFixed(2) }}</template>
+            </el-table-column>
+        </el-table>
+        <div v-if="tableData.length===0 && !loading" class="empty-state">
+            <div class="empty-state-icon">📊</div><div>暂无统计数据</div>
+        </div>
+        <div style="margin-top:16px; display:flex; justify-content:flex-start;" v-if="total > 0">
+            <el-pagination v-model:current-page="pageNum" v-model:page-size="pageSize"
+                :page-sizes="[5,10,20,30,50,100]" :total="total"
+                layout="total, sizes, prev, pager, next" background
+                @size-change="doSearch" @current-change="doSearch"></el-pagination>
+        </div>
+    </div>
+
+    <!-- 单品详情抽屉 -->
+    <el-drawer v-model="drawerVisible" :title="detailProduct.productName || '商品详情'"
+        direction="rtl" size="67%" :close-on-click-modal="true" @opened="initChart" @closed="disposeChart">
+        <div class="stat-cards-row">
+            <div class="stat-card"><div class="label">订货单数</div><div class="value">{{ detailProduct.orderCount||0 }}</div></div>
+            <div class="stat-card"><div class="label">订货数（KG）</div><div class="value">{{ (detailProduct.orderQty||0).toFixed(2) }}<span class="unit">KG</span></div></div>
+            <div class="stat-card"><div class="label">销售金额</div><div class="value">¥{{ (detailProduct.saleAmount||0).toFixed(2) }}</div></div>
+            <div class="stat-card"><div class="label">实际收款额</div><div class="value">¥{{ (detailProduct.actualReceived||0).toFixed(2) }}</div></div>
+            <div class="stat-card"><div class="label">退货单数</div><div class="value">{{ detailProduct.returnCount||0 }}</div></div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+            <span style="font-size:14px;color:#606266;">到店日期：</span>
+            <el-date-picker v-model="detailSearch.dateRange" type="daterange" range-separator="至"
+                start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD"
+                style="width:260px;" @change="onDetailDateChange"></el-date-picker>
+            <span style="font-size:14px;color:#606266;">仓库：</span>
+            <el-select v-model="detailSearch.warehouse" placeholder="全部" clearable style="width:190px;">
+                <el-option v-for="w in warehouseOptions" :key="w.value" :label="w.label" :value="w.value"></el-option>
+            </el-select>
+            <el-button type="primary" @click="doDetailSearch">查询</el-button>
+            <el-button @click="resetDetailSearch">重置</el-button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-size:14px;color:#606266;">展示维度：</span>
+            <el-select v-model="chartDimension" style="width:140px;" @change="updateChart">
+                <el-option label="订单数" value="orderCount"></el-option>
+                <el-option label="订购数" value="orderQty"></el-option>
+            </el-select>
+            <span class="interval-hint">采样间隔：{{ intervalLabel }}</span>
+        </div>
+        <div class="chart-container" id="detail-chart"></div>
+        <div v-if="chartEmpty" style="text-align:center;padding:40px;color:#909399;">所选时间范围内无数据</div>
+    </el-drawer>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="https://unpkg.com/element-plus"></script>
+<script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+<script>
+const { createApp, ref, reactive, nextTick } = Vue;
+
+const SortHeader = {
+    props: ['label','field','sortState'], emits: ['sort'],
+    template: `
+        <el-popover trigger="click" placement="bottom" :width="100" :show-arrow="false" :offset="0">
+            <template #reference>
+                <span class="sortable-header" :class="{'sort-icon-active': sortState.field===field}">
+                    {{ label }}
+                    <span v-if="sortState.field===field && sortState.order==='ASC'" style="font-size:12px;">↑</span>
+                    <span v-else-if="sortState.field===field && sortState.order==='DESC'" style="font-size:12px;">↓</span>
+                    <span v-else style="font-size:12px;color:#c0c4cc;">⇅</span>
+                </span>
+            </template>
+            <div class="sort-popover-content">
+                <div class="sort-btn" @click="$emit('sort',{field,order:''})">重置</div>
+                <div class="sort-btn" :class="{active:sortState.field===field&&sortState.order==='ASC'}" @click="$emit('sort',{field,order:'ASC'})">升序 ↑</div>
+                <div class="sort-btn" :class="{active:sortState.field===field&&sortState.order==='DESC'}" @click="$emit('sort',{field,order:'DESC'})">倒序 ↓</div>
+            </div>
+        </el-popover>`
+};
+
+/* ---- 工具函数：根据日期范围计算采样间隔 ---- */
+function calcInterval(startDate, endDate) {
+    if (!startDate || !endDate) return { interval: 1, label: '每天' };
+    const diffDays = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000*60*60*24)) + 1;
+    if (diffDays <= 30) return { interval: 1, label: '每天（≤1月）' };
+    if (diffDays <= 180) return { interval: 5, label: '每5天（1~6月）' };
+    if (diffDays <= 365) return { interval: 15, label: '每15天（6~12月）' };
+    return { interval: 30, label: '每30天（>12月）' };
+}
+
+/* ---- 生成模拟每日数据（带随机空值模拟无数据日） ---- */
+function generateDailyData(startDate, endDate, dim) {
+    const dates = [], values = [];
+    const s = new Date(startDate), e = new Date(endDate);
+    const cur = new Date(s);
+    while (cur <= e) {
+        const dateStr = `${cur.getMonth()+1}/${cur.getDate()}`;
+        dates.push(dateStr);
+        // 约20%概率该天无数据
+        if (Math.random() < 0.2) {
+            values.push(null);
+        } else {
+            values.push(dim === 'orderCount' ? Math.floor(Math.random()*18)+1 : Math.floor(Math.random()*70)+5);
+        }
+        cur.setDate(cur.getDate() + 1);
+    }
+    return { dates, values };
+}
+
+/* ---- 按采样间隔聚合数据 ---- */
+function sampleData(dailyDates, dailyValues, interval) {
+    if (interval <= 1) return { dates: dailyDates, values: dailyValues };
+    const sampledDates = [], sampledValues = [];
+    for (let i = 0; i < dailyDates.length; i += interval) {
+        let sum = 0, hasData = false;
+        for (let j = i; j < Math.min(i + interval, dailyDates.length); j++) {
+            if (dailyValues[j] != null) { sum += dailyValues[j]; hasData = true; }
+        }
+        sampledDates.push(dailyDates[i]);
+        sampledValues.push(hasData ? sum : null);
+    }
+    return { dates: sampledDates, values: sampledValues };
+}
+
+const app = createApp({
+    components: { SortHeader },
+    setup() {
+        const search = reactive({ arrivalDateRange: null, category: null, productInfo: '', warehouse: '' });
+        const sortState = reactive({ field: '', order: '' });
+        const loading = ref(false);
+        const pageNum = ref(1), pageSize = ref(20), total = ref(28);
+
+        const categoryTree = [
+            { id:'C01',name:'生鲜食品',children:[
+                { id:'C0101',name:'猪肉类',children:[{id:'C010101',name:'排骨'},{id:'C010102',name:'五花肉'},{id:'C010103',name:'瘦肉'}]},
+                { id:'C0102',name:'蔬菜',children:[{id:'C010201',name:'叶菜类'},{id:'C010202',name:'根茎类'}]},
+                { id:'C0103',name:'水产',children:[{id:'C010301',name:'鱼类'},{id:'C010302',name:'虾类'}]},
+                { id:'C0104',name:'水果',children:[{id:'C010401',name:'苹果'},{id:'C010402',name:'柑橘'}]},
+                { id:'C0105',name:'肉类（非猪肉）',children:[{id:'C010501',name:'牛肉'},{id:'C010502',name:'羊肉'}]},
+                { id:'C0106',name:'蛋奶',children:[{id:'C010601',name:'鸡蛋'},{id:'C010602',name:'牛奶'}]},
+                { id:'C0107',name:'肉禽蛋类',children:[{id:'C010701',name:'整鸡'},{id:'C010702',name:'分割鸡'}]},
+                { id:'C0108',name:'熟食',children:[{id:'C010801',name:'卤味'},{id:'C010802',name:'烤制'}]},
+            ]},
+            { id:'C02',name:'加工食品',children:[
+                { id:'C0201',name:'加工食品',children:[{id:'C020101',name:'速冻食品'},{id:'C020102',name:'罐头'}]},
+                { id:'C0202',name:'冷藏及加工类',children:[{id:'C020201',name:'冷藏面点'}]},
+            ]},
+            { id:'C03',name:'标品',children:[
+                { id:'C0301',name:'综合标品',children:[{id:'C030101',name:'干货'}]},
+                { id:'C0302',name:'标品类',children:[{id:'C030201',name:'米面'}]},
+            ]},
+            { id:'C04',name:'粮油副食',children:[{ id:'C0401',name:'粮油副食',children:[{id:'C040101',name:'大米'}]}]},
+            { id:'C05',name:'酒水饮料',children:[{ id:'C0501',name:'酒水饮料',children:[{id:'C050101',name:'啤酒'}]}]},
+            { id:'C06',name:'休闲食品',children:[{ id:'C0601',name:'休闲食品',children:[{id:'C060101',name:'薯片'}]}]},
+            { id:'C07',name:'清洁用品',children:[{ id:'C0701',name:'清洁用品',children:[{id:'C070101',name:'洗涤剂'}]}]},
+            { id:'C08',name:'日用百货',children:[
+                { id:'C0801',name:'百货日杂店',children:[{id:'C080101',name:'厨房用品'}]},
+                { id:'C0802',name:'日报用品',children:[{id:'C080201',name:'纸巾'}]},
+            ]},
+            { id:'C09',name:'包装宣传',children:[{ id:'C0901',name:'包装宣传',children:[{id:'C090101',name:'包装袋'}]}]},
+            { id:'C10',name:'生产用具',children:[{ id:'C1001',name:'生产用具',children:[{id:'C100101',name:'刀具'}]}]},
+            { id:'C11',name:'日常课程',children:[{ id:'C1101',name:'日常课程',children:[{id:'C110101',name:'线上课程'}]}]},
+            { id:'C12',name:'设备类',children:[{ id:'C1201',name:'设备类',children:[{id:'C120101',name:'厨房设备'}]}]},
+            { id:'C13',name:'消耗品类',children:[{ id:'C1301',name:'消耗品类',children:[{id:'C130101',name:'手套'}]}]},
+            { id:'C14',name:'营销类',children:[{ id:'C1401',name:'营销类',children:[{id:'C140101',name:'赠品'}]}]},
+            { id:'C15',name:'虚拟商品',children:[{ id:'C1501',name:'虚拟商品',children:[{id:'C150101',name:'电子券'}]}]},
+        ];
+
+        const warehouseOptions = [
+            {label:'全国集采虚拟仓',value:'WH_ALL'},{label:'广州江高猪肉仓',value:'WH_GZJG'},
+            {label:'广州江高电商仓',value:'WH_GZJGDS'},{label:'长沙丰泉综合仓',value:'WH_CSFQ'},
+            {label:'成都双流综合仓',value:'WH_CDSL'},{label:'深圳恒寿蔬果仓',value:'WH_SZHS'},
+            {label:'广州南海猪肉仓',value:'WH_GZNH'},{label:'广州花地湾水产仓',value:'WH_GZHDW'},
+            {label:'广州番禺猪肉仓',value:'WH_GZPY'},{label:'广州菜吧仓',value:'WH_GZCB'},
+            {label:'深圳菜吧仓',value:'WH_SZCB'},{label:'清远万安猪肉仓',value:'WH_QYWA'},
+            {label:'海南项目仓',value:'WH_HNXM'},{label:'B端业务仓',value:'WH_B'},
+            {label:'中山创新仓',value:'WH_ZSCX'},{label:'基地直采仓',value:'WH_JDZC'},
+            {label:'中山颐丰猪肉仓',value:'WH_ZSYF'},{label:'长沙B端业务仓',value:'WH_CSB'},
+            {label:'深圳创新仓',value:'WH_SZCX'},{label:'B端业务仓-停用',value:'WH_B_OLD'},
+            {label:'华南区线下共享仓',value:'WH_HNGX'},
+        ];
+
+        const tableData = ref([
+            {productName:'红富士苹果',productCode:'P001',barcode:'6901234567890',categoryPath:'生鲜食品/水果/苹果',warehouseName:'广州江高电商仓',orderCount:128,returnCount:5,diffCount:2,orderQty:520.50,returnQty:15.00,diffQty:8.00,saleAmount:15600.00,returnAmount:450.00,diffAmount:120.00,actualReceived:14820.00},
+            {productName:'精选五花肉',productCode:'P002',barcode:'6901234567891',categoryPath:'生鲜食品/猪肉类/五花肉',warehouseName:'广州江高猪肉仓',orderCount:95,returnCount:3,diffCount:1,orderQty:380.00,returnQty:12.00,diffQty:5.00,saleAmount:11400.00,returnAmount:360.00,diffAmount:75.00,actualReceived:10830.00},
+            {productName:'有机西蓝花',productCode:'P003',barcode:'6901234567892',categoryPath:'生鲜食品/蔬菜/叶菜类',warehouseName:'深圳恒寿蔬果仓',orderCount:210,returnCount:8,diffCount:4,orderQty:630.00,returnQty:24.00,diffQty:12.00,saleAmount:12600.00,returnAmount:480.00,diffAmount:120.00,actualReceived:11970.00},
+            {productName:'活虾',productCode:'P004',barcode:'6901234567893',categoryPath:'生鲜食品/水产/虾类',warehouseName:'广州花地湾水产仓',orderCount:67,returnCount:2,diffCount:0,orderQty:134.00,returnQty:4.00,diffQty:0.00,saleAmount:8040.00,returnAmount:240.00,diffAmount:0.00,actualReceived:7638.00},
+            {productName:'澳洲牛腱子',productCode:'P005',barcode:'6901234567894',categoryPath:'生鲜食品/肉类（非猪肉）/牛肉',warehouseName:'长沙丰泉综合仓',orderCount:43,returnCount:1,diffCount:1,orderQty:86.00,returnQty:2.00,diffQty:2.00,saleAmount:6880.00,returnAmount:160.00,diffAmount:80.00,actualReceived:6536.00},
+            {productName:'三鲜速冻水饺',productCode:'P006',barcode:'6901234567895',categoryPath:'加工食品/加工食品/速冻食品',warehouseName:'成都双流综合仓',orderCount:156,returnCount:6,diffCount:3,orderQty:312.00,returnQty:12.00,diffQty:6.00,saleAmount:4680.00,returnAmount:180.00,diffAmount:45.00,actualReceived:4446.00},
+            {productName:'鲜牛奶',productCode:'P007',barcode:'6901234567896',categoryPath:'生鲜食品/蛋奶/牛奶',warehouseName:'广州江高电商仓',orderCount:320,returnCount:12,diffCount:5,orderQty:960.00,returnQty:36.00,diffQty:15.00,saleAmount:19200.00,returnAmount:720.00,diffAmount:150.00,actualReceived:18240.00},
+            {productName:'金龙鱼调和油',productCode:'P008',barcode:'6901234567897',categoryPath:'标品/标品类/食用油',warehouseName:'中山创新仓',orderCount:89,returnCount:2,diffCount:0,orderQty:178.00,returnQty:4.00,diffQty:0.00,saleAmount:8900.00,returnAmount:200.00,diffAmount:0.00,actualReceived:8455.00},
+            {productName:'青岛啤酒500ml',productCode:'P009',barcode:'6901234567898',categoryPath:'酒水饮料/酒水饮料/啤酒',warehouseName:'全国集采虚拟仓',orderCount:178,returnCount:4,diffCount:2,orderQty:534.00,returnQty:12.00,diffQty:6.00,saleAmount:10680.00,returnAmount:240.00,diffAmount:60.00,actualReceived:10146.00},
+            {productName:'乐事薯片',productCode:'P010',barcode:'6901234567899',categoryPath:'休闲食品/休闲食品/薯片',warehouseName:'长沙B端业务仓',orderCount:245,returnCount:9,diffCount:3,orderQty:490.00,returnQty:18.00,diffQty:6.00,saleAmount:7350.00,returnAmount:270.00,diffAmount:45.00,actualReceived:6982.50},
+            {productName:'蓝月亮洗衣液',productCode:'P011',barcode:'6901234567900',categoryPath:'清洁用品/清洁用品/洗涤剂',warehouseName:'深圳创新仓',orderCount:112,returnCount:3,diffCount:1,orderQty:336.00,returnQty:9.00,diffQty:3.00,saleAmount:6720.00,returnAmount:180.00,diffAmount:30.00,actualReceived:6384.00},
+            {productName:'鸡胸肉',productCode:'P012',barcode:'6901234567901',categoryPath:'生鲜食品/肉禽蛋类/分割鸡',warehouseName:'广州番禺猪肉仓',orderCount:198,returnCount:7,diffCount:2,orderQty:594.00,returnQty:21.00,diffQty:6.00,saleAmount:11880.00,returnAmount:420.00,diffAmount:60.00,actualReceived:11286.00},
+        ]);
+
+        function onSort({field,order}) { sortState.field=field; sortState.order=order; doSearch(); }
+        function doSearch() { loading.value=true; setTimeout(()=>{loading.value=false;},400); }
+        function resetSearch() {
+            search.arrivalDateRange=null; search.category=null; search.productInfo=''; search.warehouse='';
+            sortState.field=''; sortState.order=''; pageNum.value=1; doSearch();
+        }
+        function doExport() {
+            ElementPlus.ElMessage.success('正在导出，请稍候...（按当前商品筛选条件，无条数上限，流式写入）');
+        }
+
+        /* ---- 单品详情抽屉 ---- */
+        const drawerVisible = ref(false);
+        const detailProduct = ref({});
+        const detailSearch = reactive({ dateRange: null, warehouse: '' });
+        const chartDimension = ref('orderCount');
+        const chartEmpty = ref(false);
+        const intervalLabel = ref('每天（≤1月）');
+        let chartInstance = null, cachedDaily = { dates: [], values: [] };
+
+        function openProductDetail(row) {
+            detailProduct.value = {...row};
+            detailSearch.dateRange = null; detailSearch.warehouse = '';
+            chartDimension.value = 'orderCount'; chartEmpty.value = false;
+            intervalLabel.value = '每天（≤1月）';
+            cachedDaily = {dates:[],values:[]};
+            drawerVisible.value = true;
+        }
+
+        function onDetailDateChange() { updateChart(); }
+        function doDetailSearch() { updateChart(); }
+        function resetDetailSearch() { detailSearch.dateRange=null; detailSearch.warehouse=''; updateChart(); }
+
+        function initChart() {
+            nextTick(() => {
+                const dom = document.getElementById('detail-chart');
+                if (!dom) return;
+                if (chartInstance) chartInstance.dispose();
+                chartInstance = echarts.init(dom);
+                updateChart();
+                window.addEventListener('resize', ()=>{if(chartInstance) chartInstance.resize();});
+            });
+        }
+        function disposeChart() { if (chartInstance) { chartInstance.dispose(); chartInstance=null; } }
+
+        function updateChart() {
+            if (!chartInstance) return;
+            const dim = chartDimension.value;
+            const label = dim === 'orderCount' ? '订单数' : '订购数';
+
+            // 确定日期范围（优先用抽屉筛选，否则默认最近30天）
+            let start, end;
+            if (detailSearch.dateRange && detailSearch.dateRange.length === 2) {
+                start = detailSearch.dateRange[0]; end = detailSearch.dateRange[1];
+            } else {
+                const now = new Date();
+                end = now.toISOString().slice(0,10);
+                const past = new Date(now); past.setDate(past.getDate()-29);
+                start = past.toISOString().slice(0,10);
+            }
+
+            // 计算采样间隔
+            const { interval, label: intLabel } = calcInterval(start, end);
+            intervalLabel.value = intLabel;
+
+            // 生成每日数据
+            const daily = generateDailyData(start, end, dim);
+            cachedDaily = daily;
+
+            // 按间隔采样
+            const sampled = sampleData(daily.dates, daily.values, interval);
+
+            chartInstance.setOption({
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        const p = params[0];
+                        if (p.value == null) return p.axisValue + '<br/>无数据';
+                        return p.axisValue + '<br/>' + p.seriesName + '：' + p.value;
+                    }
+                },
+                grid: { left:55, right:25, top:30, bottom:35 },
+                xAxis: {
+                    type: 'category', data: sampled.dates,
+                    axisLabel: { rotate: interval > 1 ? 30 : 45, fontSize: 11 },
+                },
+                yAxis: { type: 'value', name: '数量', minInterval: 1 },
+                series: [{
+                    name: label,
+                    type: 'line',
+                    data: sampled.values,
+                    smooth: false,
+                    connectNulls: true,
+                    symbol: interval > 1 ? 'circle' : 'emptyCircle',
+                    symbolSize: interval > 1 ? 8 : 5,
+                    lineStyle: { color: '#409eff', width: 2 },
+                    itemStyle: { color: '#409eff', borderColor: '#409eff', borderWidth: 1.5 },
+                }],
+            });
+        }
+
+        function goBack() { ElementPlus.ElMessage.info('返回上一级（商品统计报表）'); }
+
+        return {
+            search, sortState, loading, pageNum, pageSize, total,
+            categoryTree, warehouseOptions, tableData,
+            onSort, doSearch, resetSearch, doExport,
+            drawerVisible, detailProduct, detailSearch, chartDimension, chartEmpty, intervalLabel,
+            openProductDetail, onDetailDateChange, doDetailSearch, resetDetailSearch,
+            initChart, disposeChart, updateChart, goBack,
+        };
+    },
+});
+app.use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+</script>
+</body>
+</html>

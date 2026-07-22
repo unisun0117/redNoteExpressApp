@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>首页</title>
+  <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root { --van-primary-color: #ff0000; }
+    body {
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      margin: 0; padding: 0; box-sizing: border-box;
+    }
+    ::-webkit-scrollbar { display: none; }
+
+    /* ====== 顶部固定区 ====== */
+    .sticky-header {
+      position: sticky; top: 0; z-index: 50;
+      background: #fff; padding-bottom: 0;
+    }
+
+    /* 品牌行 */
+    .brand-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px 6px;
+    }
+    .logo-box {
+      width: 58px; height: 38px; background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 14px; font-weight: 800; letter-spacing: 1px;
+      flex-shrink: 0; line-height: 1.2; text-align: center; padding: 2px;
+    }
+    .search-bar {
+      flex: 1; height: 36px; background: #f3f4f6; border-radius: 18px;
+      display: flex; align-items: center; padding: 0 12px; gap: 6px;
+      font-size: 13px; color: #9ca3af; cursor: pointer; min-width: 0;
+    }
+    .search-bar:active { background: #e5e7eb; }
+    .close-btn {
+      width: 28px; height: 28px; border-radius: 50%; background: #f3f4f6;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: #6b7280; flex-shrink: 0; cursor: pointer;
+    }
+
+    /* 客户信息行 */
+    .customer-row {
+      padding: 4px 12px 8px; font-size: 17px; font-weight: 700; color: #1f2937;
+      display: flex; align-items: center; gap: 2px; background: #fff; cursor: pointer;
+    }
+    .customer-row .cust-arrow { color: #9ca3af; font-weight: 400; margin-left: 1px; font-size: 20px; }
+
+    /* ====== 公告横幅（客户信息行下方、品类页签上方） ====== */
+    .announce-banner {
+      margin: 0 12px; padding: 10px 14px; background: #fef2f2; border-radius: 8px;
+      display: flex; align-items: center; gap: 8px; cursor: pointer; min-height: 40px;
+      overflow: hidden;
+    }
+    .announce-banner:active { background: #fee2e2; }
+    .announce-banner-icon { font-size: 18px; flex-shrink: 0; line-height: 1; }
+    .announce-banner-text-wrap { flex: 1; min-width: 0; position: relative; height: 22px; overflow: hidden; }
+    .announce-banner-text {
+      position: absolute; top: 0; left: 0; width: 100%; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; font-size: 14px; color: #991b1b;
+      line-height: 22px; transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    .announce-banner-text.enter { opacity: 1; transform: translateY(0); }
+    .announce-banner-text.leave { opacity: 0; transform: translateY(-22px); }
+    .announce-banner-text.hidden { opacity: 0; transform: translateY(22px); }
+    .announce-banner-arrow { font-size: 13px; color: #b91c1c; flex-shrink: 0; }
+
+    /* 品类页签 */
+    .tabs-scroll {
+      display: flex; overflow-x: auto; gap: 6px; padding: 6px 12px 10px;
+      background: #fff; white-space: nowrap;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    .tabs-scroll::-webkit-scrollbar { display: none; }
+    .tab-pill {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 6px 14px; border-radius: 16px; font-size: 14px; font-weight: 500;
+      color: #6b7280; background: #f3f4f6; border: none; cursor: pointer;
+      flex-shrink: 0; transition: all 0.2s; font-family: inherit; white-space: nowrap;
+    }
+    .tab-pill.active {
+      background: #dc2626; color: #fff; font-weight: 600;
+    }
+
+    /* ====== 搜索模式 ====== */
+    .search-mode .brand-row { padding-bottom: 0; }
+    .search-input-row {
+      display: flex; align-items: center; gap: 8px; padding: 10px 12px 6px;
+    }
+    .search-input-wrap {
+      flex: 1; height: 36px; background: #f3f4f6; border-radius: 18px;
+      display: flex; align-items: center; padding: 0 12px; gap: 6px;
+    }
+    .search-input-wrap input {
+      flex: 1; border: none; outline: none; background: transparent;
+      font-size: 14px; color: #1f2937; font-family: inherit;
+    }
+    .search-input-wrap input::placeholder { color: #9ca3af; }
+    .search-cancel {
+      font-size: 14px; color: #dc2626; cursor: pointer; white-space: nowrap; border: none; background: none; font-family: inherit;
+    }
+
+    /* ====== 商品网格 ====== */
+    .product-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+      padding: 12px;
+    }
+    .product-card {
+      background: #fff; border-radius: 12px; overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05); cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .product-card:active { transform: scale(0.97); }
+    .product-img {
+      width: 100%; aspect-ratio: 1/1; object-fit: cover;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 48px; position: relative;
+    }
+    .product-img.has-activity { background: linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%); }
+    .product-img.no-activity { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); }
+    .badge-hui {
+      position: absolute; top: 8px; left: 8px;
+      background: #dc2626; color: #fff; font-size: 11px; font-weight: 700;
+      padding: 2px 7px; border-radius: 4px; line-height: 1.4;
+    }
+    .product-info {
+      padding: 10px 10px 12px; position: relative;
+    }
+    .product-name {
+      font-size: 14px; font-weight: 500; color: #1f2937;
+      line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 6px;
+    }
+    .product-price {
+      font-size: 17px; font-weight: 700; color: #dc2626;
+    }
+    .product-price .unit { font-size: 12px; font-weight: 500; }
+    .add-btn {
+      position: absolute; right: 10px; bottom: 12px;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: #dc2626; color: #fff; border: none;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; line-height: 1; cursor: pointer; font-family: inherit;
+      transition: transform 0.15s;
+    }
+    .add-btn:active { transform: scale(0.9); }
+
+    /* ====== 空状态 & 骨架屏 ====== */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 60px 20px; color: #9ca3af; font-size: 14px;
+    }
+    .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .skeleton-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px;
+    }
+    .skeleton-card { background: #fff; border-radius: 12px; overflow: hidden; }
+
+    /* 搜索无结果 */
+    .search-hint {
+      text-align: center; padding: 40px 20px; color: #9ca3af; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div id="prd-root">
+
+    <!-- ==================== 顶部固定区 ==================== -->
+    <div class="sticky-header" :class="{ 'search-mode': inSearch }">
+
+      <!-- 模式一：正常品牌行 -->
+      <div class="brand-row" v-if="!inSearch">
+        <div class="logo-box">钱鲜达</div>
+        <div class="search-bar" @click="enterSearch">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span>搜索商品/品类</span>
+        </div>
+        <div class="close-btn" @click="showToast('关闭小程序')">✕</div>
+      </div>
+
+      <!-- 模式二：搜索输入行 -->
+      <div class="search-input-row" v-if="inSearch">
+        <div class="search-input-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input ref="searchInputRef" type="text" v-model="searchKeyword" placeholder="搜索商品/品类" @input="doSearch" />
+        </div>
+        <button class="search-cancel" @click="exitSearch">取消</button>
+      </div>
+
+      <!-- 客户信息行 -->
+      <div class="customer-row" v-if="!inSearch" @click="showToast(isLoggedIn ? '查看个人信息' : '跳转登录页')">
+        <span v-if="isLoggedIn">{{ customerName }}</span>
+        <span v-else style="color:#9ca3af;">请登录</span>
+        <span class="cust-arrow">›</span>
+      </div>
+
+      <!-- 公告横幅（客户名称下方、品类页签上方，仅 icon + 标题，无红点） -->
+      <div class="announce-banner" v-if="!inSearch && isLoggedIn && bannerList.length > 0" @click="openAnnounce">
+        <span class="announce-banner-icon">📢</span>
+        <div class="announce-banner-text-wrap">
+          <span
+            v-for="(item, idx) in bannerList"
+            :key="item.id"
+            class="announce-banner-text"
+            :class="bannerTextClass(idx)"
+          >{{ item.title }}</span>
+        </div>
+        <span class="announce-banner-arrow">›</span>
+      </div>
+
+      <!-- 品类页签（正常模式） -->
+      <div class="tabs-scroll" v-if="!inSearch" ref="tabsRef">
+        <button
+          v-for="cat in categories" :key="cat.id"
+          class="tab-pill"
+          :class="{ active: activeCategoryId === cat.id }"
+          @click="switchCategory(cat.id)"
+        >{{ cat.name }}</button>
+      </div>
+
+    </div>
+
+    <!-- ==================== 内容区 ==================== -->
+
+    <!-- 加载态 -->
+    <div v-if="loading" class="skeleton-grid">
+      <div v-for="i in 6" :key="i" class="skeleton-card">
+        <div style="aspect-ratio:1;background:#f3f4f6;"></div>
+        <div style="padding:10px;">
+          <van-skeleton row="2" class="mb-1"></van-skeleton>
+          <van-skeleton row="1" row-width="50%"></van-skeleton>
+        </div>
+      </div>
+    </div>
+
+    <!-- 搜索模式：结果区 -->
+    <div v-else-if="inSearch">
+      <!-- 搜索中提示 -->
+      <div v-if="searchResults === null && searchKeyword.length > 0" class="search-hint">搜索中...</div>
+      <!-- 搜索有结果 -->
+      <div v-else-if="searchResults && searchResults.length > 0" class="product-grid">
+        <div
+          v-for="p in searchResults" :key="p.id"
+          class="product-card"
+          @click="showToast('跳转商品详情: ' + p.name)"
+        >
+          <div class="product-img" :class="p.hasActivity ? 'has-activity' : 'no-activity'">
+            <span>{{ p.emoji }}</span>
+            <span v-if="p.hasActivity" class="badge-hui">惠</span>
+          </div>
+          <div class="product-info">
+            <div class="product-name">{{ p.name }}</div>
+            <div class="product-price"><span class="unit">¥</span>{{ formatPrice(p.price) }}</div>
+            <button class="add-btn" @click.stop="addToCart(p)">+</button>
+          </div>
+        </div>
+      </div>
+      <!-- 搜索无结果 -->
+      <div v-else-if="searchResults && searchResults.length === 0" class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <div>未找到相关商品，换个关键词试试</div>
+      </div>
+      <!-- 未输入关键词 -->
+      <div v-else class="search-hint">输入关键词搜索商品或品类</div>
+    </div>
+
+    <!-- 正常模式：商品列表 -->
+    <div v-else>
+      <!-- 空状态 -->
+      <div v-if="currentProducts.length === 0" class="empty-state">
+        <div class="empty-icon">📦</div>
+        <div>该品类暂无商品</div>
+      </div>
+      <!-- 商品网格（一次性全量展示） -->
+      <div v-else class="product-grid">
+        <div
+          v-for="p in currentProducts" :key="p.id"
+          class="product-card"
+          @click="showToast('跳转商品详情: ' + p.name)"
+        >
+          <div class="product-img" :class="p.hasActivity ? 'has-activity' : 'no-activity'">
+            <span>{{ p.emoji }}</span>
+            <span v-if="p.hasActivity" class="badge-hui">惠</span>
+          </div>
+          <div class="product-info">
+            <div class="product-name">{{ p.name }}</div>
+            <div class="product-price"><span class="unit">¥</span>{{ formatPrice(p.price) }}</div>
+            <button class="add-btn" @click.stop="addToCart(p)">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+  <script>
+    const { createApp, ref, computed, nextTick, onMounted, onBeforeUnmount } = Vue;
+    createApp({
+      setup() {
+        // ============ 登录状态 ============
+        const isLoggedIn = ref(true);
+        const customerName = ref('张记食堂');
+
+        // ============ 品类数据 ============
+        const categories = ref([
+          { id: 'pork',    name: '猪肉类', hasActivity: true },
+          { id: 'vege',    name: '蔬菜类', hasActivity: false },
+          { id: 'seafood', name: '海鲜类', hasActivity: true },
+          { id: 'frozen',  name: '冻品类', hasActivity: true },
+          { id: 'grain',   name: '粮油类', hasActivity: false },
+          { id: 'egg',     name: '禽蛋类', hasActivity: false },
+          { id: 'drink',   name: '饮料类', hasActivity: false },
+          { id: 'dairy',   name: '乳品类', hasActivity: true },
+          { id: 'season',  name: '调味品', hasActivity: false },
+        ]);
+
+        // ============ 商品数据（按品类） ============
+        const productsByCategory = ref({
+          pork: [
+            { id:'p1', name:'精品五花肉',       emoji:'🥩', price:32.50, orderCount:1520 },
+            { id:'p2', name:'猪前排（肋排）',    emoji:'🍖', price:45.00, orderCount:1380 },
+            { id:'p3', name:'猪后腿肉（精瘦）',  emoji:'🥩', price:28.00, orderCount:1210 },
+            { id:'p4', name:'猪蹄（前蹄）',      emoji:'🍖', price:38.50, orderCount:980 },
+            { id:'p5', name:'梅花肉（猪颈肉）',  emoji:'🥩', price:35.00, orderCount:860 },
+            { id:'p6', name:'猪大骨（筒骨）',    emoji:'🦴', price:22.00, orderCount:740 },
+            { id:'p7', name:'猪里脊肉',          emoji:'🥩', price:30.00, orderCount:680 },
+            { id:'p8', name:'猪肚（鲜）',        emoji:'🥓', price:52.00, orderCount:550 },
+          ],
+          vege: [
+            { id:'v1', name:'有机西红柿',        emoji:'🍅', price:8.50,  orderCount:2100 },
+            { id:'v2', name:'新鲜黄瓜',          emoji:'🥒', price:5.00,  orderCount:1890 },
+            { id:'v3', name:'大白菜',            emoji:'🥬', price:3.50,  orderCount:1760 },
+            { id:'v4', name:'胡萝卜',            emoji:'🥕', price:6.00,  orderCount:1520 },
+            { id:'v5', name:'菠菜（有机）',      emoji:'🥬', price:9.00,  orderCount:1340 },
+            { id:'v6', name:'青椒',              emoji:'🫑', price:7.50,  orderCount:1180 },
+          ],
+          seafood: [
+            { id:'s1', name:'鲜活大明虾',        emoji:'🦐', price:68.00, orderCount:980 },
+            { id:'s2', name:'三文鱼（刺身级）',  emoji:'🐟', price:85.00, orderCount:860 },
+            { id:'s3', name:'带鱼（东海）',      emoji:'🐟', price:32.00, orderCount:750 },
+            { id:'s4', name:'鱿鱼（鲜）',        emoji:'🦑', price:28.00, orderCount:680 },
+            { id:'s5', name:'花蛤',              emoji:'🐚', price:15.00, orderCount:620 },
+            { id:'s6', name:'黄花鱼',            emoji:'🐟', price:42.00, orderCount:540 },
+          ],
+          frozen: [
+            { id:'f1', name:'速冻水饺（猪肉白菜）', emoji:'🥟', price:18.00, orderCount:1650 },
+            { id:'f2', name:'冷冻鸡胸肉',        emoji:'🍗', price:22.00, orderCount:1420 },
+            { id:'f3', name:'速冻汤圆（黑芝麻）',  emoji:'🍡', price:15.00, orderCount:1280 },
+            { id:'f4', name:'冷冻虾仁',          emoji:'🦐', price:48.00, orderCount:1050 },
+            { id:'f5', name:'速冻馄饨',          emoji:'🥟', price:20.00, orderCount:890 },
+          ],
+          grain: [
+            { id:'g1', name:'五常大米（5kg）',   emoji:'🍚', price:45.00, orderCount:1980 },
+            { id:'g2', name:'金龙鱼调和油（5L）', emoji:'🫒', price:68.00, orderCount:1720 },
+            { id:'g3', name:'面粉（中筋 2.5kg）', emoji:'🌾', price:22.00, orderCount:1450 },
+            { id:'g4', name:'小米（有机）',      emoji:'🌾', price:15.00, orderCount:1200 },
+          ],
+          egg: [
+            { id:'e1', name:'鲜鸡蛋（30枚装）',  emoji:'🥚', price:28.00, orderCount:2340 },
+            { id:'e2', name:'土鸡蛋（15枚装）',  emoji:'🥚', price:35.00, orderCount:1980 },
+            { id:'e3', name:'鸭蛋（鲜）',        emoji:'🦆', price:22.00, orderCount:1450 },
+          ],
+          drink: [
+            { id:'d1', name:'农夫山泉（24瓶装）',  emoji:'💧', price:36.00, orderCount:3200 },
+            { id:'d2', name:'可口可乐（330ml×12）', emoji:'🥤', price:42.00, orderCount:2800 },
+            { id:'d3', name:'王老吉凉茶（310ml×12）', emoji:'🧃', price:48.00, orderCount:1850 },
+          ],
+          dairy: [
+            { id:'l1', name:'蒙牛纯牛奶（250ml×16）', emoji:'🥛', price:56.00, orderCount:2600 },
+            { id:'l2', name:'伊利安慕希酸奶（205g×12）', emoji:'🍶', price:68.00, orderCount:2100 },
+            { id:'l3', name:'娃哈哈AD钙奶（220ml×24）', emoji:'🧃', price:38.00, orderCount:1750 },
+          ],
+          season: [
+            { id:'t1', name:'海天生抽（1.9L）',  emoji:'🫙', price:18.00, orderCount:2900 },
+            { id:'t2', name:'李锦记蚝油（700g）', emoji:'🫙', price:22.00, orderCount:2400 },
+            { id:'t3', name:'太太乐鸡精（454g）', emoji:'🫙', price:16.00, orderCount:1950 },
+          ],
+        });
+
+        // ============ 状态 ============
+        const loading = ref(true);
+        const activeCategoryId = ref('pork');
+        const searchInputRef = ref(null);
+
+        // 搜索状态
+        const inSearch = ref(false);
+        const searchKeyword = ref('');
+        const searchResults = ref(null); // null=未搜索, [] = 无结果, [...] = 有结果
+
+        // ============ 公告横幅数据 ============
+        const bannerList = ref([]);
+        const bannerActiveIdx = ref(0);
+        let bannerTimer = null;
+
+        // 模拟加载公告数据（延迟出现，不阻塞首页渲染）
+        setTimeout(() => {
+          if (isLoggedIn.value) {
+            bannerList.value = [
+              { id: 1, title: '每日满500元享95折优惠' },
+              { id: 2, title: '新客户首单8折优惠' },
+              { id: 3, title: '春节期间物流调整通知' },
+              { id: 4, title: '冷链配送标准全面升级' },
+              { id: 5, title: '系统维护升级公告' },
+            ];
+          }
+        }, 600);
+
+        // ============ Computed ============
+        const currentCategory = computed(() => {
+          return categories.value.find(c => c.id === activeCategoryId.value);
+        });
+
+        const currentProducts = computed(() => {
+          const raw = productsByCategory.value[activeCategoryId.value] || [];
+          const cat = currentCategory.value;
+          if (!cat) return [];
+
+          const hasAct = cat.hasActivity;
+          const marked = raw.map(p => ({ ...p, hasActivity: hasAct }));
+
+          const active = marked.filter(p => p.hasActivity).sort((a,b) => b.orderCount - a.orderCount);
+          const inactive = marked.filter(p => !p.hasActivity).sort((a,b) => b.orderCount - a.orderCount);
+
+          return [...active, ...inactive].slice(0, 50);
+        });
+
+        // ============ 品类切换 ============
+        const switchCategory = (catId) => {
+          if (activeCategoryId.value === catId) return;
+          loading.value = true;
+          activeCategoryId.value = catId;
+          // 模拟全量加载
+          setTimeout(() => { loading.value = false; }, 350);
+        };
+
+        // ============ 搜索 ============
+        const enterSearch = () => {
+          inSearch.value = true;
+          searchKeyword.value = '';
+          searchResults.value = null;
+          nextTick(() => {
+            if (searchInputRef.value) searchInputRef.value.focus();
+          });
+        };
+
+        const exitSearch = () => {
+          inSearch.value = false;
+          searchKeyword.value = '';
+          searchResults.value = null;
+        };
+
+        const doSearch = () => {
+          const kw = searchKeyword.value.trim();
+          if (kw.length === 0) {
+            searchResults.value = null;
+            return;
+          }
+
+          // 模拟后端搜索：在所有品类中按商品名/品类名模糊匹配
+          const allProducts = [];
+          categories.value.forEach(cat => {
+            const raw = productsByCategory.value[cat.id] || [];
+            const cmatch = cat.name.includes(kw); // 品类名匹配
+            raw.forEach(p => {
+              if (p.name.includes(kw) || cmatch) {
+                allProducts.push({ ...p, hasActivity: cat.hasActivity });
+              }
+            });
+          });
+
+          // 排序：活动优先 + 下单量降序
+          const active = allProducts.filter(p => p.hasActivity).sort((a,b) => b.orderCount - a.orderCount);
+          const inactive = allProducts.filter(p => !p.hasActivity).sort((a,b) => b.orderCount - a.orderCount);
+          searchResults.value = [...active, ...inactive];
+        };
+
+        // ============ 加购 ============
+        const addToCart = (product) => {
+          if (isLoggedIn.value) {
+            showToast('已加入购物车: ' + product.name);
+          } else {
+            showToast('请先登录');
+          }
+        };
+
+        // ============ 工具方法 ============
+        const showToast = (msg) => {
+          vant.showToast({ message: msg, duration: 1500 });
+        };
+
+        const formatPrice = (val) => {
+          return val.toFixed(2);
+        };
+
+        // ============ 公告横幅方法 ============
+        const bannerTextClass = (idx) => {
+          if (bannerList.value.length < 2) return 'enter';
+          if (idx === bannerActiveIdx.value) return 'enter';
+          const prev = bannerActiveIdx.value === 0 ? bannerList.value.length - 1 : bannerActiveIdx.value - 1;
+          if (idx === prev) return 'leave';
+          return 'hidden';
+        };
+
+        const startBannerScroll = () => {
+          if (bannerList.value.length < 2) return;
+          stopBannerScroll();
+          bannerActiveIdx.value = 0;
+          bannerTimer = setInterval(() => {
+            bannerActiveIdx.value = (bannerActiveIdx.value + 1) % bannerList.value.length;
+          }, 5000);
+        };
+
+        const stopBannerScroll = () => {
+          if (bannerTimer) { clearInterval(bannerTimer); bannerTimer = null; }
+        };
+
+        const openAnnounce = () => {
+          window.location.href = '../07-运营管理/公告-小程序-原型.html';
+        };
+
+        // 监听 bannerList 变化，数据就绪后启动滚动
+        const stopBannerWatch = Vue.watch(bannerList, (val) => {
+          if (val && val.length > 0) startBannerScroll();
+        });
+
+        onMounted(() => {
+          if (bannerList.value.length > 0) startBannerScroll();
+        });
+
+        onBeforeUnmount(() => {
+          stopBannerScroll();
+          if (stopBannerWatch) stopBannerWatch();
+        });
+
+        // 初始加载
+        setTimeout(() => { loading.value = false; }, 500);
+
+        return {
+          isLoggedIn, customerName,
+          categories, activeCategoryId,
+          loading, currentProducts,
+          switchCategory,
+          inSearch, searchKeyword, searchResults, searchInputRef,
+          enterSearch, exitSearch, doSearch,
+          bannerList, bannerActiveIdx, bannerTextClass, openAnnounce,
+          addToCart, showToast, formatPrice,
+        };
+      }
+    }).use(vant).mount('#prd-root');
+  </script>
+</body>
+</html>

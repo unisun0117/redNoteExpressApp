@@ -1,0 +1,6 @@
+# 单独看哪些文件不要上传git仓库
+CLAUDE.md
+.claude
+*.py
+!gemini.py
+!generate_ui.py

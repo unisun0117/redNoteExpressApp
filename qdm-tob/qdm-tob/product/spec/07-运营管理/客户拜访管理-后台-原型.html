@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户拜访</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <style>
+        :root { --primary: #409eff; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 10px;
+        }
+        .search-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+            padding-bottom: 0px;
+            margin-bottom: 10px;
+        }
+        .data-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .toolbar-left {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 0;
+            color: #909399;
+        }
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        .tag-new {
+            background: #f0f9eb;
+            color: #67c23a;
+            border: 1px solid #e1f3d8;
+        }
+        .tag-old {
+            background: #ecf5ff;
+            color: #409eff;
+            border: 1px solid #d9ecff;
+        }
+        .customer-link {
+            color: #409eff;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .customer-link:hover {
+            text-decoration: underline;
+        }
+        .address-cell {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div id="prd-root">
+        <!-- ========== 查询区 ========== -->
+        <div class="search-card">
+            <el-form :inline="true" :model="search">
+                <el-form-item label="客户名称">
+                    <el-input v-model="search.customerName" placeholder="请输入客户名称" clearable style="width:180px;"></el-input>
+                </el-form-item>
+                <el-form-item label="销售员">
+                    <el-input v-model="search.salesman" placeholder="请输入销售员姓名" clearable style="width:180px;"></el-input>
+                </el-form-item>
+                <el-form-item label="客户类型">
+                    <el-select v-model="search.customerType" placeholder="全部" clearable style="width:140px;">
+                        <el-option label="新客户" value="new"></el-option>
+                        <el-option label="老客户" value="old"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="提交时间">
+                    <el-date-picker
+                        v-model="search.dateRange"
+                        type="daterange"
+                        range-separator="至"
+                        start-placeholder="开始日期"
+                        end-placeholder="结束日期"
+                        value-format="YYYY-MM-DD"
+                        style="width:260px;"
+                    ></el-date-picker>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" @click="doSearch">查询</el-button>
+                    <el-button @click="resetSearch">重置</el-button>
+                </el-form-item>
+            </el-form>
+        </div>
+
+        <!-- ========== 操作&数据区 ========== -->
+        <div class="data-card">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <el-button @click="handleExport">导出</el-button>
+                </div>
+                <span style="font-size:14px; color:#909399;">共 <b style="color:#303133;">{{ total }}</b> 条记录</span>
+            </div>
+
+            <el-table
+                :data="tableData"
+                v-loading="loading"
+                stripe
+                style="width:100%;"
+                :header-cell-style="{background:'#f5f7fa', color:'#606266', fontWeight:500}"
+            >
+                <el-table-column type="selection" width="50"></el-table-column>
+                <el-table-column label="客户名称" width="150">
+                    <template #default="scope">
+                        <span class="customer-link" @click="goCustomerDetail(scope.row)">{{ scope.row.customerName }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="客户类型" width="100" align="center">
+                    <template #default="scope">
+                        <el-tag
+                            :class="scope.row.customerType === 'new' ? 'tag-new' : 'tag-old'"
+                            size="small"
+                            disable-transitions
+                        >{{ scope.row.customerType === 'new' ? '新客户' : '老客户' }}</el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="contactPerson" label="联系人" width="90"></el-table-column>
+                <el-table-column label="联系电话" width="140">
+                    <template #default="scope">
+                        <span style="color:#909399;">{{ maskPhone(scope.row.contactPhone) }}</span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="salesman" label="销售员" width="100"></el-table-column>
+                <el-table-column prop="visitTime" label="提交拜访时间" width="170"></el-table-column>
+                <el-table-column label="打卡地址" min-width="120">
+                    <template #default="scope">
+                        <el-tooltip :content="scope.row.address" placement="top" :disabled="!scope.row.address || scope.row.address.length < 25">
+                            <span class="address-cell">{{ scope.row.address || '-' }}</span>
+                        </el-tooltip>
+                    </template>
+                </el-table-column>
+                <el-table-column label="客户反馈" min-width="120">
+                    <template #default="scope">
+                        <el-tooltip :content="scope.row.feedback" placement="top" :disabled="!scope.row.feedback || scope.row.feedback.length < 20">
+                            <span class="address-cell" style="max-width:160px;">{{ scope.row.feedback || '-' }}</span>
+                        </el-tooltip>
+                    </template>
+                </el-table-column>
+                <el-table-column label="拜访记录" min-width="160">
+                    <template #default="scope">
+                        <el-tooltip :content="scope.row.visitNote" placement="top" :disabled="!scope.row.visitNote || scope.row.visitNote.length < 20">
+                            <span class="address-cell" style="max-width:160px;">{{ scope.row.visitNote || '-' }}</span>
+                        </el-tooltip>
+                    </template>
+                </el-table-column>
+            </el-table>
+
+            <div v-if="tableData.length === 0 && !loading" class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <div>暂无拜访记录</div>
+            </div>
+
+            <div style="margin-top:16px; display:flex; justify-content:flex-start;" v-if="total > 0">
+                <el-pagination
+                    v-model:current-page="pageNum"
+                    v-model:page-size="pageSize"
+                    :page-sizes="[10, 20, 50]"
+                    :total="total"
+                    layout="total, sizes, prev, pager, next"
+                    background
+                ></el-pagination>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/element-plus/dist/locale/zh-cn.js"></script>
+    <script>
+        const { createApp, ref, reactive, computed, watch } = Vue;
+
+        const app = createApp({
+            setup() {
+                // ================================================================
+                // Mock 数据
+                // ================================================================
+                const allRecords = ref([
+                    { id: 1, customerName: '金鹏员工食堂', customerType: 'old', contactPerson: '老板', contactPhone: '15268521693', salesman: '钟秀辉', visitTime: '2026-07-01 21:07:44', address: '广东省广州市黄埔区联和街道科汇三街12号金鹏员工食堂', feedback: '', visitNote: '拜访了解经营状况，客户表示近期客流量稳定，对菜品供应满意' },
+                    { id: 2, customerName: '农家土猪', customerType: 'new', contactPerson: '邓', contactPhone: '18675946002', salesman: '朱浩然', visitTime: '2026-07-01 19:03:20', address: '广东省广州市黄埔区大沙街道石化路1824号', feedback: '', visitNote: '首次拜访了解需求，客户主营土猪肉销售，日均采购量较大' },
+                    { id: 3, customerName: '恒信客家王', customerType: 'old', contactPerson: '李经理', contactPhone: '13396310872', salesman: '李润豪', visitTime: '2026-07-01 16:45:10', address: '广东省广州市天河区棠下街道中山大道西88号', feedback: '客户近期经营良好，对配送时效满意', visitNote: '常规回访，沟通下季度采购计划，客户有意增加生鲜品类采购' },
+                    { id: 4, customerName: '俞情风味', customerType: 'old', contactPerson: '陈总', contactPhone: '13800138001', salesman: '钟秀辉', visitTime: '2026-07-01 15:22:30', address: '广东省广州市黄埔区联和街道科学大道55号', feedback: '', visitNote: '处理客户前期反馈的配送问题，已协调仓库调整发货时间' },
+                    { id: 5, customerName: '宝利发餐厅', customerType: 'new', contactPerson: '黄', contactPhone: '13900139002', salesman: '朱浩然', visitTime: '2026-07-01 14:10:05', address: '广东省广州市越秀区北京路步行街12号宝利发餐厅', feedback: '新客户对菜品质量比较满意，有意向增加采购量', visitNote: '新客户开发拜访，介绍平台优势与下单流程，客户表示愿意尝试合作' },
+                    { id: 6, customerName: '啫火啫啫煲', customerType: 'old', contactPerson: '老板', contactPhone: '1111', salesman: '龙黄茜', visitTime: '2026-07-01 11:30:00', address: '广东省广州市海珠区江南大道中100号', feedback: '', visitNote: '' },
+                    { id: 7, customerName: '佬大勺', customerType: 'new', contactPerson: '赵', contactPhone: '13700137003', salesman: '李润豪', visitTime: '2026-06-30 17:55:20', address: '广东省广州市番禺区南村镇兴业大道233号', feedback: '反馈配送时间需调整', visitNote: '客户反馈配送时间与营业时间冲突，需协调调整为凌晨配送' },
+                    { id: 8, customerName: '深耕食堂', customerType: 'old', contactPerson: '周总', contactPhone: '00000', salesman: '龙黄茜', visitTime: '2026-06-30 10:15:45', address: '广东省广州市黄埔区萝岗街道香雪大道18号深耕食堂', feedback: '', visitNote: '定期走访维护客情，了解暑期食堂用餐量变化，提前沟通备货需求' },
+                ]);
+
+                // ================================================================
+                // 搜索 & 分页
+                // ================================================================
+                const search = reactive({ customerName: '', salesman: '', customerType: null, dateRange: null });
+                const pageNum = ref(1);
+                const pageSize = ref(20);
+                const loading = ref(false);
+
+                const filteredRecords = computed(() => {
+                    let list = allRecords.value;
+                    if (search.customerName) list = list.filter(r => r.customerName.toLowerCase().includes(search.customerName.toLowerCase()));
+                    if (search.salesman) list = list.filter(r => r.salesman.toLowerCase().includes(search.salesman.toLowerCase()));
+                    if (search.customerType === 'new') list = list.filter(r => r.customerType === 'new');
+                    if (search.customerType === 'old') list = list.filter(r => r.customerType === 'old');
+                    if (search.dateRange && search.dateRange.length === 2) {
+                        const [start, end] = search.dateRange;
+                        list = list.filter(r => r.visitTime >= start && r.visitTime <= end + ' 23:59:59');
+                    }
+                    return list;
+                });
+
+                const total = computed(() => filteredRecords.value.length);
+
+                const tableData = computed(() => {
+                    const start = (pageNum.value - 1) * pageSize.value;
+                    return filteredRecords.value.slice(start, start + pageSize.value);
+                });
+
+                watch([() => search.customerName, () => search.salesman, () => search.customerType, () => search.dateRange], () => { pageNum.value = 1; });
+
+                function doSearch() { pageNum.value = 1; }
+                function resetSearch() {
+                    search.customerName = '';
+                    search.salesman = '';
+                    search.customerType = null;
+                    search.dateRange = null;
+                    pageNum.value = 1;
+                }
+
+                // ================================================================
+                // 工具方法
+                // ================================================================
+                function maskPhone(phone) {
+                    if (!phone) return '-';
+                    if (phone.length < 7) return phone;
+                    return phone.slice(0, 3) + '****' + phone.slice(7);
+                }
+
+                function goCustomerDetail(row) {
+                    ElementPlus.ElMessage.info('跳转至客户档案详情：' + row.customerName + '（模拟跳转）');
+                }
+
+                function handleExport() {
+                    ElementPlus.ElMessage.success('导出中，共 ' + total.value + ' 条记录（模拟）');
+                }
+
+                return {
+                    search, pageNum, pageSize, loading,
+                    tableData, total,
+                    maskPhone, goCustomerDetail, handleExport,
+                    doSearch, resetSearch,
+                };
+            }
+        });
+
+        app.use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#prd-root');
+    </script>
+</body>
+</html>

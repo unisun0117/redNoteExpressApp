@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>消息公告</title>
+  <link rel="stylesheet" href="../../prd/lib/vant.css" />
+  <style>
+    :root { --van-primary-color: #ff0000; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+    }
+    ::-webkit-scrollbar { display: none; }
+
+    .page-wrapper { min-height: 100vh; display: flex; flex-direction: column; }
+
+    .van-nav-bar { border-bottom: 1px solid #f1f5f9 !important; }
+    .van-nav-bar__title { font-weight: 700 !important; font-size: 16px !important; }
+
+    /* ===== 列表容器 ===== */
+    .list-container { padding: 12px; }
+
+    /* ===== 公告卡片 ===== */
+    .card-item { margin-bottom: 10px; }
+    .ann-card {
+      background: #fff; border-radius: 12px; padding: 14px 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex;
+      align-items: center; cursor: pointer; position: relative;
+    }
+    .ann-card:active { background: #f9fafb; }
+    .ann-card-left { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 10px; }
+    .ann-card-icon { font-size: 18px; flex-shrink: 0; line-height: 1.4; margin-top: 1px; }
+    .ann-card-body { flex: 1; min-width: 0; }
+    .ann-card-title-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .ann-card-title {
+      font-size: 15px; font-weight: 600; color: #1f2937; line-height: 1.4;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;
+    }
+    .card-red-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #dc2626; flex-shrink: 0;
+    }
+    .ann-card-summary {
+      font-size: 13px; color: #9ca3af; line-height: 1.5;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ann-card-arrow { color: #d1d5db; font-size: 18px; margin-left: 10px; flex-shrink: 0; }
+
+    /* ===== 详情页 ===== */
+    .detail-content {
+      padding: 16px 20px; font-size: 15px; line-height: 1.8; color: #374151;
+    }
+    .detail-content h1, .detail-content h2, .detail-content h3 {
+      font-weight: 700; color: #1f2937; margin: 20px 0 12px;
+    }
+    .detail-content h2 { font-size: 18px; }
+    .detail-content h3 { font-size: 16px; }
+    .detail-content p { margin-bottom: 12px; }
+    .detail-content strong { font-weight: 600; }
+    .detail-content ul, .detail-content ol { margin-bottom: 12px; padding-left: 20px; }
+    .detail-content li { margin-bottom: 4px; }
+    .detail-meta {
+      text-align: center; font-size: 12px; color: #cbd5e1; padding: 16px 0 32px;
+    }
+
+    /* ===== 空状态 ===== */
+    .empty-wrap {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 80px 20px;
+    }
+    .empty-icon {
+      width: 80px; height: 80px; background: #f1f5f9; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 36px; margin-bottom: 16px;
+    }
+    .empty-text { font-size: 14px; color: #9ca3af; }
+
+    /* ===== 加载失败 ===== */
+    .error-wrap {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 80px 20px;
+    }
+    .error-text { font-size: 14px; color: #9ca3af; margin-bottom: 16px; }
+
+    /* ===== 骨架屏 ===== */
+    .skeleton-card {
+      background: #fff; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="prd-root"></div>
+
+  <script src="../../prd/lib/vue.global.js"></script>
+  <script src="../../prd/node_modules/vant/lib/vant.min.js"></script>
+
+  <script>
+    var app = Vue.createApp({
+      template: `
+        <!-- ========== 加载态（骨架屏） ========== -->
+        <div v-if="loading" class="list-container">
+          <div v-for="i in 3" :key="i" class="skeleton-card">
+            <van-skeleton row="1" row-width="55%" style="margin-bottom:8px;"></van-skeleton>
+            <van-skeleton row="1" row-width="85%"></van-skeleton>
+          </div>
+        </div>
+
+        <!-- ========== 加载失败 ========== -->
+        <div v-else-if="loadError" class="page-wrapper">
+          <van-nav-bar title="公告信息" left-arrow fixed placeholder @click-left="goBack" />
+          <div class="error-wrap">
+            <div class="empty-icon">📢</div>
+            <div class="error-text">加载失败，请下拉重试</div>
+            <van-button type="primary" size="small" @click="retryLoad">重新加载</van-button>
+          </div>
+        </div>
+
+        <!-- ========== 公告详情页（导航栏标题：公告消息） ========== -->
+        <div v-else-if="currentDoc" class="page-wrapper">
+          <van-nav-bar title="公告消息" left-arrow fixed placeholder @click-left="closeDetail" />
+
+          <div>
+            <div v-if="!currentDoc.content || currentDoc.content.trim() === ''" class="detail-content" style="text-align:center;color:#9ca3af;">
+              暂无内容
+            </div>
+            <div v-else class="detail-content" v-html="currentDoc.content"></div>
+            <div class="detail-meta" v-if="currentDoc.updatedAt">
+              更新时间：{{ currentDoc.updatedAt }}
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== 公告列表页（默认视图） ========== -->
+        <div v-else class="page-wrapper">
+          <van-nav-bar title="公告信息" left-arrow fixed placeholder @click-left="goBack" />
+
+          <!-- 空状态 -->
+          <div v-if="announcements.length === 0" class="empty-wrap">
+            <div class="empty-icon">📢</div>
+            <div class="empty-text">暂无公告</div>
+          </div>
+
+          <!-- 公告卡片列表 -->
+          <div v-else class="list-container">
+            <div v-for="item in announcements" :key="item.id" class="card-item">
+              <div class="ann-card" @click="openDetail(item)">
+                <div class="ann-card-left">
+                  <span class="ann-card-icon">📢</span>
+                  <div class="ann-card-body">
+                    <div class="ann-card-title-row">
+                      <span class="ann-card-title">{{ item.title }}</span>
+                      <span v-if="!isRead(item.id)" class="card-red-dot"></span>
+                    </div>
+                    <div class="ann-card-summary">{{ item.summary }}</div>
+                  </div>
+                </div>
+                <span class="ann-card-arrow">›</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `,
+      data() {
+        return {
+          loading: true,
+          loadError: false,
+          currentDoc: null,
+          announcements: [],
+          readIds: [],
+        };
+      },
+      created() {
+        var self = this;
+        self.loading = true;
+
+        // 读取本地已读记录
+        try {
+          var stored = localStorage.getItem('read_announcement_ids');
+          if (stored) {
+            self.readIds = JSON.parse(stored);
+          }
+        } catch (e) {
+          self.readIds = [];
+        }
+
+        // 模拟接口加载
+        setTimeout(function() {
+          self.announcements = [
+            {
+              id: 1,
+              title: '每日满500元享95折优惠',
+              summary: '为回馈广大客户，每日订单满500元即可享受95折优惠，活动长期有效不限品类。',
+              content: '<h2>每日满500元享95折优惠</h2><p>为回馈广大客户，即日起<strong>每日订单满500元</strong>即可享受95折优惠。</p><p><strong>活动说明：</strong></p><ul><li>订单金额满500元自动享受95折</li><li>不限品类，全平台通用</li><li>活动长期有效，如有调整另行通知</li></ul><p>如有疑问请联系您的客户经理或拨打客服热线。</p>',
+              updatedAt: '2026-07-05 14:20',
+            },
+            {
+              id: 2,
+              title: '新客户首单8折优惠',
+              summary: '欢迎新客户加入！首单专享8折优惠，折扣上限200元，每位新客户仅限参与一次。',
+              content: '<h2>新客户首单8折优惠</h2><p>欢迎新客户加入钱鲜达！为感谢您的信任，我们特别推出<strong>首单8折优惠</strong>活动。</p><p><strong>活动规则：</strong></p><ul><li>仅限首次下单的新客户参与</li><li>折扣上限200元</li><li>每位新客户仅限参与一次</li><li>活动有效期至2026年8月31日</li></ul><p>赶快下单体验吧！</p>',
+              updatedAt: '2026-07-04 09:30',
+            },
+            {
+              id: 3,
+              title: '春节期间物流调整通知',
+              summary: '春节期间（1月28日至2月4日）配送服务将暂停，请各位客户提前做好备货安排。',
+              content: '<h2>春节期间物流调整通知</h2><p>尊敬的客户：</p><p>2026年春节将至，春节期间物流配送安排如下：</p><p><strong>一、停运时间</strong></p><p>2026年1月28日（除夕）至2月4日（初七）暂停配送服务。</p><p><strong>二、恢复时间</strong></p><p>2026年2月5日（初八）起恢复正常配送。</p><p><strong>三、温馨提示</strong></p><p>请各位客户提前做好春节备货计划，建议在1月25日前完成节前最后一次下单。</p>',
+              updatedAt: '2026-07-03 16:45',
+            },
+            {
+              id: 4,
+              title: '冷链配送标准全面升级',
+              summary: '所有生鲜品类均采用冷链配送，确保食材新鲜度，配送温度严格控制在0-4℃。',
+              content: '<h2>冷链配送标准全面升级</h2><p>为进一步提升食材品质和客户体验，即日起<strong>冷链配送标准全面升级</strong>：</p><p><strong>升级内容：</strong></p><ul><li>所有生鲜品类（蔬菜、水果、肉类、海鲜、冻品）均采用冷链配送</li><li>配送温度严格控制在0-4℃</li><li>冷链车辆配备GPS温度监控系统，全程可追溯</li></ul><p>全平台所有大区同步实施。</p>',
+              updatedAt: '2026-07-02 11:15',
+            },
+            {
+              id: 5,
+              title: '系统维护升级公告',
+              summary: '平台将于7月10日凌晨2:00-4:00进行维护升级，届时小程序暂停服务，请提前安排下单。',
+              content: '<h2>系统维护升级公告</h2><p>尊敬的客户：</p><p>平台将于<strong>2026年7月10日凌晨2:00-4:00</strong>进行系统维护升级。</p><p><strong>影响范围：</strong></p><ul><li>维护期间小程序将暂停服务</li><li>不影响已下单的订单正常配送</li></ul><p>请您提前安排好下单时间，避开维护时段。由此给您带来的不便，敬请谅解！</p>',
+              updatedAt: '2026-07-01 08:00',
+            },
+          ];
+          self.loading = false;
+        }, 500);
+      },
+      methods: {
+        retryLoad() {
+          this.loading = true;
+          this.loadError = false;
+          var self = this;
+          setTimeout(function() {
+            self.loading = false;
+          }, 500);
+        },
+
+        // ========== 已读判定（红点仅列表卡片展示） ==========
+        isRead(id) {
+          return this.readIds.indexOf(id) !== -1;
+        },
+
+        markAsRead(id) {
+          if (this.readIds.indexOf(id) === -1) {
+            this.readIds.push(id);
+          }
+        },
+
+        saveReadIds() {
+          try {
+            localStorage.setItem('read_announcement_ids', JSON.stringify(this.readIds));
+          } catch (e) {}
+        },
+
+        // ========== 页面导航 ==========
+        openDetail(item) {
+          this.markAsRead(item.id);
+          this.saveReadIds();
+          this.currentDoc = item;
+        },
+
+        closeDetail() {
+          this.currentDoc = null;
+        },
+
+        goBack() {
+          // 列表页返回首页（通知父框架）
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ action: 'back' }, '*');
+          }
+        },
+      },
+    });
+
+    app.use(vant).mount('#prd-root');
+  </script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>购物车</title>
+  <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root { --van-primary-color: #ff0000; }
+    body {
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      margin: 0; padding: 0; padding-bottom: 100px; box-sizing: border-box;
+    }
+    ::-webkit-scrollbar { display: none; }
+    .stepper-btn {
+      width: 28px; height: 28px; border-radius: 6px; border: 1px solid #e2e8f0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; cursor: pointer; background: #fff; color: #64748b;
+      font-family: inherit; transition: all 0.15s;
+    }
+    .stepper-btn:active { background: #f1f5f9; }
+    .stepper-val { width: 36px; text-align: center; font-size: 14px; font-weight: 600; color: #1e293b; }
+  </style>
+</head>
+<body>
+  <div id="prd-root" class="pb-20">
+
+    <!-- 按到货日期分组 -->
+    <div v-for="(group, gi) in groups" :key="gi" class="bg-white rounded-xl mx-3 mt-3 overflow-hidden shadow-sm">
+
+      <!-- 分组头部 -->
+      <div class="flex items-center px-3 py-3 border-b border-slate-50">
+        <van-icon
+          :name="group.allChecked ? 'checked' : (group.checkedCount > 0 ? 'checked' : 'circle')"
+          :size="20"
+          :color="group.allChecked ? '#dc2626' : (group.checkedCount > 0 ? '#dc2626' : '#c0c4cc')"
+          @click="toggleGroup(gi)"
+          class="cursor-pointer"
+        ></van-icon>
+        <span class="text-sm font-semibold text-slate-800 ml-2">{{ group.dateLabel }} 到货</span>
+        <span class="text-xs text-red-500 ml-auto cursor-pointer flex items-center gap-1" @click="showDatePickerFor = gi">
+          切换到货日期 <van-icon name="arrow-up" size="10"></van-icon>
+        </span>
+      </div>
+
+      <!-- 商品列表 -->
+      <div
+        v-for="(item, ii) in group.items" :key="ii"
+        class="flex items-center gap-3 px-3 py-3 border-b border-slate-50 last:border-b-0"
+      >
+        <!-- 勾选框 -->
+        <van-icon
+          :name="item.checked ? 'checked' : 'circle'"
+          :size="18"
+          :color="item.checked ? '#dc2626' : '#c0c4cc'"
+          @click="toggleItem(gi, ii)"
+          class="cursor-pointer shrink-0"
+        ></van-icon>
+
+        <!-- 商品图片 -->
+        <div class="w-16 h-16 rounded-lg bg-slate-100 flex items-center justify-center text-2xl text-slate-300 shrink-0">📦</div>
+
+        <!-- 商品信息 -->
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-semibold text-slate-800 truncate">{{ item.name }}</div>
+          <div class="text-xs text-slate-400 mt-0.5">{{ item.spec }}</div>
+          <div class="text-sm font-bold text-red-600 mt-1">¥{{ item.price }}/{{ item.unit }}</div>
+          <div v-if="item.discount > 0" class="text-xs text-red-500 mt-0.5">已优惠 ¥{{ item.discount }} 元</div>
+        </div>
+
+        <!-- 数量步进器 -->
+        <div class="flex items-center gap-0 shrink-0">
+          <button class="stepper-btn" @click="changeQty(gi, ii, -1)">−</button>
+          <span class="stepper-val">{{ item.qty }}</span>
+          <button class="stepper-btn" @click="changeQty(gi, ii, 1)">+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 空购物车 -->
+    <div v-if="groups.length === 0" class="text-center py-24 text-slate-400">
+      <div class="text-6xl mb-4">🛒</div>
+      <div class="text-base">购物车是空的</div>
+      <van-button type="primary" round class="mt-4" @click="vant.showToast('跳转首页')">去逛逛</van-button>
+    </div>
+
+    <!-- 日期选择弹窗 -->
+    <van-popup v-model:show="showPicker" position="bottom" round>
+      <van-datetime-picker
+        v-model="pickerDate"
+        type="date"
+        title="选择配送日期"
+        :min-date="minDate"
+        :max-date="maxDate"
+        @confirm="onDateConfirm"
+        @cancel="showPicker = false"
+      ></van-datetime-picker>
+    </van-popup>
+
+    <!-- 底部固定栏 -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 z-50" style="padding-bottom: calc(8px + env(safe-area-inset-bottom, 16px));">
+      <!-- 价格明细（可展开） -->
+      <div class="px-3 pt-2" v-if="showPriceDetail">
+        <div class="flex justify-between text-xs text-slate-500 py-1">
+          <span>商品总额</span><span>¥{{ calc.goodsTotal }}</span>
+        </div>
+        <div class="flex justify-between text-xs text-red-500 py-1">
+          <span>促销立减</span><span>-¥{{ calc.discountTotal }}</span>
+        </div>
+        <div class="flex justify-between text-xs text-slate-500 py-1">
+          <span>运费</span><span>¥{{ calc.freight }}</span>
+        </div>
+      </div>
+      <!-- 主体操作栏 -->
+      <div class="flex items-center px-3 py-2">
+        <div class="flex-1 cursor-pointer" @click="showPriceDetail = !showPriceDetail">
+          
+          <div class="flex items-center gap-1">
+            <div class="text-xl font-bold text-slate-800">¥{{ calc.payTotal }}</div>
+            <div class="text-xs text-red-500">共减 ¥{{ calc.discountTotal }} <van-icon :name="showPriceDetail ? 'arrow-down' : 'arrow-up'" size="10"></van-icon></div>
+          </div>
+          <div class="text-xs text-slate-400" v-if="calc.gapToFree > 0">
+            还差 ¥{{ calc.gapToFree }} 可减免运费 ¥{{ calc.freeFreight }}
+          </div>
+          <div class="text-xs text-emerald-500" v-else>已免运费</div>
+        </div>
+        <van-button
+          type="primary"
+          round
+          size="large"
+          class="font-semibold"
+          :disabled="checkedCount === 0"
+          style="max-width: 120px;"
+          @click="goCheckout"
+        >去结算 {{ checkedCount }}</van-button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+  <script>
+    const { createApp, ref, reactive, computed } = Vue;
+    createApp({
+      setup() {
+        const showPicker = ref(false);
+        const showDatePickerFor = ref(-1);
+        const showPriceDetail = ref(false);
+        const pickerDate = ref([2026, 6, 16]);
+        const minDate = new Date(2026, 0, 1);
+        const maxDate = new Date(2026, 11, 31);
+
+        const groups = ref([
+          {
+            date: '06月16日', dateLabel: '06月16日',
+            items: [
+              { name: '某某商品名称', spec: '五花肉5斤装', price: '0.5', unit: '盒', qty: 1, checked: false, discount: 0 },
+              { name: '某某商品名称', spec: '五花肉5斤装', price: '0.5', unit: '盒', qty: 1, checked: false, discount: 0 },
+              { name: '某某商品名称', spec: '五花肉5斤装', price: '0.5', unit: '盒', qty: 1, checked: false, discount: 10 },
+            ],
+          },
+        ]);
+        // init computed for groups
+        groups.value.forEach(g => updateGroup(g));
+
+        function updateGroup(g) {
+          const checked = g.items.filter(i => i.checked);
+          g.checkedCount = checked.length;
+          g.allChecked = g.items.length > 0 && checked.length === g.items.length;
+        }
+
+        const checkedCount = computed(() => {
+          let n = 0;
+          groups.value.forEach(g => g.items.forEach(i => { if (i.checked) n++; }));
+          return n;
+        });
+
+        const calc = computed(() => {
+          let goodsTotal = 0, discountTotal = 0;
+          groups.value.forEach(g => g.items.forEach(i => {
+            if (i.checked) { goodsTotal += parseFloat(i.price) * i.qty; discountTotal += i.discount * i.qty; }
+          }));
+          const freight = goodsTotal >= 500 ? 0 : 25;
+          const freeFreight = 25;
+          const gapToFree = Math.max(0, 500 - goodsTotal);
+          const payTotal = (goodsTotal - discountTotal + freight).toFixed(2);
+          return { goodsTotal: goodsTotal.toFixed(2), discountTotal: discountTotal.toFixed(2), freight: freight.toFixed(2), freeFreight: freeFreight.toFixed(2), gapToFree: gapToFree.toFixed(2), payTotal };
+        });
+
+        function toggleGroup(gi) {
+          const g = groups.value[gi];
+          const newVal = !g.allChecked;
+          g.items.forEach(i => i.checked = newVal);
+          updateGroup(g);
+        }
+        function toggleItem(gi, ii) {
+          const g = groups.value[gi];
+          g.items[ii].checked = !g.items[ii].checked;
+          updateGroup(g);
+        }
+        function changeQty(gi, ii, delta) {
+          const item = groups.value[gi].items[ii];
+          const newQty = item.qty + delta;
+          if (newQty < 1) {
+            vant.showConfirmDialog({ title: '提示', message: '确定删除该商品吗？', confirmButtonColor: '#dc2626' })
+              .then(() => {
+                groups.value[gi].items.splice(ii, 1);
+                if (groups.value[gi].items.length === 0) groups.value.splice(gi, 1);
+              }).catch(() => {});
+            return;
+          }
+          item.qty = newQty;
+          updateGroup(groups.value[gi]);
+        }
+        function onDateConfirm(val) {
+          const gi = showDatePickerFor.value;
+          if (gi >= 0 && gi < groups.value.length) {
+            const d = val.selectedValues;
+            groups.value[gi].date = String(d[1]).padStart(2, '0') + '月' + String(d[2]).padStart(2, '0') + '日';
+            groups.value[gi].dateLabel = groups.value[gi].date;
+          }
+          showPicker.value = false;
+        }
+        function goCheckout() {
+          if (checkedCount.value === 0) return;
+          window.location.href = '销售订单-小程序-结算-原型.html';
+        }
+
+        return {
+          groups, showPicker, showDatePickerFor, showPriceDetail, pickerDate, minDate, maxDate,
+          checkedCount, calc,
+          toggleGroup, toggleItem, changeQty, onDateConfirm, goCheckout,
+        };
+      }
+    }).use(vant).mount('#prd-root');
+  </script>
+</body>
+</html>

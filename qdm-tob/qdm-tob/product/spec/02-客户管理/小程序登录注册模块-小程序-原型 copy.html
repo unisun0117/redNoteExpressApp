@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>登录注册 · 钱鲜达</title>
+  <style>
+    :root {
+      --bg:#f2f2f7; --surface:#fff; --fg:#1a1a1a; --fg-2:#666; --muted:#999; --border:#e5e5e5;
+      --accent:#FF5701; --accent-hover:#e64d00; --wechat:#07C160; --wechat-hover:#06ad56; --success:#16A34A; --danger:#DC2626;
+      --font-body:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+      --radius-sm:8px; --radius-md:12px; --radius-pill:9999px;
+      --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px; --space-8:32px; --space-12:48px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{width:100%;min-height:100vh;background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;align-items:flex-start;justify-content:center;padding:0}
+    .phone-frame{width:100%;max-width:375px;min-height:100vh;background:var(--surface);position:relative;overflow:hidden;box-shadow:0 0 0 1px var(--border)}
+    @media(min-width:415px){html,body{align-items:center;padding:24px 0}.phone-frame{min-height:720px;border-radius:24px}}
+    .page{display:none;flex-direction:column;min-height:100vh;padding:var(--space-8) var(--space-6);align-items:center}
+    .page.active{display:flex}
+    .login-logo{text-align:center;margin-top:60px;margin-bottom:var(--space-8)}
+    .login-logo-box{width:64px;height:64px;background:var(--accent);border-radius:16px;margin:0 auto var(--space-4);display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:700}
+    .login-logo-text{font-size:22px;font-weight:700}
+    .login-desc{text-align:center;color:var(--fg-2);font-size:14px;margin-bottom:var(--space-8)}
+    .btn-wechat{width:100%;height:48px;border:none;border-radius:var(--radius-sm);background:var(--wechat);color:#fff;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:var(--space-4);font-family:var(--font-body)}
+    .btn-wechat:active{background:var(--wechat-hover)}
+    .btn-wechat:disabled{background:#ccc;cursor:not-allowed}
+    .btn-phone{width:100%;height:44px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--fg-2);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-family:var(--font-body);margin-bottom:var(--space-6)}
+    .btn-phone:hover{border-color:var(--accent);color:var(--accent)}
+    .agreement-row{display:flex;align-items:flex-start;gap:6px;font-size:12px;color:var(--fg-2);margin-top:auto;width:100%}
+    .agreement-row input[type=checkbox]{width:16px;height:16px;margin-top:2px;accent-color:var(--accent);flex-shrink:0}
+    .agreement-row a{color:var(--accent);text-decoration:none}
+    .bottom-link{text-align:center;font-size:13px;color:var(--fg-2);margin-top:var(--space-4)}
+    .bottom-link a{color:var(--accent);text-decoration:none}
+    .field-group{margin-bottom:var(--space-4);width:100%}
+    .field-label{font-size:13px;color:var(--fg-2);margin-bottom:4px}
+    .field-input{width:100%;height:44px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 var(--space-3);font-size:15px;font-family:var(--font-body);outline:none}
+    .field-input:focus{border-color:var(--accent)}
+    .field-input::placeholder{color:var(--muted)}
+    .input-row{display:flex;gap:var(--space-3)}
+    .input-row .field-input{flex:1}
+    .btn-sms{height:44px;padding:0 var(--space-4);border:1px solid var(--accent);border-radius:var(--radius-sm);background:#fff;color:var(--accent);font-size:13px;white-space:nowrap;cursor:pointer;font-family:var(--font-body)}
+    .btn-sms:disabled{color:var(--muted);border-color:var(--border);background:var(--bg);cursor:not-allowed}
+    .btn-primary{width:100%;height:48px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-size:16px;font-weight:600;cursor:pointer;margin-top:var(--space-2);font-family:var(--font-body)}
+    .btn-primary:active{background:var(--accent-hover)}
+    .btn-primary:disabled{background:#ccc;cursor:not-allowed}
+    .page-title{font-size:22px;font-weight:700;margin-bottom:var(--space-6);width:100%;text-align:center}
+    .page-subtitle{font-size:13px;color:var(--fg-2);margin-bottom:var(--space-6);text-align:center}
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100}
+    .overlay.show{display:block}
+    .bottom-sheet{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:100%;max-width:375px;background:var(--surface);border-radius:var(--radius-md) var(--radius-md) 0 0;z-index:101;padding:var(--space-4) var(--space-6) calc(var(--space-6) + env(safe-area-inset-bottom,16px));transition:transform .3s cubic-bezier(.32,.72,0,1)}
+    .bottom-sheet.show{transform:translateX(-50%) translateY(0)}
+    .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto var(--space-4)}
+    .sheet-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-5)}
+    .sheet-title{font-size:17px;font-weight:600}
+    .sheet-close{width:28px;height:28px;border:none;background:var(--bg);border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--fg-2);font-family:var(--font-body)}
+    .toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.82);color:#fff;padding:10px 20px;border-radius:var(--radius-pill);font-size:13px;z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
+    .toast.show{opacity:1}
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:center;justify-content:center}
+    .modal-overlay.show{display:flex}
+    .modal-box{background:#fff;border-radius:var(--radius-md);width:300px;padding:var(--space-6);text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.15)}
+    .modal-title{font-size:16px;font-weight:600;color:var(--fg);margin-bottom:var(--space-3)}
+    .modal-body{font-size:14px;color:var(--fg-2);line-height:1.6;margin-bottom:var(--space-5)}
+    .modal-body a{color:var(--accent);text-decoration:none}
+    .modal-btns{display:flex;gap:var(--space-3)}
+    .modal-btn{flex:1;height:40px;border:none;border-radius:var(--radius-sm);font-size:15px;cursor:pointer;font-family:var(--font-body)}
+    .modal-btn-cancel{background:var(--bg);color:var(--fg-2)}
+    .modal-btn-confirm{background:var(--accent);color:#fff}
+    .welcome-icon{width:80px;height:80px;background:var(--success);border-radius:50%;margin-top:80px;margin-bottom:var(--space-6);display:flex;align-items:center;justify-content:center;font-size:40px;color:#fff}
+    .welcome-text{text-align:center;font-size:18px;font-weight:600;margin-bottom:var(--space-2)}
+    .welcome-sub{text-align:center;font-size:14px;color:var(--fg-2)}
+    .btn-logout{width:80%;height:44px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff;color:var(--fg-2);font-size:15px;cursor:pointer;margin-top:var(--space-8);font-family:var(--font-body)}
+  </style>
+</head>
+<body>
+  <div class="phone-frame" id="app">
+    <!-- ========== 登录页 ========== -->
+    <div class="page active" id="page-login">
+      <div class="login-logo">
+        <div class="login-logo-box">Q</div>
+        <div class="login-logo-text">钱鲜达</div>
+      </div>
+      <div class="login-desc">生鲜供应链 · 一站式采购平台</div>
+      <button class="btn-wechat" onclick="handleWechatLogin()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.332.332 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.742 2.04 2.439 3.379 4.4 4.099a9.29 9.29 0 0 0 3.467.493c.912 0 1.826-.148 2.707-.432l1.573.922a.338.338 0 0 0 .162.053.286.286 0 0 0 .285-.287c0-.07-.03-.14-.048-.206l-.334-1.27a.57.57 0 0 1 .208-.644c1.343-.971 2.289-2.297 2.289-3.757 0-3.443-3.615-5.997-7.55-5.997zm-3.338 2.721c.476 0 .861.393.861.878a.87.87 0 0 1-.861.875.87.87 0 0 1-.862-.875c0-.485.386-.878.862-.878zm4.82 0c.476 0 .862.393.862.878a.87.87 0 0 1-.862.875.87.87 0 0 1-.862-.875c0-.485.386-.878.862-.878z"/></svg>
+        微信一键登录
+      </button>
+      <button class="btn-phone" onclick="openPhoneSheet()">手机号登录</button>
+      <div class="agreement-row">
+        <input type="checkbox" id="agreement-login" onchange="syncAgreement()" />
+        <span>我已认真阅读、理解和同意<a href="#">《钱鲜达服务协议》</a>、<a href="#">《隐私政策》</a>，授权使用本手机号码登录</span>
+      </div>
+      <div class="bottom-link">没有账号？<a href="#" onclick="switchPage('register')">去注册</a></div>
+    </div>
+
+    <!-- ========== 注册页 ========== -->
+    <div class="page" id="page-register">
+      <div class="page-title">注册账号</div>
+      <div class="field-group"><div class="field-label">姓名</div><input class="field-input" type="text" id="reg-name" placeholder="请输入姓名" maxlength="50" /></div>
+      <div class="field-group"><div class="field-label">手机号</div><input class="field-input" type="tel" id="reg-phone" placeholder="请输入手机号" maxlength="11" /></div>
+      <div class="field-group"><div class="field-label">验证码</div><div class="input-row"><input class="field-input" type="tel" id="reg-sms" placeholder="请输入验证码" maxlength="6" /><button class="btn-sms" id="reg-sms-btn" onclick="sendSms('reg')">获取验证码</button></div></div>
+      <button class="btn-primary" id="reg-submit" disabled onclick="handleRegister()">注册</button>
+      <div class="agreement-row" style="margin-top:var(--space-4);">
+        <input type="checkbox" id="agreement-reg" onchange="checkRegSubmit()" />
+        <span>我已认真阅读、理解和同意<a href="#">《钱鲜达服务协议》</a>、<a href="#">《隐私政策》</a>，授权使用本手机号码注册</span>
+      </div>
+      <div class="bottom-link">已有账号？<a href="#" onclick="switchPage('login')">去登录</a></div>
+    </div>
+
+
+    <!-- ========== 首页 ========== -->
+    <div class="page" id="page-home">
+      <div class="welcome-icon">&#10003;</div>
+      <div class="welcome-text" id="welcome-name">欢迎，用户</div>
+      <div class="welcome-sub">您已成功登录钱鲜达</div>
+      <button class="btn-logout" onclick="handleLogout()">退出登录</button>
+    </div>
+
+    <!-- ========== 底部 Sheet：手机号登录 ========== -->
+    <div class="overlay" id="overlay" onclick="closePhoneSheet()"></div>
+    <div class="bottom-sheet" id="phone-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header"><span class="sheet-title">手机号登录</span><button class="sheet-close" onclick="closePhoneSheet()">&times;</button></div>
+      <div class="field-group"><div class="field-label">手机号</div><input class="field-input" type="tel" id="login-phone" placeholder="请输入手机号" maxlength="11" /></div>
+      <div class="field-group"><div class="field-label">验证码</div><div class="input-row"><input class="field-input" type="tel" id="login-sms" placeholder="请输入验证码" maxlength="6" /><button class="btn-sms" id="login-sms-btn" onclick="sendSms('login')">获取验证码</button></div></div>
+      <button class="btn-primary" onclick="handlePhoneLogin()">登录</button>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- ========== 协议确认弹框 ========== -->
+    <div class="modal-overlay" id="agreement-modal">
+      <div class="modal-box">
+        <div class="modal-title">已阅读并且同意协议</div>
+        <div class="modal-body">先阅读并同意<a href="#">《钱鲜达服务协议》</a>和<a href="#">《隐私政策》</a>后再继续操作</div>
+        <div class="modal-btns">
+          <button class="modal-btn modal-btn-cancel" onclick="closeAgreementModal()">取消</button>
+          <button class="modal-btn modal-btn-confirm" id="modal-confirm-btn" onclick="confirmAgreement()">确定</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var agreed=false, smsTimers={}, loggedInUser=null, pendingAction=null;
+    function $(id){return document.getElementById(id)}
+    function switchPage(name){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});var el=$('page-'+name);if(el)el.classList.add('active')}
+    function syncAgreement(){agreed=$('agreement-login').checked;$('agreement-reg').checked=agreed}
+    function checkRegSubmit(){agreed=$('agreement-reg').checked;$('agreement-login').checked=agreed;updateRegSubmit()}
+    function updateRegSubmit(){var n=$('reg-name').value.trim(),p=$('reg-phone').value.trim(),s=$('reg-sms').value.trim();$('reg-submit').disabled=!(n&&p&&s&&agreed)}
+    ['reg-name','reg-phone','reg-sms'].forEach(function(id){$(id).addEventListener('input',updateRegSubmit)})
+    function showToast(msg){var t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+    function showAgreementModal(cb){pendingAction=cb;$('agreement-modal').classList.add('show')}
+    function closeAgreementModal(){pendingAction=null;$('agreement-modal').classList.remove('show')}
+    function confirmAgreement(){agreed=true;$('agreement-login').checked=true;$('agreement-reg').checked=true;$('agreement-modal').classList.remove('show');var cb=pendingAction;pendingAction=null;if(cb)cb()}
+    function sendSms(type){var ph=$((type==='login'?'login-phone':type+'-phone'));var btn=$(type+'-sms-btn');var phone=ph.value.trim();if(!/^1[3-9]\d{9}$/.test(phone)){showToast('请输入正确的手机号');return}if(smsTimers[type])return;btn.disabled=true;var sec=60;btn.textContent=sec+'s后重新获取';smsTimers[type]=setInterval(function(){sec--;if(sec<=0){clearInterval(smsTimers[type]);smsTimers[type]=null;btn.disabled=false;btn.textContent='获取验证码'}else{btn.textContent=sec+'s后重新获取'}},1000);showToast('验证码已发送')}
+    function handleWechatLogin(){if(!agreed){showAgreementModal(function(){handleWechatLogin()});return}showToast('微信授权中（获取openId+手机号）...');setTimeout(function(){showToast('检测到后台预置账号，已自动绑定微信信息并登录');loggedInUser='客户（微信自动绑定）';$('welcome-name').textContent='欢迎，'+loggedInUser;setTimeout(function(){switchPage('home')},600)},1000)}
+    function openPhoneSheet(){if(!agreed){showAgreementModal(function(){openPhoneSheet()});return}$('overlay').classList.add('show');$('phone-sheet').classList.add('show')}
+    function closePhoneSheet(){$('overlay').classList.remove('show');$('phone-sheet').classList.remove('show')}
+    function handlePhoneLogin(){var ph=$('login-phone').value.trim(),sm=$('login-sms').value.trim();if(!ph){showToast('请输入手机号');return}if(!sm){showToast('请输入验证码');return}closePhoneSheet();showToast('登录成功');loggedInUser='客户('+ph.slice(0,3)+'****'+ph.slice(7)+')';$('welcome-name').textContent='欢迎，'+loggedInUser;setTimeout(function(){switchPage('home')},500)}
+    function handleRegister(){var n=$('reg-name').value.trim(),ph=$('reg-phone').value.trim(),sm=$('reg-sms').value.trim();if(!n||!ph||!sm)return;showToast('注册成功');loggedInUser=n;$('welcome-name').textContent='欢迎，'+n;setTimeout(function(){switchPage('home')},500)}
+    function handleLogout(){loggedInUser=null;switchPage('login')}
+  </script>
+</body>
+</html>

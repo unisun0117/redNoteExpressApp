@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>待办处理</title>
+    <link rel="stylesheet" href="https://unpkg.com/vant@4/lib/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        :root {
+            --van-primary-color: #3B82F6;
+        }
+        body {
+            background-color: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        ::-webkit-scrollbar { display: none; }
+        .todo-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .todo-card.overdue {
+            border-left: 4px solid #ef4444;
+        }
+        .todo-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .todo-card-body {
+            font-size: 14px;
+            color: #303133;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        .todo-card-meta {
+            font-size: 12px;
+            color: #909399;
+            line-height: 1.8;
+        }
+        .todo-card-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="prd-root" class="pb-16">
+        <van-sticky>
+            <van-nav-bar title="待办处理" ></van-nav-bar>
+            <!-- 状态 Tab -->
+            <div class="pb-0">
+                <van-tabs v-model:active="activeTab" @change="onTabChange" color="#3B82F6" title-active-color="#3B82F6" :line-width="20">
+                    <van-tab title="未处理" :badge="pendingCount > 0 ? String(pendingCount) : ''"></van-tab>
+                    <van-tab title="已处理"></van-tab>
+                    <van-tab title="已取消"></van-tab>
+                </van-tabs>
+                <!-- 筛选标签 -->
+                <div class="pb-2 overflow-x-auto">
+                    <van-dropdown-menu active-color="#3B82F6">
+                        <van-dropdown-item v-model="search.todoType" :options="typeOptions" @change="doSearch"></van-dropdown-item>
+                        <van-dropdown-item v-model="search.urgency" :options="urgencyOptions" @change="doSearch"></van-dropdown-item>
+                        <van-dropdown-item v-model="search.region" :options="regionOptions" @change="doSearch"></van-dropdown-item>
+                    </van-dropdown-menu>
+                </div>
+            </div>
+        </van-sticky>
+
+        <!-- 搜索栏 -->
+        <van-search
+            v-model="search.keyword"
+            placeholder="搜索标题/业务单据ID"
+            shape="round"
+            background="#f5f5f5"
+            @search="doSearch"
+        ></van-search>
+
+        <!-- 卡片列表 -->
+        <div class="px-3">
+            <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+                <van-list
+                    v-model:loading="loadingMore"
+                    :finished="finished"
+                    finished-text="没有更多了"
+                    loading-text="加载中..."
+                    @load="onLoadMore"
+                >
+                    <div v-for="item in displayList" :key="item.id" class="todo-card" :class="{ overdue: item.overdue }">
+                        <!-- 卡片头部：紧急程度 + 待办类型 -->
+                        <div class="todo-card-header">
+                            <van-tag
+                                :type="item.urgency === '急' ? 'danger' : item.urgency === '高' ? 'warning' : 'primary'"
+                                :color="item.urgency === '低' ? '#909399' : undefined"
+                                size="medium"
+                            >{{ item.urgency }}</van-tag>
+                            <span class="font-semibold text-sm" style="color:#303133;">{{ item.todoType }}</span>
+                            <van-tag
+                                v-if="item.statusCode !== 'PENDING'"
+                                :type="item.statusCode === 'DONE' ? 'success' : ''"
+                                size="small"
+                                plain
+                            >{{ item.status }}</van-tag>
+                        </div>
+
+                        <!-- 标题 -->
+                        <div class="todo-card-body">{{ item.title }}</div>
+
+                        <!-- 元信息 -->
+                        <div class="todo-card-meta">
+                            <div>业务单据：{{ item.businessId }}</div>
+                            <div>提交人：{{ item.creator }}　|　销售大区：{{ item.regionName }}</div>
+                            <div>创建时间：{{ item.createTime }}　|　最晚处理：{{ item.deadline }}</div>
+                        </div>
+
+                        <!-- 底部分隔 + 操作按钮 -->
+                        <div class="todo-card-footer">
+                            <van-button
+                                v-if="item.statusCode === 'PENDING'"
+                                type="primary"
+                                size="small"
+                                style="width: 100%"
+                                round
+                                @click="handleTodo(item)"
+                            >去处理</van-button>
+                            <van-button
+                                v-else
+                                size="small"
+                                style="width: 100%"
+                                round
+                                @click="handleView(item)"
+                            >查看</van-button>
+                        </div>
+                    </div>
+                </van-list>
+            </van-pull-refresh>
+
+            <!-- 空状态 -->
+            <div v-if="displayList.length === 0 && !refreshing && !loadingMore" class="flex flex-col items-center justify-center py-16 text-gray-400">
+                <div class="text-5xl mb-3">📋</div>
+                <div class="text-sm">{{ hasFilter ? '未找到匹配的待办事项' : '暂无待办事项' }}</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vant@4/lib/vant.min.js"></script>
+    <script>
+        const { createApp, ref, reactive, computed } = Vue;
+        const app = createApp({
+            setup: function () {
+                // ================================================================
+                // Mock 数据
+                // ================================================================
+                var allTodos = ref([
+                    { id: 1, todoType: '价格审核', businessId: 'PRC-20260701-0034', title: '商品 [SKU-10234] 价格变更待审核', urgency: '急', status: '未处理', statusCode: 'PENDING', regionName: '海南区', createTime: '07-01 10:30', creator: '王五', handlers: '张三,李四', deadline: '07-03 10:30', overdue: false },
+                    { id: 2, todoType: '客户审核', businessId: 'CUS-20260701-0015', title: '客户 [天福茗茶] 资料变更待审核', urgency: '高', status: '未处理', statusCode: 'PENDING', regionName: '广深区', createTime: '07-01 09:15', creator: '赵六', handlers: '张三', deadline: '07-03 09:15', mobileUrl: '../02-客户管理/客户档案-审核端-原型.html', overdue: false },
+                    { id: 3, todoType: '退货审批', businessId: 'ORD-20260630-0089', title: '订单 [ORD-20260630-0034] 退货申请', urgency: '中', status: '已处理', statusCode: 'DONE', regionName: '海南区', createTime: '06-30 16:45', creator: '张三', handlers: '李四', deadline: '07-02 16:45', overdue: false },
+                    { id: 4, todoType: '提现审核', businessId: 'WTH-20260630-0022', title: '客户 [永辉超市] 申请提现 ¥5,000', urgency: '低', status: '未处理', statusCode: 'PENDING', regionName: '华东区', createTime: '06-30 14:20', creator: '系统', handlers: '王五,赵六', deadline: '07-02 14:20', overdue: false },
+                    { id: 5, todoType: '价格审核', businessId: 'PRC-20260629-0028', title: '商品 [SKU-20456] 价格变更待审核', urgency: '急', status: '未处理', statusCode: 'PENDING', regionName: '西南区', createTime: '06-29 08:40', creator: '李四', handlers: '张三', deadline: '07-01 08:40', overdue: true },
+                    { id: 6, todoType: '客户审核', businessId: 'CUS-20260628-0012', title: '客户 [湘味轩] 档案变更待审核', urgency: '中', status: '已取消', statusCode: 'CANCELLED', regionName: '海南区', createTime: '06-28 11:15', creator: '王五', handlers: '张三', deadline: '06-30 11:15', mobileUrl: '../02-客户管理/客户档案-审核端-原型.html', overdue: false },
+                    { id: 7, todoType: '退货审批', businessId: 'ORD-20260627-0065', title: '订单 [ORD-20260627-0018] 退货申请', urgency: '高', status: '已处理', statusCode: 'DONE', regionName: '广深区', createTime: '06-27 15:30', creator: '赵六', handlers: '王五', deadline: '06-29 15:30', overdue: false },
+                    { id: 8, todoType: '提现审核', businessId: 'WTH-20260626-0019', title: '客户 [大碗厨] 申请提现 ¥12,000', urgency: '中', status: '已取消', statusCode: 'CANCELLED', regionName: '华东区', createTime: '06-26 10:00', creator: '系统', handlers: '李四', deadline: '06-28 10:00', overdue: false },
+                ]);
+
+                // ================================================================
+                // Tab & 搜索
+                // ================================================================
+                var activeTab = ref(0);
+                var search = reactive({ keyword: '', todoType: '', urgency: '', region: '' });
+                var refreshing = ref(false);
+                var loadingMore = ref(false);
+                var finished = ref(false);
+                var pageSize = 15;
+                var displayCount = ref(pageSize);
+
+                var tabMap = ['PENDING', 'DONE', 'CANCELLED'];
+
+                var typeOptions = [
+                    { text: '全部类型', value: '' },
+                    { text: '价格审核', value: '价格审核' },
+                    { text: '客户审核', value: '客户审核' },
+                    { text: '退货审批', value: '退货审批' },
+                    { text: '提现审核', value: '提现审核' },
+                ];
+                var urgencyOptions = [
+                    { text: '全部', value: '' },
+                    { text: '急', value: '急' },
+                    { text: '高', value: '高' },
+                    { text: '中', value: '中' },
+                    { text: '低', value: '低' },
+                ];
+                var regionOptions = [
+                    { text: '全部大区', value: '' },
+                    { text: '海南区', value: '海南区' },
+                    { text: '广深区', value: '广深区' },
+                    { text: '华东区', value: '华东区' },
+                    { text: '西南区', value: '西南区' },
+                ];
+
+                var pendingCount = computed(function () {
+                    return allTodos.value.filter(function (t) { return t.statusCode === 'PENDING'; }).length;
+                });
+
+                var hasFilter = computed(function () {
+                    return !!(search.keyword || search.todoType || search.urgency || search.region);
+                });
+
+                var filteredTodos = computed(function () {
+                    var list = allTodos.value.filter(function (t) {
+                        return t.statusCode === tabMap[activeTab.value];
+                    });
+                    if (search.keyword) {
+                        var kw = search.keyword.toLowerCase();
+                        list = list.filter(function (t) {
+                            return t.title.toLowerCase().indexOf(kw) !== -1 || t.businessId.toLowerCase().indexOf(kw) !== -1;
+                        });
+                    }
+                    if (search.todoType) {
+                        list = list.filter(function (t) { return t.todoType === search.todoType; });
+                    }
+                    if (search.urgency) {
+                        list = list.filter(function (t) { return t.urgency === search.urgency; });
+                    }
+                    if (search.region) {
+                        list = list.filter(function (t) { return t.regionName === search.region; });
+                    }
+                    return list;
+                });
+
+                var displayList = computed(function () {
+                    return filteredTodos.value.slice(0, displayCount.value);
+                });
+
+                function resetDisplay() {
+                    displayCount.value = pageSize;
+                    finished.value = false;
+                }
+
+                function onTabChange() { resetDisplay(); }
+                function doSearch() { resetDisplay(); }
+
+                function onRefresh() {
+                    setTimeout(function () {
+                        resetDisplay();
+                        refreshing.value = false;
+                        vant.showToast('刷新成功');
+                    }, 600);
+                }
+
+                function onLoadMore() {
+                    setTimeout(function () {
+                        displayCount.value = displayCount.value + pageSize;
+                        loadingMore.value = false;
+                        if (displayCount.value >= filteredTodos.value.length) {
+                            finished.value = true;
+                        }
+                    }, 500);
+                }
+
+                // ================================================================
+                // 操作
+                // ================================================================
+                function handleTodo(row) {
+                    if (row.mobileUrl) { window.location.href = row.mobileUrl; }
+                    else { vant.showToast('跳转至业务处理页'); }
+                }
+                function handleView(row) {
+                    if (row.mobileUrl) { window.location.href = row.mobileUrl; }
+                    else { vant.showToast('跳转至业务详情页'); }
+                }
+
+                return {
+                    activeTab: activeTab,
+                    search: search,
+                    typeOptions: typeOptions,
+                    urgencyOptions: urgencyOptions,
+                    regionOptions: regionOptions,
+                    refreshing: refreshing,
+                    loadingMore: loadingMore,
+                    finished: finished,
+                    pendingCount: pendingCount,
+                    hasFilter: hasFilter,
+                    displayList: displayList,
+                    onTabChange: onTabChange,
+                    doSearch: doSearch,
+                    onRefresh: onRefresh,
+                    onLoadMore: onLoadMore,
+                    handleTodo: handleTodo,
+                    handleView: handleView,
+                };
+            },
+        });
+        app.use(vant).mount('#prd-root');
+    </script>
+</body>
+</html>
