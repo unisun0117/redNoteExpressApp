@@ -26,3 +26,6 @@ yarn-error.log*
 *.pdf
 .obsidian/
 temp_skills_marketplace/
+.claude/plans/
+qdm-tob/
+qdm-tob.zip
